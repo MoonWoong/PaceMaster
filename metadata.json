@@ -1,0 +1,6 @@
+{
+  "name": "PaceMaster - 맞춤형 러닝 대시보드",
+  "description": "러너를 위한 개인 맞춤형 기록 관리 및 훈련 분석 대시보드. VDOT 계산, 심박존 분석, 가민 CSV 업로드, 마라톤 일정 및 D-day 관리.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

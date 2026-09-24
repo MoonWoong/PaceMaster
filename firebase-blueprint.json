@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "PhysicalInfo": {
+      "title": "PhysicalInfo",
+      "description": "러너의 신체 기본 정보 (신장, 체중, 나이)",
+      "type": "object",
+      "properties": {
+        "height": { "type": "number", "description": "신장 (cm)" },
+        "weight": { "type": "number", "description": "체중 (kg)" },
+        "age": { "type": "number", "description": "나이 (만 나이)" },
+        "updatedAt": { "type": "string", "description": "최종 수정 일시 (ISO)" }
+      },
+      "required": ["height", "weight", "age"]
+    },
+    "RunningShoe": {
+      "title": "RunningShoe",
+      "description": "러닝화 마일리지 및 스펙 관리",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "러닝화 고유 ID" },
+        "name": { "type": "string", "description": "러닝화 모델명" },
+        "brand": { "type": "string", "description": "제조 브랜드" },
+        "currentDistanceKm": { "type": "number", "description": "누적 주행 거리 (km)" },
+        "targetDistanceKm": { "type": "number", "description": "목표 교체 마일리지 (km)" },
+        "category": { "type": "string", "description": "신발 분류 (레이싱, 카본화, 데일리, 쿠션화, 안정화)" },
+        "price": { "type": "number", "description": "구매가 / 정가 (원)" },
+        "weightGrams": { "type": "number", "description": "무게 (g)" },
+        "heelDropMm": { "type": "number", "description": "힐 드롭 (mm)" },
+        "cushionLevel": { "type": "string", "description": "쿠션 레벨" },
+        "plateType": { "type": "string", "description": "플레이트 유형" },
+        "purchaseDate": { "type": "string", "description": "구매일 (YYYY-MM-DD)" },
+        "notes": { "type": "string", "description": "메모" }
+      },
+      "required": ["id", "name", "brand", "currentDistanceKm", "targetDistanceKm", "category"]
+    },
+    "RegisteredRace": {
+      "title": "RegisteredRace",
+      "description": "러너가 등록한 참가 예정 마라톤 대회",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "대회 고유 ID" },
+        "name": { "type": "string", "description": "대회명" },
+        "date": { "type": "string", "description": "대회 일자 (YYYY-MM-DD)" },
+        "course": { "type": "string", "description": "코스 (풀, 하프, 10K 등)" },
+        "location": { "type": "string", "description": "개최 장소" },
+        "websiteUrl": { "type": "string", "description": "공식 웹사이트 URL" },
+        "isTarget": { "type": "boolean", "description": "메인 목표 대회 여부" },
+        "createdAt": { "type": "string", "description": "등록 일시" }
+      },
+      "required": ["id", "name", "date", "course"]
+    },
+    "RunningRecords": {
+      "title": "RunningRecords",
+      "description": "개인 최고 기록(PB) 및 심박수",
+      "type": "object",
+      "properties": {
+        "pb5k": { "type": "string", "description": "5K 최고 기록 (HH:MM:SS)" },
+        "pb10k": { "type": "string", "description": "10K 최고 기록 (HH:MM:SS)" },
+        "pbHalf": { "type": "string", "description": "하프 최고 기록 (HH:MM:SS)" },
+        "pbFull": { "type": "string", "description": "풀코스 최고 기록 (HH:MM:SS)" },
+        "maxHr": { "type": "number", "description": "최대 심박수 (bpm)" },
+        "thresholdHr": { "type": "number", "description": "젖산역치 심박수 (bpm)" },
+        "updatedAt": { "type": "string", "description": "수정 일시" }
+      },
+      "required": ["pb10k", "pbHalf", "pbFull"]
+    },
+    "RunningGoals": {
+      "title": "RunningGoals",
+      "description": "러너의 마라톤 목표 시간 및 목표 대회",
+      "type": "object",
+      "properties": {
+        "target10k": { "type": "string", "description": "10K 목표 시간" },
+        "targetHalf": { "type": "string", "description": "하프 마라톤 목표 시간" },
+        "targetFull": { "type": "string", "description": "풀코스 목표 시간" },
+        "targetRaceName": { "type": "string", "description": "목표 대회명" },
+        "updatedAt": { "type": "string", "description": "수정 일시" }
+      },
+      "required": ["targetFull"]
+    },
+    "TrainingSession": {
+      "title": "TrainingSession",
+      "description": "가민 CSV 연동 및 실제 달리기 훈련 기록 세션",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "훈련 세션 ID" },
+        "date": { "type": "string", "description": "훈련 날짜 (YYYY-MM-DD)" },
+        "title": { "type": "string", "description": "훈련 세션 제목" },
+        "totalDistanceKm": { "type": "number", "description": "총 주행 거리 (km)" },
+        "totalTime": { "type": "string", "description": "총 주행 시간 (HH:MM:SS)" },
+        "avgPace": { "type": "string", "description": "평균 페이스 (M'SS\")" },
+        "avgHr": { "type": "number", "description": "평균 심박수 (bpm)" },
+        "maxHr": { "type": "number", "description": "최고 심박수 (bpm)" },
+        "notes": { "type": "string", "description": "훈련 일지 메모" },
+        "laps": { "type": "array", "description": "랩별 상세 데이터 목록" },
+        "createdAt": { "type": "string", "description": "등록 일시" }
+      },
+      "required": ["id", "date", "title", "totalDistanceKm", "totalTime", "avgPace"]
+    },
+    "WeeklyPlan": {
+      "title": "WeeklyPlan",
+      "description": "AI 맞춤 주간 훈련 상세계획표",
+      "type": "object",
+      "properties": {
+        "days": { "type": "array", "description": "요일별 훈련 계획 목록" },
+        "updatedAt": { "type": "string", "description": "계획표 생성 일시" }
+      },
+      "required": ["days"]
+    }
+  },
+  "firestore": {
+    "/runner_data/physical": {
+      "schema": "PhysicalInfo",
+      "description": "신체 기본 정보 단일 문서"
+    },
+    "/runner_data/records": {
+      "schema": "RunningRecords",
+      "description": "러닝 PB 기록 및 심박수 단일 문서"
+    },
+    "/runner_data/goals": {
+      "schema": "RunningGoals",
+      "description": "러닝 목표 기록 단일 문서"
+    },
+    "/runner_data/weekly_plan": {
+      "schema": "WeeklyPlan",
+      "description": "AI 주간 훈련 계획표 단일 문서"
+    },
+    "/shoes/{shoeId}": {
+      "schema": "RunningShoe",
+      "description": "개별 러닝화 마일리지 문서"
+    },
+    "/races/{raceId}": {
+      "schema": "RegisteredRace",
+      "description": "참가 등록 마라톤 대회 문서"
+    },
+    "/training_sessions/{sessionId}": {
+      "schema": "TrainingSession",
+      "description": "가민 CSV 파싱 훈련 세션 문서"
+    }
+  }
+}

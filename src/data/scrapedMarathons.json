@@ -1,0 +1,983 @@
+[
+  {
+    "id": "race-scraped-2026-09-30-pujr",
+    "title": "사우나런 in 뚝섬한강공원",
+    "date": "2026-09-30",
+    "dayOfWeek": "수요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 뚝섬한강공원 인근",
+    "websiteUrl": "https://saunarun.com/products/e5d5rnduj37y?page=1",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-yl1m",
+    "title": "SMTOWN RUN CLUB 26",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K"
+    ],
+    "location": "인천 인천 영종도 왕산마리나항",
+    "websiteUrl": "https://smtownrunclub.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-mjzj",
+    "title": "2026 춘천연합마라톤",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "강원",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "강원 춘천시 엘리시안 강촌",
+    "websiteUrl": "http://www.yonma.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-k9n3",
+    "title": "2026 JUST RUN10 청주 (하반기)",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "충북 무심천체육공원",
+    "websiteUrl": "http://runten.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-oq53",
+    "title": "2026 이일선기념 마라톤",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경북 울릉도내 나리분지",
+    "websiteUrl": "http://forms.gle/6Y88RJqW6QCZkZoE7",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-7zph",
+    "title": "2026 마스터즈 하프 마라톤",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암 월드컵공원 평화광장",
+    "websiteUrl": "http://mastershalf.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-aygs",
+    "title": "2026 완주트레일런",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "전라/광주",
+    "courses": [
+      "10K"
+    ],
+    "location": "전북 완주군 고산자연휴양림",
+    "websiteUrl": "http://samsamis.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-0aik",
+    "title": "2026 천사데이기념 동두천천사마라톤",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 경기도 동두천시 캠프보산",
+    "websiteUrl": "http://hope1004.org",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-gp49",
+    "title": "제25회 김제새만금 지평선 전국마라톤",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "전라/광주",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "전북 김제시민운동장 일원",
+    "websiteUrl": "http://gimjesm.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-qpgq",
+    "title": "2026 글로벌 6K 포 워터 부산",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "부산 부산 다대포 해변공원",
+    "websiteUrl": "https://global6kforwater.com/frt/application/applicationOverview.do?CMPT_AREA_TYPE=6&utm_source=marathongo&utm_medium=MRG_01&utm_campaign=26Running6K",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-i6a3",
+    "title": "2026 서산 코스모스 황금들녘 마라톤 대회",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충남 서산스포츠테마파크",
+    "websiteUrl": "http://mara1080.com/event/fcaa0bc8-1489-47c3-8fec-8e5a5c17284e",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-03-nl8v",
+    "title": "제2회 아산이순신 트레일",
+    "date": "2026-10-03",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "10K"
+    ],
+    "location": "충남 아산 신정호 이순신장군 동상앞",
+    "websiteUrl": "http://isunshintrail.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-h82u",
+    "title": "소노 런트립 180K in 경주",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경북 경주시 소노캄 경주 및 보문호반길 일원",
+    "websiteUrl": "https://www.sonohotelsresorts.com/reserve/activity/dtl?salesNo=292686",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-bnkg",
+    "title": "S-OIL과 함께하는 감동의 마라톤",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암동 평화의 광장",
+    "websiteUrl": "http://감동의마라톤.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-my0i",
+    "title": "2026 Run Your Way Seoul 10K",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 여의도공원 문화의 광장",
+    "websiteUrl": "http://www.nbkorea.com/launchingCalendar/detail.action?listStatus=H&launchingIdx=3117",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-sv29",
+    "title": "2026 S오일 감동의 마라톤",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암동 평화의 광장",
+    "websiteUrl": "http://xn--439ar1m25cg1c810a7ro.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-41b5",
+    "title": "제14회 광명시장배건강달리기",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 광명 찬빛광장(안양천)",
+    "websiteUrl": "http://gmaf.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-odug",
+    "title": "제23회 경남마라톤",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경남 창원종합운동장 보조경기장",
+    "websiteUrl": "http://www.knmarathon.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-ybes",
+    "title": "2026 홍천사랑마라톤",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "강원",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "강원 홍천종합운동장",
+    "websiteUrl": "http://www.hongcheonrun.net/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-04-ptf2",
+    "title": "2026 파주북시티마라톤",
+    "date": "2026-10-04",
+    "dayOfWeek": "일요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 파주출판도시",
+    "websiteUrl": "http://runbookcity.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-05-ndvq",
+    "title": "런센스 2026",
+    "date": "2026-10-05",
+    "dayOfWeek": "월요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암동 평화의공원 평화광장",
+    "websiteUrl": "http://www.runsense.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-05-0qzw",
+    "title": "제12회 시흥시 전국하프마라톤",
+    "date": "2026-10-05",
+    "dayOfWeek": "월요일",
+    "region": "경기/인천",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "경기 한국공학대학교 제2캠퍼스",
+    "websiteUrl": "http://shmarathon.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-05-qjk4",
+    "title": "2026 양주 천일홍 가을 페스타 마라톤",
+    "date": "2026-10-05",
+    "dayOfWeek": "월요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 양주시 나리공원",
+    "websiteUrl": "http://yangjurun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-09-5qma",
+    "title": "제26회 홍성마라톤",
+    "date": "2026-10-09",
+    "dayOfWeek": "금요일",
+    "region": "충청/대전",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충남 홍주 종합경기장",
+    "websiteUrl": "http://amarunhs.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-09-krn5",
+    "title": "WYD와 함께하는 생명사랑 마라톤/걷기 대회",
+    "date": "2026-10-09",
+    "dayOfWeek": "금요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 안성 미리내 성지",
+    "websiteUrl": "http://cafe.naver.com/browna6seu",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-12cr",
+    "title": "제7회 천안삼거리 흥타령울트라마라톤",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "10K"
+    ],
+    "location": "충남 천안삼거리공원",
+    "websiteUrl": "http://www.chultra.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-1f17",
+    "title": "제9회 거제시장배 섬꽃 전국 마라톤",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "하프",
+      "10K"
+    ],
+    "location": "경남 거제스포츠파크",
+    "websiteUrl": "http://mara1080.com/event/b43655f0-60be-4c97-ad62-d377f6586ae0",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-yeel",
+    "title": "제5회 구미시장배 금오산트레일 레이스",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경북 금오산 공영 대주차장",
+    "websiteUrl": "http://cafe.naver.com/gumitrailrunnerclub",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-r75z",
+    "title": "제주풍차런",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "제주",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "제주 한림수협다목적어업인종합지원센터",
+    "websiteUrl": "http://jejuwindmillrun.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-gz61",
+    "title": "제3회서울트레일런 대회",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 시청 덕수궁돌담길",
+    "websiteUrl": "http://www.xn--zl2btb922be3fb2a860c.com/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-10-t2l8",
+    "title": "진안트레일레이스",
+    "date": "2026-10-10",
+    "dayOfWeek": "토요일",
+    "region": "전라/광주",
+    "courses": [
+      "10K"
+    ],
+    "location": "전북 국립진안고원산림치유원",
+    "websiteUrl": "http://rocknrun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-7js3",
+    "title": "제10회 가을철 산불조심마라톤",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "풀",
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 광평교운동장",
+    "websiteUrl": "http://www.koreatrail.net/home/main.php?link=event&einc=eindex&csno=20190605121808&opp=20260203121910#baseline",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-8n5t",
+    "title": "진안고원 포레스티벌 Run & Heal",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "전라/광주",
+    "courses": [
+      "10K"
+    ],
+    "location": "전북 국립진안고원산림치유원",
+    "websiteUrl": "http://rocknrun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-s6x8",
+    "title": "제6회 영등포구청장배 육상대회",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 신정교하부육상트랙구장",
+    "websiteUrl": "http://cafe.naver.com/ydprun1/646",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-fg5w",
+    "title": "제22회  금천구청장배 건강달리기",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 안양천 다목적광장",
+    "websiteUrl": "http://www.gcrun.kr/s1p1",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-21zg",
+    "title": "함께런 러닝 페스티벌",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 미사경정공원 관리동 광장",
+    "websiteUrl": "http://runcop.com/event/hamkkerun",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-11-wl09",
+    "title": "83타워 업힐런",
+    "date": "2026-10-11",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "대구 대구 이월드 및 83타워",
+    "websiteUrl": "http://leisure-web.yanolja.com/leisure/10365567",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-17-b4qc",
+    "title": "제24회 청원생명쌀대청호마라톤",
+    "date": "2026-10-17",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "풀",
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충북 문의체육공원",
+    "websiteUrl": "http://race.cjsports.or.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-18-urxp",
+    "title": "그린스텝 2026",
+    "date": "2026-10-18",
+    "dayOfWeek": "일요일",
+    "region": "전라/광주",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "전남 전라남도 해남군 솔라시도",
+    "websiteUrl": "http://www.greenstep.co.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-24-6qfo",
+    "title": "2026 하남 어텀 패밀리 마라톤",
+    "date": "2026-10-24",
+    "dayOfWeek": "토요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 하남 미사 경정 공원",
+    "websiteUrl": "http://hnrun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-24-35pf",
+    "title": "서울 대모-구룡산트레일런",
+    "date": "2026-10-24",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 수서역6번출구",
+    "websiteUrl": "http://www.mtrailrun.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-24-c8u3",
+    "title": "TOUR 5K & Beach Ploggin망상",
+    "date": "2026-10-24",
+    "dayOfWeek": "토요일",
+    "region": "강원",
+    "courses": [
+      "5K"
+    ],
+    "location": "강원 동해시 망상해수욕장",
+    "websiteUrl": "http://mypb.info/competition/666",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-24-njww",
+    "title": "Freedom Walk & Run",
+    "date": "2026-10-24",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 반포한강공원 세빛섬",
+    "websiteUrl": "http://fwr.libertyinnorthkorea.or.kr/2026/#join",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-25-xbbi",
+    "title": "K-RUN 챌린지",
+    "date": "2026-10-25",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 서울 뚝섬한강공원 수변광장",
+    "websiteUrl": "http://www.irunman.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-10-25-kmbf",
+    "title": "울산 런 페스타 (U-RUN)",
+    "date": "2026-10-25",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "울산 울산 문수 국제양궁장",
+    "websiteUrl": "http://www.ulsanrunfesta.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-06-rxow",
+    "title": "제40회 서봉기단축마라톤",
+    "date": "2026-11-06",
+    "dayOfWeek": "금요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경북 경북문경시민운동장(시내일원)",
+    "websiteUrl": "http://cafe.daum.net/seobongmarathon",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-07-pg52",
+    "title": "제19회 진해마라톤",
+    "date": "2026-11-07",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "5K"
+    ],
+    "location": "경남 진해공설운동장",
+    "websiteUrl": "http://www.jinhaemarathon.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-07-cdei",
+    "title": "SaveRace 2026",
+    "date": "2026-11-07",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 여의도공원 문화의마당",
+    "websiteUrl": "http://www.saverace.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-07-lk5z",
+    "title": "남한산성트레일",
+    "date": "2026-11-07",
+    "dayOfWeek": "토요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K"
+    ],
+    "location": "경기 산성로타리",
+    "websiteUrl": "http://www.mtrailrun.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-07-3wc0",
+    "title": "레디, 셋, 공익런!",
+    "date": "2026-11-07",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "충북 청주 무심천체육공원",
+    "websiteUrl": "http://www.cbngo.org/sub.php?menukey=138&mod=view&no=8600&page=1",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-07-wnky",
+    "title": "26 Ten Bridges Night Walk",
+    "date": "2026-11-07",
+    "dayOfWeek": "토요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "10K"
+    ],
+    "location": "경남 밀양시 일원",
+    "websiteUrl": "http://www.mywalk.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-08-r2fr",
+    "title": "제20회 자원봉사 사랑 굿펀 마라톤",
+    "date": "2026-11-08",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 신정교하부육상트랙구장",
+    "websiteUrl": "http://xn--oi2bo7bn3do4es0j56afy5b.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-08-j601",
+    "title": "제12회 아산 은행나무길 전국마라톤",
+    "date": "2026-11-08",
+    "dayOfWeek": "일요일",
+    "region": "충청/대전",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충남 아산시  현충사 은행나무길",
+    "websiteUrl": "http://asanmarathon.co.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-14-z4xe",
+    "title": "제2회 안양천 단풍길 마라톤",
+    "date": "2026-11-14",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 신정교 하부 영롱이 억새구장",
+    "websiteUrl": "http://maplerun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-14-cm87",
+    "title": "제2회 한강 브릿지 런",
+    "date": "2026-11-14",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "5K"
+    ],
+    "location": "서울 구리한강시민공원 주차장",
+    "websiteUrl": "http://www.mtrailrun.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-15-nbdl",
+    "title": "제24회 대모산,구룡산 트레일런",
+    "date": "2026-11-15",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K"
+    ],
+    "location": "서울 수서역 7번출구광장",
+    "websiteUrl": "http://koreatrail.net",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-15-2dov",
+    "title": "26회 창원통일마라톤",
+    "date": "2026-11-15",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "5K"
+    ],
+    "location": "경남 창원종합운동장 보조경기장",
+    "websiteUrl": "http://www.tongilmarathon.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-21-y90b",
+    "title": "2026 세정 가을바람 유러닝페스타",
+    "date": "2026-11-21",
+    "dayOfWeek": "토요일",
+    "region": "경기/인천",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "경기 하남 미사리 조정경기장",
+    "websiteUrl": "http://urfesta.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-22-s0p8",
+    "title": "자이스 스마일 레이스",
+    "date": "2026-11-22",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 여의도공원 문화의 마당",
+    "websiteUrl": "http://zeiss-smilerace.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-11-28-p6lo",
+    "title": "2027 서울 세계청년대회 성공 기원 평화런",
+    "date": "2026-11-28",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "서울 여의도공원 문화의마당",
+    "websiteUrl": "http://www.peacerun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-12-05-duek",
+    "title": "제4회 가든파이브 라이프 레이스",
+    "date": "2026-12-05",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 서울 가든파이브라이프 중앙광장",
+    "websiteUrl": "http://www.irunman.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-12-12-5s77",
+    "title": "제3회 긍정의힘 마라톤",
+    "date": "2026-12-12",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 신정교 하부 영롱이 억새구장",
+    "websiteUrl": "http://www.powerrun.kr/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-12-13-2sfh",
+    "title": "제5회 밤섬 마라톤",
+    "date": "2026-12-13",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암월드컵공원 평화광장",
+    "websiteUrl": "http://bamseom.com/",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2026-12-19-1hcp",
+    "title": "제2회 청춘 릴레이 마라톤",
+    "date": "2026-12-19",
+    "dayOfWeek": "토요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 상암월드컵공원 평화의광장",
+    "websiteUrl": "http://youngrun.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-02-14-50fj",
+    "title": "희망드림 제24회 동계마라톤대회",
+    "date": "2027-02-14",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "서울 여의도 한강 물빛광장",
+    "websiteUrl": "http://dkrun.co.kr",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-02-20-b8up",
+    "title": "2027 전마협 청주 무심천 투데이 마라톤(토)",
+    "date": "2027-02-20",
+    "dayOfWeek": "토요일",
+    "region": "충청/대전",
+    "courses": [
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충북 청주 무심천 롤러스케이트장",
+    "websiteUrl": "http://mara1080.com/event/3a1225a6-b473-4fb7-8f26-cda304cff617",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-02-21-eqpg",
+    "title": "2027 전마협 청주 무심천 투데이 마라톤(일)",
+    "date": "2027-02-21",
+    "dayOfWeek": "일요일",
+    "region": "충청/대전",
+    "courses": [
+      "풀",
+      "하프",
+      "10K",
+      "5K"
+    ],
+    "location": "충북 청주 무심천 롤러스케이트장",
+    "websiteUrl": "http://mara1080.com/event/b1aef378-cf4a-43b9-b2fd-a2d1ae33bc15",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-03-21-qfev",
+    "title": "2027 서울마라톤",
+    "date": "2027-03-21",
+    "dayOfWeek": "일요일",
+    "region": "서울",
+    "courses": [
+      "풀",
+      "10K"
+    ],
+    "location": "서울 광화문광장",
+    "websiteUrl": "http://seoul-marathon.com",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-03-28-5it4",
+    "title": "제3회 영광광풍마라톤",
+    "date": "2027-03-28",
+    "dayOfWeek": "일요일",
+    "region": "전라/광주",
+    "courses": [
+      "10K",
+      "5K"
+    ],
+    "location": "전남 영광 스포디움",
+    "websiteUrl": "http://mara1080.com/event/92394e8e-a27c-4c3a-b286-7233340a9e7a",
+    "status": "접수중"
+  },
+  {
+    "id": "race-scraped-2027-04-18-0laq",
+    "title": "제9회 오션뷰 기장바다마라톤",
+    "date": "2027-04-18",
+    "dayOfWeek": "일요일",
+    "region": "경상/대구/부산",
+    "courses": [
+      "하프",
+      "10K"
+    ],
+    "location": "부산 오시리아 동부산관광9로",
+    "websiteUrl": "http://www.badarun.co.kr",
+    "status": "접수중"
+  }
+]

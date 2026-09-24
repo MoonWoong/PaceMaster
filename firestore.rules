@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow full access to application collections
+    match /runner_data/{docId} {
+      allow read, write: if true;
+    }
+
+    match /shoes/{shoeId} {
+      allow read, write: if true;
+    }
+
+    match /races/{raceId} {
+      allow read, write: if true;
+    }
+
+    match /training_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
