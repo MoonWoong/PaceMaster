@@ -30,6 +30,7 @@ import {
   RunningGoals,
   TrainingSession,
   WeeklyPlanDay,
+  WeeklyPlanSettings,
 } from '../types';
 import { INITIAL_RUNNING_SHOES } from './shoeData';
 import provisionedConfig from '../../firebase-applet-config.json';
@@ -84,9 +85,9 @@ export function clearRuntimeFirebaseConfig() {
   window.location.reload();
 }
 
-let firebaseAppInstance: FirebaseApp | null = null;
-let firestoreInstance: Firestore | null = null;
-let isFirebaseConnected = false;
+export let firebaseAppInstance: FirebaseApp | null = null;
+export let firestoreInstance: Firestore | null = null;
+export let isFirebaseConnected = false;
 
 const activeConfig = getActiveFirebaseConfig();
 
@@ -183,66 +184,7 @@ const DEFAULT_GOALS: RunningGoals = {
   updatedAt: new Date().toISOString(),
 };
 
-const DEFAULT_TRAINING_SESSIONS: TrainingSession[] = [
-  {
-    id: 'ts-2026-09-20',
-    date: '2026-09-20',
-    title: '주말 25km LSD 장거리 지속주 (한강 남단 코스)',
-    totalDistanceKm: 25.12,
-    totalTime: '02:08:40',
-    avgPace: "5'07\"",
-    avgHr: 148,
-    maxHr: 165,
-    notes: '가을 바람이 시원하여 후반부에도 호흡이 안정적이었음. 20km 지점 파워젤 섭취.',
-    laps: [
-      { lap: 1, time: '05:22', cumulativeTime: '05:22', distanceKm: 1.0, avgPace: "5'22\"", avgHr: 132, maxHr: 140 },
-      { lap: 2, time: '05:14', cumulativeTime: '10:36', distanceKm: 1.0, avgPace: "5'14\"", avgHr: 138, maxHr: 144 },
-      { lap: 3, time: '05:09', cumulativeTime: '15:45', distanceKm: 1.0, avgPace: "5'09\"", avgHr: 142, maxHr: 147 },
-      { lap: 4, time: '05:08', cumulativeTime: '20:53', distanceKm: 1.0, avgPace: "5'08\"", avgHr: 145, maxHr: 150 },
-      { lap: 5, time: '05:05', cumulativeTime: '25:58', distanceKm: 1.0, avgPace: "5'05\"", avgHr: 147, maxHr: 153 },
-      { lap: 6, time: '05:04', cumulativeTime: '31:02', distanceKm: 1.0, avgPace: "5'04\"", avgHr: 148, maxHr: 155 },
-      { lap: 7, time: '05:02', cumulativeTime: '36:04', distanceKm: 1.0, avgPace: "5'02\"", avgHr: 150, maxHr: 157 },
-      { lap: 8, time: '04:58', cumulativeTime: '41:02', distanceKm: 1.0, avgPace: "4'58\"", avgHr: 153, maxHr: 162 },
-    ],
-    createdAt: '2026-09-20T10:30:00Z',
-  },
-  {
-    id: 'ts-2026-09-16',
-    date: '2026-09-16',
-    title: '수요일 10km 젖산 역치 템포런 (트랙 25바퀴)',
-    totalDistanceKm: 10.05,
-    totalTime: '00:44:12',
-    avgPace: "4'24\"",
-    avgHr: 168,
-    maxHr: 179,
-    notes: 'Zone 4 역치 심박을 유지하며 마지막 1km 빌드업으로 피니시.',
-    laps: [
-      { lap: 1, time: '04:40', cumulativeTime: '04:40', distanceKm: 1.0, avgPace: "4'40\"", avgHr: 149, maxHr: 158 },
-      { lap: 2, time: '04:28', cumulativeTime: '09:08', distanceKm: 1.0, avgPace: "4'28\"", avgHr: 162, maxHr: 169 },
-      { lap: 3, time: '04:25', cumulativeTime: '13:33', distanceKm: 1.0, avgPace: "4'25\"", avgHr: 167, maxHr: 172 },
-      { lap: 4, time: '04:22', cumulativeTime: '17:55', distanceKm: 1.0, avgPace: "4'22\"", avgHr: 170, maxHr: 175 },
-      { lap: 5, time: '04:18', cumulativeTime: '22:13', distanceKm: 1.0, avgPace: "4'18\"", avgHr: 173, maxHr: 179 },
-    ],
-    createdAt: '2026-09-16T20:15:00Z',
-  },
-  {
-    id: 'ts-2026-08-28',
-    date: '2026-08-28',
-    title: '퇴근길 회복 Zone 2 조깅',
-    totalDistanceKm: 8.2,
-    totalTime: '00:46:40',
-    avgPace: "5'41\"",
-    avgHr: 133,
-    maxHr: 142,
-    notes: '호흡을 코로만 쉬며 심박수 135 미만 철저히 제어.',
-    laps: [
-      { lap: 1, time: '05:55', cumulativeTime: '05:55', distanceKm: 1.0, avgPace: "5'55\"", avgHr: 125, maxHr: 132 },
-      { lap: 2, time: '05:42', cumulativeTime: '11:37', distanceKm: 1.0, avgPace: "5'42\"", avgHr: 131, maxHr: 137 },
-      { lap: 3, time: '05:38', cumulativeTime: '17:15', distanceKm: 1.0, avgPace: "5'38\"", avgHr: 134, maxHr: 140 },
-    ],
-    createdAt: '2026-08-28T19:00:00Z',
-  },
-];
+const DEFAULT_TRAINING_SESSIONS: TrainingSession[] = [];
 
 /* Helper for local fallback persistence */
 function getLocalItem<T>(key: string, defaultVal: T): T {
@@ -406,13 +348,16 @@ export async function getRaces(): Promise<RegisteredRace[]> {
     try {
       const snap = await getDocs(collection(firestoreInstance, 'races'));
       if (!snap.empty) {
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() } as RegisteredRace));
+        return snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as RegisteredRace))
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       }
     } catch (e) {
       console.warn('Firestore getRaces failed, reading local', e);
     }
   }
-  return getLocalItem<RegisteredRace[]>('races', DEFAULT_RACES);
+  const local = getLocalItem<RegisteredRace[]>('races', DEFAULT_RACES);
+  return local.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function addRace(race: Omit<RegisteredRace, 'id'>): Promise<RegisteredRace> {
@@ -570,9 +515,67 @@ export async function deleteTrainingSession(sessionId: string): Promise<void> {
   }
 }
 
+export async function clearAllTrainingSessions(): Promise<void> {
+  setLocalItem('training_sessions', []);
+
+  if (firestoreInstance) {
+    try {
+      const snap = await getDocs(collection(firestoreInstance, 'training_sessions'));
+      for (const d of snap.docs) {
+        await deleteDoc(doc(firestoreInstance, 'training_sessions', d.id));
+      }
+    } catch (e) {
+      console.error('Firestore clearAllTrainingSessions failed', e);
+    }
+  }
+}
+
 /* ============================================================================
  * Async CRUD Operations: 7. Weekly Training Plan (일자별 주간훈련 상세계획표)
  * ============================================================================ */
+export const DEFAULT_WEEKLY_PLAN_SETTINGS: WeeklyPlanSettings = {
+  trainingDays: ['화요일', '목요일', '토요일', '일요일'],
+  speedDay: '화요일',
+  speedWorkoutType: '인터벌',
+  longRunDay: '일요일',
+  targetRaceCourse: '풀코스',
+  updatedAt: new Date().toISOString(),
+};
+
+export async function getWeeklyPlanSettings(): Promise<WeeklyPlanSettings> {
+  if (firestoreInstance) {
+    try {
+      const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'));
+      if (snap.exists() && snap.data().settings) {
+        return snap.data().settings as WeeklyPlanSettings;
+      }
+    } catch (e) {
+      console.warn('Firestore getWeeklyPlanSettings failed, reading local', e);
+    }
+  }
+  return getLocalItem<WeeklyPlanSettings>('weekly_plan_settings', DEFAULT_WEEKLY_PLAN_SETTINGS);
+}
+
+export async function saveWeeklyPlanSettings(settings: WeeklyPlanSettings): Promise<void> {
+  const updated = { ...settings, updatedAt: new Date().toISOString() };
+  setLocalItem('weekly_plan_settings', updated);
+
+  if (firestoreInstance) {
+    try {
+      await setDoc(
+        doc(firestoreInstance, 'runner_data', 'weekly_plan'),
+        {
+          settings: updated,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Firestore saveWeeklyPlanSettings failed', e);
+    }
+  }
+}
+
 export async function getWeeklyPlan(): Promise<WeeklyPlanDay[]> {
   if (firestoreInstance) {
     try {
@@ -587,14 +590,26 @@ export async function getWeeklyPlan(): Promise<WeeklyPlanDay[]> {
   return getLocalItem<WeeklyPlanDay[]>('weekly_plan', []);
 }
 
-export async function saveWeeklyPlan(days: WeeklyPlanDay[]): Promise<void> {
+export async function saveWeeklyPlan(
+  days: WeeklyPlanDay[],
+  settings?: WeeklyPlanSettings
+): Promise<void> {
   setLocalItem('weekly_plan', days);
+  if (settings) {
+    setLocalItem('weekly_plan_settings', settings);
+  }
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'), {
+      const payload: Record<string, any> = {
         days,
         updatedAt: new Date().toISOString(),
+      };
+      if (settings) {
+        payload.settings = { ...settings, updatedAt: new Date().toISOString() };
+      }
+      await setDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'), payload, {
+        merge: true,
       });
     } catch (e) {
       console.error('Firestore saveWeeklyPlan failed', e);

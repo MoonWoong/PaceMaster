@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import {
   Activity,
@@ -17,6 +17,12 @@ import {
   Clock,
   Gauge,
   CheckCircle2,
+  BarChart3,
+  ShieldAlert,
+  ArrowUpRight,
+  ArrowDownRight,
+  Compass,
+  Share2,
 } from 'lucide-react';
 import {
   RunningRecords,
@@ -24,6 +30,8 @@ import {
   TrainingSession,
   TrainingLap,
   WeeklyPlanDay,
+  WeeklyPlanSettings,
+  RunnerStateAnalysis,
 } from '../types';
 import {
   estimateBestVDOT,
@@ -35,10 +43,14 @@ import {
 } from '../lib/vdot';
 import {
   generateWeeklyTrainingPlan,
+  analyzeRunnerState,
   DayOfWeek,
   PlanCustomOptions,
 } from '../lib/trainingPlanGenerator';
 import { verifyRunnerSecurityKey } from '../lib/security';
+import { TrainingShareModal } from './TrainingShareModal';
+import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
+import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -51,7 +63,9 @@ interface TabRunningRecordsProps {
     session: Omit<TrainingSession, 'id' | 'createdAt'>
   ) => Promise<void>;
   onDeleteTrainingSession: (id: string) => Promise<void>;
-  onSaveWeeklyPlan: (plan: WeeklyPlanDay[]) => Promise<void>;
+  onClearAllTrainingSessions?: () => Promise<void>;
+  weeklyPlanSettings?: WeeklyPlanSettings;
+  onSaveWeeklyPlan: (plan: WeeklyPlanDay[], settings?: WeeklyPlanSettings) => Promise<void>;
 }
 
 export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
@@ -59,10 +73,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   goals,
   trainingSessions,
   weeklyPlan,
+  weeklyPlanSettings,
   onSaveRecords,
   onSaveGoals,
   onAddTrainingSession,
   onDeleteTrainingSession,
+  onClearAllTrainingSessions,
   onSaveWeeklyPlan,
 }) => {
   // Running Records State
@@ -88,22 +104,49 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
 
+  // Share Modal State
+  const [sharingSession, setSharingSession] = useState<TrainingSession | null>(null);
+
   // CSV Upload parsing error / status
   const [csvStatus, setCsvStatus] = useState<string>('');
 
   // Weekly Training Plan Customization State
-  const [customTrainingDays, setCustomTrainingDays] = useState<DayOfWeek[]>([
-    '화요일',
-    '목요일',
-    '토요일',
-    '일요일',
-  ]);
-  const [customSpeedDay, setCustomSpeedDay] = useState<DayOfWeek | '없음'>('화요일');
+  const [customTrainingDays, setCustomTrainingDays] = useState<DayOfWeek[]>(
+    weeklyPlanSettings?.trainingDays && weeklyPlanSettings.trainingDays.length > 0
+      ? (weeklyPlanSettings.trainingDays as DayOfWeek[])
+      : ['화요일', '목요일', '토요일', '일요일']
+  );
+  const [customSpeedDay, setCustomSpeedDay] = useState<DayOfWeek | '없음'>(
+    (weeklyPlanSettings?.speedDay as DayOfWeek | '없음') || '화요일'
+  );
   const [customSpeedType, setCustomSpeedType] = useState<
     '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주'
-  >('인터벌');
-  const [customLongRunDay, setCustomLongRunDay] = useState<DayOfWeek | '없음'>('일요일');
+  >(weeklyPlanSettings?.speedWorkoutType || '인터벌');
+  const [customLongRunDay, setCustomLongRunDay] = useState<DayOfWeek | '없음'>(
+    (weeklyPlanSettings?.longRunDay as DayOfWeek | '없음') || '일요일'
+  );
   const [isCustomizingPlan, setIsCustomizingPlan] = useState<boolean>(true);
+
+  // Sync state if weeklyPlanSettings prop updates from DB
+  useEffect(() => {
+    if (weeklyPlanSettings) {
+      if (weeklyPlanSettings.trainingDays && weeklyPlanSettings.trainingDays.length > 0) {
+        setCustomTrainingDays(weeklyPlanSettings.trainingDays as DayOfWeek[]);
+      }
+      if (weeklyPlanSettings.speedDay) {
+        setCustomSpeedDay(weeklyPlanSettings.speedDay as DayOfWeek | '없음');
+      }
+      if (weeklyPlanSettings.speedWorkoutType) {
+        setCustomSpeedType(weeklyPlanSettings.speedWorkoutType);
+      }
+      if (weeklyPlanSettings.longRunDay) {
+        setCustomLongRunDay(weeklyPlanSettings.longRunDay as DayOfWeek | '없음');
+      }
+      if (weeklyPlanSettings.targetRaceCourse) {
+        setEvalSelectedDistance(weeklyPlanSettings.targetRaceCourse);
+      }
+    }
+  }, [weeklyPlanSettings]);
 
   // 1. Calculations from records
   const currentBest = useMemo(() => {
@@ -134,6 +177,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const goalEvaluation = useMemo(() => {
     return evaluateRunningGoal(currentVDOT, evalSelectedDistance, targetTimeForEval);
   }, [currentVDOT, evalSelectedDistance, targetTimeForEval]);
+
+  // 3. In-depth Runner Workload & Training State Analysis
+  const runnerStateAnalysis = useMemo(() => {
+    return analyzeRunnerState(trainingSessions, evalSelectedDistance);
+  }, [trainingSessions, evalSelectedDistance]);
 
   // Helper to get Monday-Sunday Week Range string for a given date
   // e.g. "2026.09.21 (월) ~ 09.27 (일)"
@@ -288,13 +336,23 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     const ok = await verifyRunnerSecurityKey('AI 주간 훈련 계획 맞춤 생성');
     if (!ok) return;
 
+    const settings: WeeklyPlanSettings = {
+      trainingDays: customTrainingDays,
+      speedDay: customSpeedDay,
+      speedWorkoutType: customSpeedType,
+      longRunDay: customLongRunDay,
+      targetRaceCourse: evalSelectedDistance,
+      updatedAt: new Date().toISOString(),
+    };
+
     const newPlan = generateWeeklyTrainingPlan(currentVDOT, evalSelectedDistance, {
       trainingDays: customTrainingDays,
       speedDay: customSpeedDay,
       speedWorkoutType: customSpeedType,
       longRunDay: customLongRunDay,
+      trainingSessions,
     });
-    await onSaveWeeklyPlan(newPlan);
+    await onSaveWeeklyPlan(newPlan, settings);
   };
 
   // Active weekly plan (if empty, generate default with custom options)
@@ -305,6 +363,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
       speedDay: customSpeedDay,
       speedWorkoutType: customSpeedType,
       longRunDay: customLongRunDay,
+      trainingSessions,
     });
   }, [
     weeklyPlan,
@@ -314,6 +373,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     customSpeedDay,
     customSpeedType,
     customLongRunDay,
+    trainingSessions,
   ]);
 
   // Helper to parse filename into date and training title
@@ -838,19 +898,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
 
           {/* VDOT & Tier Hero Badge */}
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-slate-900/90 border border-emerald-500/40">
+          <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-slate-900/90 border border-emerald-500/40">
             <div className="text-right">
               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                Jack Daniels VDOT
+                VDOT
               </div>
-              <div className="text-2xl font-black text-emerald-400 font-athletic">
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-athletic">
                 {currentVDOT > 0 ? currentVDOT.toFixed(1) : '--'}
               </div>
             </div>
-            <div className="h-8 w-px bg-white/15" />
+            <div className="h-7 w-px bg-white/15" />
             <div className="text-left">
               <div className="text-xs font-bold text-white">{runnerTier.label}</div>
-              <div className="text-[10px] text-slate-300">{runnerTier.description}</div>
             </div>
           </div>
         </div>
@@ -949,34 +1008,35 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </form>
 
         {/* 5대 심박존 (Zone 1 ~ Zone 5) 시각화 */}
-        <div className="pt-5 border-t border-white/10">
-          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <Heart className="w-4 h-4 text-rose-400" />
-            <span>러너 맞춤 심박 트레이닝 존 (Heart Rate Zones)</span>
-          </h3>
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              <Heart className="w-4 h-4 text-rose-400" />
+              <span>러너 맞춤 심박 트레이닝 존 (Heart Rate Zones)</span>
+            </h3>
+            <span className="text-[10px] text-slate-400">최대 {maxHr || 190} bpm / 역치 {thresholdHr || 172} bpm</span>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {hrZones.map((z) => (
               <div
                 key={z.zone}
-                className="p-3 rounded-xl bg-slate-900/60 border border-white/10 flex flex-col justify-between"
+                className="p-2.5 rounded-xl bg-slate-900/60 border border-white/10 flex flex-col justify-between"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-white">{z.nameKo}</span>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: z.color }}
-                    />
-                  </div>
-                  <div className="text-base font-extrabold font-athletic text-emerald-400 mb-1">
-                    {z.minHr} ~ {z.maxHr} <span className="text-[10px] font-normal text-slate-400">bpm</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-mono mb-2">{z.pctRange}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-white">Zone {z.zone}</span>
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: z.color }}
+                  />
                 </div>
-                <div className="text-[11px] text-slate-300 leading-tight pt-2 border-t border-white/5">
-                  {z.purpose}
+                <div className="text-[11px] font-medium text-slate-300 truncate">
+                  {z.nameKo.split(' ')[0]}
                 </div>
+                <div className="text-sm sm:text-base font-extrabold font-athletic text-emerald-400 my-0.5">
+                  {z.minHr}~{z.maxHr} <span className="text-[10px] font-normal text-slate-400">bpm</span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">{z.pctRange}</div>
               </div>
             ))}
           </div>
@@ -984,47 +1044,42 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* Jack Daniels VDOT 훈련 페이스 표 */}
         {trainingPaces && (
-          <div className="mt-6 pt-5 border-t border-white/10">
-            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <div className="mt-4 pt-3.5 border-t border-white/10">
+            <h3 className="text-xs sm:text-sm font-bold text-white mb-2.5 flex items-center gap-1.5">
               <Award className="w-4 h-4 text-cyan-400" />
               <span>VDOT 기준 권장 훈련 페이스 (Training Paces)</span>
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
-                <div className="text-slate-400 text-[11px]">이지 페이스 (E-Pace)</div>
-                <div className="text-sm font-bold text-cyan-300 font-athletic mt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5">
+                <div className="text-slate-400 text-[11px]">이지 (E-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-cyan-300 font-athletic mt-0.5">
                   {trainingPaces.easyPaceRange.min} ~ {trainingPaces.easyPaceRange.max}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1">조깅 / LSD 페이스</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
-                <div className="text-slate-400 text-[11px]">마라톤 페이스 (M-Pace)</div>
-                <div className="text-sm font-bold text-emerald-300 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5">
+                <div className="text-slate-400 text-[11px]">마라톤 (M-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-emerald-300 font-athletic mt-0.5">
                   {trainingPaces.marathonPace.pace}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1">풀코스 목표 페이스</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
-                <div className="text-slate-400 text-[11px]">역치 페이스 (T-Pace)</div>
-                <div className="text-sm font-bold text-amber-300 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5">
+                <div className="text-slate-400 text-[11px]">역치 (T-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-amber-300 font-athletic mt-0.5">
                   {trainingPaces.thresholdPace.pace}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1">20~40분 지속주 페이스</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
+              <div className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5">
                 <div className="text-slate-400 text-[11px]">인터벌 (I-Pace)</div>
-                <div className="text-sm font-bold text-rose-300 font-athletic mt-0.5">
+                <div className="text-xs sm:text-sm font-bold text-rose-300 font-athletic mt-0.5">
                   {trainingPaces.intervalPace.pace}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1">3~5분 VO2max 질주</div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 col-span-2 sm:col-span-1">
-                <div className="text-slate-400 text-[11px]">반복주 (R-Pace)</div>
-                <div className="text-sm font-bold text-purple-300 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-slate-900/50 border border-white/5 col-span-2 sm:col-span-1">
+                <div className="text-slate-400 text-[11px]">반복 (R-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-purple-300 font-athletic mt-0.5">
                   {trainingPaces.repetitionPace.pace}
                 </div>
-                <div className="text-[10px] text-slate-500 mt-1">200~400m 스피드</div>
               </div>
             </div>
           </div>
@@ -1033,31 +1088,28 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
       {/* 2. 러닝 목표 & 가상 AI 검증 로직 */}
       <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <span>러닝 목표 & AI 실현 타당성 분석</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium">
-                  AI 타당성 검증
-                </span>
               </h2>
               <p className="text-xs text-slate-400">
-                거리별 목표 완주 시간을 설정하면 가상 AI 코치가 달성 가능성과 맞춤 훈련 전략을 진단합니다.
+                거리별 목표 완주 시간을 설정하면 VDOT 기반 달성 가능성과 전략을 진단합니다.
               </p>
             </div>
           </div>
         </div>
 
         {/* Goals Input Form */}
-        <form onSubmit={handleSaveGoalsSubmit} className="mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <form onSubmit={handleSaveGoalsSubmit} className="mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                10K 목표 완주 시간 (hh:mm:ss)
+                10K 목표 (hh:mm:ss)
               </label>
               <input
                 type="text"
@@ -1069,7 +1121,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                하프 마라톤 목표 시간
+                하프 마라톤 목표
               </label>
               <input
                 type="text"
@@ -1081,7 +1133,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                풀코스 마라톤 목표 시간 (예: Sub-3, Sub-330)
+                풀코스 마라톤 목표
               </label>
               <input
                 type="text"
@@ -1091,26 +1143,25 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-5 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-purple-500/40 hover:border-purple-400 rounded-xl transition-all shadow-sm cursor-pointer"
-            >
-              목표 기록 저장 (보안 확인)
-            </button>
+            <div>
+              <button
+                type="submit"
+                className="w-full py-2 px-3 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-purple-500/40 hover:border-purple-400 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                목표 기록 저장 (보안 확인)
+              </button>
+            </div>
           </div>
         </form>
 
         {/* Distance Selector for AI Analysis */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-slate-300 font-medium">검증 대상 코스:</span>
+        <div className="flex items-center gap-2 mb-3 pt-3 border-t border-white/5">
+          <span className="text-xs text-slate-400 font-medium">검증 코스:</span>
           {(['10K', '하프', '풀코스'] as const).map((dist) => (
             <button
               key={dist}
               onClick={() => setEvalSelectedDistance(dist)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 evalSelectedDistance === dist
                   ? 'bg-purple-500 text-white shadow-md shadow-purple-500/25'
                   : 'bg-slate-800/80 text-slate-400 hover:text-white'
@@ -1123,34 +1174,22 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* AI Feasibility Evaluation Card */}
         {goalEvaluation && (
-          <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900/90 to-purple-950/40 border border-purple-500/30 shadow-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <div>
-                <div className="text-xs text-purple-300 font-semibold mb-1 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                  <span>AI 코치 실현 타당성 분석 결과 [{evalSelectedDistance}]</span>
-                </div>
-                <div className="text-lg font-bold text-white flex items-center gap-2">
-                  <span>목표 VDOT:</span>
-                  <span className="text-purple-400 font-athletic text-xl">
-                    {goalEvaluation.targetVDOT.toFixed(1)}
-                  </span>
-                  <span className="text-xs font-normal text-slate-400">
-                    (현재 VDOT {currentVDOT.toFixed(1)} 대비 {goalEvaluation.diffVDOT > 0 ? `+${goalEvaluation.diffVDOT}` : goalEvaluation.diffVDOT})
-                  </span>
-                </div>
+          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900/90 to-purple-950/40 border border-purple-500/30 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-white">
+                  [{evalSelectedDistance}] 목표 VDOT: <span className="text-purple-400 font-athletic text-sm">{goalEvaluation.targetVDOT.toFixed(1)}</span>
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  (현재 {currentVDOT.toFixed(1)} 대비 {goalEvaluation.diffVDOT > 0 ? `+${goalEvaluation.diffVDOT}` : goalEvaluation.diffVDOT})
+                </span>
               </div>
 
-              {/* Feasibility score meter */}
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-[10px] text-slate-400">달성 타당성 점수</div>
-                  <div className="text-xl font-black font-athletic text-white">
-                    {goalEvaluation.feasibilityScore}%
-                  </div>
-                </div>
-                <div
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">타당성 점수:</span>
+                <strong className="text-sm font-athletic text-white">{goalEvaluation.feasibilityScore}%</strong>
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
                     goalEvaluation.feasibilityScore >= 70
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                       : goalEvaluation.feasibilityScore >= 45
@@ -1159,38 +1198,32 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   }`}
                 >
                   {goalEvaluation.feasibilityLevel}
-                </div>
+                </span>
               </div>
             </div>
 
-            {/* AI Custom Feedback Message */}
-            <div className="p-3.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-slate-200 leading-relaxed mb-4">
-              <p className="font-semibold text-purple-300 mb-1 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5" />
-                <span>스포츠 사이언스 기반 분석 의견:</span>
-              </p>
+            <div className="text-xs text-slate-200 leading-relaxed">
+              <span className="text-purple-300 font-semibold mr-1">분석 의견:</span>
               {goalEvaluation.aiFeedback}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20">
-                <div className="text-purple-300 font-semibold mb-1">추천 집중 훈련:</div>
-                <div className="text-slate-300">{goalEvaluation.recommendedTrainingFocus}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
+              <div className="p-2.5 rounded-lg bg-purple-950/30 border border-purple-500/20">
+                <span className="text-purple-300 font-semibold mr-1">추천 집중:</span>
+                <span className="text-slate-300">{goalEvaluation.recommendedTrainingFocus}</span>
               </div>
 
               {goalEvaluation.targetPaces && (
-                <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20">
-                  <div className="text-purple-300 font-semibold mb-1">
-                    목표 달성을 위한 필수 대회 페이스:
-                  </div>
-                  <div className="text-slate-200 font-athletic font-bold text-sm">
+                <div className="p-2.5 rounded-lg bg-purple-950/30 border border-purple-500/20 flex items-center justify-between">
+                  <span className="text-purple-300 font-semibold">필수 대회 페이스:</span>
+                  <span className="text-slate-100 font-athletic font-bold">
                     {evalSelectedDistance === '풀코스'
                       ? goalEvaluation.targetPaces.marathonPace.pace
                       : evalSelectedDistance === '하프'
                       ? goalEvaluation.targetPaces.thresholdPace.pace
                       : goalEvaluation.targetPaces.intervalPace.pace}{' '}
                     /km 유지 필요
-                  </div>
+                  </span>
                 </div>
               )}
             </div>
@@ -1219,6 +1252,25 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Clear All Sessions Button (visible when sessions exist) */}
+            {trainingSessions.length > 0 && (
+              <button
+                onClick={async () => {
+                  const ok = await verifyRunnerSecurityKey('등록된 모든 훈련 기록 초기화 및 전체 삭제');
+                  if (ok && onClearAllTrainingSessions) {
+                    await onClearAllTrainingSessions();
+                    setCsvStatus('모든 훈련 기록이 성공적으로 삭제되었습니다.');
+                    setTimeout(() => setCsvStatus(''), 3000);
+                  }
+                }}
+                className="px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                title="모든 훈련 기록 전체 삭제"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>훈련 기록 전체 삭제</span>
+              </button>
+            )}
+
             {/* Quick Demo CSV Button */}
             <button
               onClick={handleLoadDemoCSV}
@@ -1362,6 +1414,15 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                                     <div className="flex items-center gap-2 self-end sm:self-center">
                                       <button
+                                        onClick={() => setSharingSession(session)}
+                                        className="px-2.5 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm shadow-cyan-500/10"
+                                        title="기록 요약 이미지 저장 및 SNS 공유"
+                                      >
+                                        <Share2 className="w-3.5 h-3.5" />
+                                        <span>공유/이미지 저장</span>
+                                      </button>
+
+                                      <button
                                         onClick={() => toggleSessionDetail(session.id)}
                                         className="px-3 py-1.5 text-xs font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                                       >
@@ -1489,6 +1550,24 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         )}
       </section>
+
+      {/* D3.js 주간 마일리지 추세 및 훈련 강도 분포 분석 대시보드 */}
+      <TrainingAnalyticsDashboard
+        sessions={trainingSessions}
+        maxHr={Number(maxHr) || 190}
+        thresholdHr={Number(thresholdHr) || 172}
+        onLoadDemo={handleLoadDemoCSV}
+      />
+
+      {/* AI 다음 주 맞춤 훈련 강도 추천 & 루틴 제안 (회복 / 유지 / 강화) */}
+      <TrainingIntensityRecommender
+        sessions={trainingSessions}
+        vdot={currentVDOT}
+        targetRaceCourse={evalSelectedDistance}
+        onApplyRoutine={async (routineDays, settings) => {
+          await onSaveWeeklyPlan(routineDays, settings);
+        }}
+      />
 
       {/* 4. 일자별 주간훈련 상세계획표 */}
       <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
@@ -1707,6 +1786,163 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         )}
 
+        {/* Runner State & Mileage Trend Analysis Summary Card */}
+        {runnerStateAnalysis && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-emerald-950/20 to-slate-900/95 border border-emerald-500/30 mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/30">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>러너 실훈련 상태 & 주간 마일리지 추세 정밀 진단</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                        runnerStateAnalysis.fatigueRisk === '안전(스위트스팟)'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : runnerStateAnalysis.fatigueRisk === '주의(과부하 위험)'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      }`}
+                    >
+                      {runnerStateAnalysis.fatigueRisk}
+                    </span>
+                  </h3>
+                  <div className="text-[11px] text-slate-400">
+                    최근 4주간 실제 누적 마일리지와 ACWR(급성:만성 운동부하비)를 실시간 반영하여 주간 거리와 강도를 맞춤 세팅합니다.
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Trend Pill */}
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-[11px] text-slate-400">마일리지 추세:</span>
+                <span
+                  className={`text-xs px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 border ${
+                    runnerStateAnalysis.mileageTrend === '증가세'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : runnerStateAnalysis.mileageTrend === '감소세'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                  }`}
+                >
+                  {runnerStateAnalysis.mileageTrend === '증가세' ? (
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  ) : runnerStateAnalysis.mileageTrend === '감소세' ? (
+                    <ArrowDownRight className="w-3.5 h-3.5" />
+                  ) : (
+                    <Compass className="w-3.5 h-3.5" />
+                  )}
+                  <span>
+                    {runnerStateAnalysis.mileageTrend} ({runnerStateAnalysis.trendRatio >= 0 ? '+' : ''}
+                    {runnerStateAnalysis.trendRatio}%)
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Stat Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+                <div className="text-[10px] text-slate-400">최근 4주 평균 마일리지</div>
+                <div className="text-base sm:text-lg font-black text-white font-athletic mt-0.5">
+                  {runnerStateAnalysis.avgWeeklyMileage4Weeks}{' '}
+                  <span className="text-xs font-normal text-slate-400">km/주</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  피크 주간: <span className="text-slate-300 font-semibold">{runnerStateAnalysis.peakWeeklyDistance}km</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+                <div className="text-[10px] text-slate-400">직전 주간 마일리지 (Acute)</div>
+                <div className="text-base sm:text-lg font-black text-cyan-300 font-athletic mt-0.5">
+                  {runnerStateAnalysis.lastWeekDistance}{' '}
+                  <span className="text-xs font-normal text-slate-400">km</span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  최장 1회 거리: <span className="text-slate-300 font-semibold">{runnerStateAnalysis.recentLongestRunKm}km</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+                <div className="text-[10px] text-slate-400">ACWR (운동 부하 비율)</div>
+                <div
+                  className={`text-base sm:text-lg font-black font-athletic mt-0.5 ${
+                    runnerStateAnalysis.acwr > 1.35
+                      ? 'text-rose-400'
+                      : runnerStateAnalysis.acwr < 0.75
+                      ? 'text-amber-400'
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {runnerStateAnalysis.acwr}{' '}
+                  <span className="text-[10px] font-normal text-slate-400 font-sans">
+                    (적정: 0.8~1.3)
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  부상 안전도: <span className="text-emerald-300 font-semibold">{runnerStateAnalysis.fatigueRisk}</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30 bg-emerald-950/20">
+                <div className="text-[10px] text-emerald-400 font-semibold">AI 권장 주간 총 볼륨</div>
+                <div className="text-base sm:text-lg font-black text-emerald-300 font-athletic mt-0.5">
+                  {runnerStateAnalysis.recommendedWeeklyKm}{' '}
+                  <span className="text-xs font-normal text-slate-400">km</span>
+                </div>
+                <div className="text-[10px] text-slate-300 mt-1">
+                  LSD: <span className="text-purple-300 font-semibold">{runnerStateAnalysis.longRunRecommendedKm}km</span> / 스피드: <span className="text-rose-300 font-semibold">{runnerStateAnalysis.speedVolumeRecommendedKm}km</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent 4-week miniature progress bar / breakdown */}
+            {runnerStateAnalysis.recent4WeeksDistances.length > 0 && (
+              <div className="p-3 rounded-xl bg-slate-950/40 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5 flex-shrink-0">
+                  <span>📊 최근 4주 마일리지 추이:</span>
+                </span>
+                <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                  {runnerStateAnalysis.recent4WeeksDistances.map((rw, rIdx) => (
+                    <div key={rIdx} className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-slate-400">{rw.weekLabel}</span>
+                      <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-white/10 text-white font-mono text-[11px] font-bold">
+                        {rw.distanceKm}km
+                      </span>
+                      {rIdx < runnerStateAnalysis.recent4WeeksDistances.length - 1 && (
+                        <span className="text-slate-600 text-[10px]">➡️</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Detailed AI Tuning Feedback */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-950/60 border border-white/10 text-xs">
+              <div className="flex items-start gap-2">
+                <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex-shrink-0 font-bold">
+                  거리 볼륨 제어
+                </span>
+                <p className="text-slate-300 leading-relaxed text-[11px]">
+                  {runnerStateAnalysis.mileageAdjustmentNote}
+                </p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[11px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 flex-shrink-0 font-bold">
+                  훈련 강도 조율
+                </span>
+                <p className="text-slate-300 leading-relaxed text-[11px]">
+                  {runnerStateAnalysis.intensityAdjustmentNote}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Weekly Schedule Table / Cards */}
         <div className="space-y-3">
           {activePlan.map((dayPlan, idx) => {
@@ -1760,6 +1996,32 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
                       {dayPlan.description}
                     </p>
+
+                    {/* Granular Split Pacing Stages (빌드업주 / 포인트 훈련 세부 구간표) */}
+                    {dayPlan.stages && dayPlan.stages.length > 0 && (
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {dayPlan.stages.map((stg, sIdx) => (
+                          <div
+                            key={sIdx}
+                            className="p-2.5 rounded-lg bg-slate-950/70 border border-emerald-500/20 text-xs flex flex-col justify-between gap-1 shadow-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-white text-[11px]">{stg.step}</span>
+                              <span className="text-[10px] text-emerald-400 font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                                {stg.pace}/km
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-cyan-300">
+                              <span>{stg.zone}</span>
+                              <span className="text-slate-400">{stg.distanceKm}km</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 leading-tight border-t border-white/5 pt-1 mt-0.5">
+                              {stg.focus}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1790,7 +2052,47 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             );
           })}
         </div>
+
+        {/* Weekly Total Plan Summary Footer Bar */}
+        <div className="mt-4 p-4 rounded-xl bg-slate-900/90 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-300">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>
+              이번 주간 총 계획 거리:{' '}
+              <strong className="text-white text-sm font-bold font-athletic">
+                {Math.round(activePlan.reduce((acc, d) => acc + (d.distanceKm || 0), 0) * 10) / 10} km
+              </strong>{' '}
+              (주 {activePlan.filter((d) => d.type !== '휴식').length}일 훈련 / {activePlan.filter((d) => d.type === '휴식').length}일 휴식)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+            <span>
+              스피드: <strong className="text-rose-300">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
+            </span>
+            <span>•</span>
+            <span>
+              장거리(LSD): <strong className="text-purple-300">{activePlan.find(d => d.type === 'LSD')?.distanceKm || 0}km</strong>
+            </span>
+            <span>•</span>
+            <span>
+              유산소/회복: <strong className="text-cyan-300">
+                {Math.round(activePlan.filter(d => d.type === '조깅' || d.type === '회복주').reduce((acc, d) => acc + d.distanceKm, 0) * 10) / 10}km
+              </strong>
+            </span>
+          </div>
+        </div>
       </section>
+
+      {/* Training Share & Image Export Modal */}
+      {sharingSession && (
+        <TrainingShareModal
+          session={sharingSession}
+          vdot={currentVDOT}
+          runnerTierName={runnerTier.label}
+          onClose={() => setSharingSession(null)}
+        />
+      )}
     </div>
   );
 };

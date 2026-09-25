@@ -72,6 +72,49 @@ export interface TrainingSession {
   createdAt: string;
 }
 
+export interface WeeklyPlanSettings {
+  trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
+  speedDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
+  speedWorkoutType: '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주';
+  longRunDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
+  targetRaceCourse?: '10K' | '하프' | '풀코스';
+  updatedAt?: string;
+}
+
+export interface WorkoutStage {
+  step: string; // e.g. "1단계 (1~3km)"
+  distanceKm: number;
+  pace: string;
+  zone: string;
+  focus: string;
+}
+
+export interface RunnerStateAnalysis {
+  // Weekly mileage trend
+  recent4WeeksDistances: { weekLabel: string; distanceKm: number }[];
+  avgWeeklyMileage4Weeks: number; // e.g. 35.0 km
+  lastWeekDistance: number; // e.g. 31.8 km
+  peakWeeklyDistance: number; // e.g. 40.6 km
+  mileageTrend: '증가세' | '안정유지' | '감소세' | '초기빌드';
+  trendRatio: number; // percentage change vs 4-week average
+  
+  // Training Intensity & ACWR (Acute:Chronic Workload Ratio)
+  acuteLoadKm: number; // Last 7 days / last week
+  chronicLoadKm: number; // 4-week rolling weekly average
+  acwr: number; // acuteLoad / chronicLoad (0.8~1.3 is sweet spot)
+  fatigueRisk: '안전(스위트스팟)' | '주의(과부하 위험)' | '부족(언더트레이닝)' | '회복권장';
+  
+  // Longest recent run
+  recentLongestRunKm: number;
+  
+  // Adjusted Plan Guidance
+  recommendedWeeklyKm: number;
+  mileageAdjustmentNote: string;
+  intensityAdjustmentNote: string;
+  longRunRecommendedKm: number;
+  speedVolumeRecommendedKm: number;
+}
+
 export interface WeeklyPlanDay {
   day: string; // 월요일, 화요일, ...
   dayShort: string; // Mon, Tue, ...
@@ -82,6 +125,7 @@ export interface WeeklyPlanDay {
   targetZone: string;
   description: string;
   intensity: '낮음' | '보통' | '높음' | '휴식';
+  stages?: WorkoutStage[];
 }
 
 export interface MarathonEvent {

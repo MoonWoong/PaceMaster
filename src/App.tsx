@@ -15,6 +15,7 @@ import {
   RunningGoals,
   TrainingSession,
   WeeklyPlanDay,
+  WeeklyPlanSettings,
 } from './types';
 import {
   getPhysicalInfo,
@@ -34,8 +35,12 @@ import {
   getTrainingSessions,
   addTrainingSession,
   deleteTrainingSession,
+  clearAllTrainingSessions,
   getWeeklyPlan,
   saveWeeklyPlan,
+  getWeeklyPlanSettings,
+  saveWeeklyPlanSettings,
+  DEFAULT_WEEKLY_PLAN_SETTINGS,
 } from './lib/firebase';
 import { estimateBestVDOT } from './lib/vdot';
 
@@ -68,6 +73,9 @@ export default function App() {
   });
   const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([]);
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanDay[]>([]);
+  const [weeklyPlanSettings, setWeeklyPlanSettings] = useState<WeeklyPlanSettings>(
+    DEFAULT_WEEKLY_PLAN_SETTINGS
+  );
 
   // Load all data on mount asynchronously
   useEffect(() => {
@@ -81,6 +89,7 @@ export default function App() {
           goalsData,
           sessionsData,
           planData,
+          planSettingsData,
         ] = await Promise.all([
           getPhysicalInfo(),
           getShoes(),
@@ -89,6 +98,7 @@ export default function App() {
           getRunningGoals(),
           getTrainingSessions(),
           getWeeklyPlan(),
+          getWeeklyPlanSettings(),
         ]);
 
         if (phys) setPhysicalInfo(phys);
@@ -98,6 +108,7 @@ export default function App() {
         if (goalsData) setRunningGoals(goalsData);
         if (sessionsData) setTrainingSessions(sessionsData);
         if (planData) setWeeklyPlan(planData);
+        if (planSettingsData) setWeeklyPlanSettings(planSettingsData);
       } catch (err) {
         console.error('Failed to load runner data from DB:', err);
       } finally {
@@ -175,10 +186,21 @@ export default function App() {
     setTrainingSessions((prev) => prev.filter((s) => s.id !== id));
   };
 
+  const handleClearAllTrainingSessions = async () => {
+    await clearAllTrainingSessions();
+    setTrainingSessions([]);
+  };
+
   // Handlers for Weekly Plan
-  const handleSaveWeeklyPlan = async (plan: WeeklyPlanDay[]) => {
-    await saveWeeklyPlan(plan);
+  const handleSaveWeeklyPlan = async (
+    plan: WeeklyPlanDay[],
+    settings?: WeeklyPlanSettings
+  ) => {
+    await saveWeeklyPlan(plan, settings);
     setWeeklyPlan(plan);
+    if (settings) {
+      setWeeklyPlanSettings(settings);
+    }
   };
 
   const bestVdotCalc = estimateBestVDOT(runningRecords);
@@ -241,10 +263,12 @@ export default function App() {
                   goals={runningGoals}
                   trainingSessions={trainingSessions}
                   weeklyPlan={weeklyPlan}
+                  weeklyPlanSettings={weeklyPlanSettings}
                   onSaveRecords={handleSaveRecords}
                   onSaveGoals={handleSaveGoals}
                   onAddTrainingSession={handleAddTrainingSession}
                   onDeleteTrainingSession={handleDeleteTrainingSession}
+                  onClearAllTrainingSessions={handleClearAllTrainingSessions}
                   onSaveWeeklyPlan={handleSaveWeeklyPlan}
                 />
               )}
@@ -266,7 +290,7 @@ export default function App() {
             PaceMaster · 맞춤형 러닝 대시보드 & 마스터즈 트레이닝 시스템
           </p>
           <p className="text-[11px] text-slate-500">
-            데이터 변경 보안 인증 키: <span className="font-mono text-emerald-400 font-semibold">ansdnd1!</span> · Firebase Firestore Multi-device Sync Ready
+            Firebase Firestore Multi-device Cloud Sync Ready
           </p>
         </footer>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   UserCheck,
   Scale,
@@ -51,7 +51,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [physicalSavedAlert, setPhysicalSavedAlert] = useState(false);
 
   // Shoes State
-  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('전체');
+  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('데일리');
   const [shoeSearchQuery, setShoeSearchQuery] = useState<string>('');
   const [isShoeModalOpen, setIsShoeModalOpen] = useState(false);
   const [newShoeName, setNewShoeName] = useState('');
@@ -61,8 +61,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [newShoeMaxMileage, setNewShoeMaxMileage] = useState('600');
   const [newShoeReview, setNewShoeReview] = useState('');
 
-  // Editing Shoe Mileage / Details State
+  // Editing Shoe Full Details State
   const [editingShoe, setEditingShoe] = useState<RunningShoe | null>(null);
+  const [editShoeName, setEditShoeName] = useState<string>('');
+  const [editShoeBrand, setEditShoeBrand] = useState<string>('Nike');
+  const [editShoeCategory, setEditShoeCategory] = useState<ShoeCategory>('데일리');
   const [editMileage, setEditMileage] = useState<string>('0');
   const [editMaxMileage, setEditMaxMileage] = useState<string>('600');
   const [editReview, setEditReview] = useState<string>('');
@@ -129,27 +132,37 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setIsShoeModalOpen(false);
   };
 
-  // Open Edit Modal for a Shoe
+  // Open Edit Modal for a Shoe (Full information editing)
   const handleOpenEditShoe = (shoe: RunningShoe) => {
     setEditingShoe(shoe);
+    setEditShoeName(shoe.name);
+    setEditShoeBrand(shoe.brand);
+    setEditShoeCategory(shoe.category);
     setEditMileage(shoe.mileage.toString());
     setEditMaxMileage((shoe.maxMileage || (shoe.category === '레이싱' ? 300 : 600)).toString());
-    setEditReview(shoe.review);
+    setEditReview(shoe.review || '');
   };
 
   // Handle Save Edited Shoe
   const handleSaveEditShoeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingShoe) return;
+    if (!editShoeName.trim()) {
+      alert('러닝화 모델명을 입력해주세요.');
+      return;
+    }
 
-    const authorized = await verifyRunnerSecurityKey(`'${editingShoe.name}' 정보 및 마일리지 수정`);
+    const authorized = await verifyRunnerSecurityKey(`'${editShoeName.trim()}' 러닝화 정보 수정`);
     if (!authorized) return;
 
     await onUpdateShoe({
       ...editingShoe,
+      name: editShoeName.trim(),
+      brand: editShoeBrand.trim(),
+      category: editShoeCategory,
       mileage: parseFloat(editMileage) || 0,
-      maxMileage: parseFloat(editMaxMileage) || (editingShoe.category === '레이싱' ? 300 : 600),
-      review: editReview.trim() || editingShoe.review,
+      maxMileage: parseFloat(editMaxMileage) || (editShoeCategory === '레이싱' ? 300 : 600),
+      review: editReview.trim() || '탄탄한 착화감과 접지력.',
     });
 
     setEditingShoe(null);
@@ -198,6 +211,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     }
     return true;
   });
+
+  // Sort races by nearest date first (가까운 날짜 순 정렬)
+  const sortedRaces = useMemo(() => {
+    return [...races].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+  }, [races]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -423,7 +443,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         <button
                           onClick={() => handleOpenEditShoe(shoe)}
                           className="p-1.5 text-slate-400 hover:text-cyan-400 rounded-lg transition-colors cursor-pointer"
-                          title="마일리지 및 정보 수정"
+                          title="러닝화 전체 정보 및 마일리지 수정"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -454,17 +474,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">누적 주행거리:</span>
-                      <button
-                        onClick={() => handleOpenEditShoe(shoe)}
-                        className="group/mil flex items-center gap-1.5 font-mono font-bold text-white hover:text-cyan-300 transition-colors cursor-pointer"
-                        title="클릭하여 마일리지 직접 수정"
-                      >
-                        <span className="text-cyan-400 group-hover/mil:underline text-sm">
+                      <div className="flex items-center gap-1.5 font-mono font-bold text-white">
+                        <span className="text-cyan-400 text-sm">
                           {shoe.mileage}km
                         </span>
                         <span className="text-slate-500 font-normal">/ {maxMil}km ({pct}%)</span>
-                        <Edit2 className="w-3.5 h-3.5 text-slate-400 group-hover/mil:text-cyan-300 transition-colors" />
-                      </button>
+                      </div>
                     </div>
 
                     <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
@@ -535,7 +550,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {races.map((race) => {
+            {sortedRaces.map((race) => {
               const dDay = calculateDDay(race.date);
 
               const badgeColor = dDay.isPassed
@@ -796,30 +811,74 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         </div>
       )}
 
-      {/* 러닝화 마일리지 및 정보 직접 수정 모달 */}
+      {/* 러닝화 전체 정보 및 마일리지 수정 모달 */}
       {editingShoe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="glass-panel rounded-2xl p-6 w-full max-w-md border border-white/20 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-cyan-400" />
-                <span>러닝화 마일리지 직접 수정</span>
+                <span>러닝화 전체 정보 수정</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingShoe(null)}
-                className="text-slate-400 hover:text-white text-xs px-2 py-1"
+                className="text-slate-400 hover:text-white text-xs px-2 py-1 cursor-pointer"
               >
                 닫기
               </button>
             </div>
 
-            <div className="mb-4 p-3 rounded-xl bg-slate-900/60 border border-white/5">
-              <div className="text-xs text-slate-400">{editingShoe.brand} · {editingShoe.category}</div>
-              <div className="text-base font-bold text-white mt-0.5">{editingShoe.name}</div>
-            </div>
-
             <form onSubmit={handleSaveEditShoeSubmit} className="space-y-4">
+              {/* 1. 신발 모델명 */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  신발 이름 / 모델명 <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editShoeName}
+                  onChange={(e) => setEditShoeName(e.target.value)}
+                  placeholder="예: 알파플라이 3, 줌 플라이 5"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-bold text-white focus:border-cyan-400"
+                />
+              </div>
+
+              {/* 2. 브랜드 & 카테고리 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">브랜드</label>
+                  <input
+                    type="text"
+                    required
+                    value={editShoeBrand}
+                    onChange={(e) => setEditShoeBrand(e.target.value)}
+                    placeholder="Nike, Adidas, Asics..."
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">카테고리</label>
+                  <select
+                    value={editShoeCategory}
+                    onChange={(e) => {
+                      const cat = e.target.value as ShoeCategory;
+                      setEditShoeCategory(cat);
+                    }}
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-slate-900 text-white"
+                  >
+                    <option value="데일리">데일리 (조깅용)</option>
+                    <option value="스피드">스피드 (인터벌/템포)</option>
+                    <option value="장거리">장거리 (LSD)</option>
+                    <option value="레이싱">레이싱 (대회용 카본)</option>
+                    <option value="트레일">트레일 (산악/비포장)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. 누적 마일리지 & 목표 권장 수명 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-cyan-300 mb-1">
@@ -832,7 +891,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     required
                     value={editMileage}
                     onChange={(e) => setEditMileage(e.target.value)}
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-white"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-white focus:border-cyan-400"
                   />
                 </div>
 
@@ -853,14 +912,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('300')}
-                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer"
+                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer transition-colors"
                     >
                       300km (레이싱)
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('600')}
-                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer"
+                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer transition-colors"
                     >
                       600km (일반)
                     </button>
@@ -868,13 +927,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </div>
               </div>
 
+              {/* 4. 한줄평 / 착용 후기 */}
               <div>
-                <label className="block text-xs text-slate-300 mb-1">한줄평 수정</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">한줄평 / 러닝 피드백</label>
                 <input
                   type="text"
                   value={editReview}
                   onChange={(e) => setEditReview(e.target.value)}
-                  placeholder="착용감 및 한줄평..."
+                  placeholder="착용감, 쿠셔닝 탄성, 접지력 등..."
                   className="w-full px-3 py-2 glass-input rounded-xl text-xs text-white"
                 />
               </div>
@@ -883,13 +943,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 <button
                   type="button"
                   onClick={() => setEditingShoe(null)}
-                  className="px-4 py-2 text-xs text-slate-300 hover:text-white bg-slate-800 rounded-xl"
+                  className="px-4 py-2 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all shadow-md shadow-cyan-500/20"
+                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
                 >
                   수정 저장 (보안 확인)
                 </button>
