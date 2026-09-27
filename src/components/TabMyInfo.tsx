@@ -15,8 +15,16 @@ import {
   RotateCcw,
   Save,
   Target,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  TrendingUp,
+  BarChart3,
+  Info,
+  SlidersHorizontal,
+  ShieldAlert,
 } from 'lucide-react';
-import { PhysicalInfo, RunningShoe, RegisteredRace, ShoeCategory } from '../types';
+import { PhysicalInfo, RunningShoe, RegisteredRace, ShoeCategory, TrainingSession } from '../types';
 import { calculateDDay } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
 
@@ -24,6 +32,7 @@ interface TabMyInfoProps {
   physicalInfo: PhysicalInfo;
   shoes: RunningShoe[];
   races: RegisteredRace[];
+  sessions?: TrainingSession[];
   onSavePhysical: (info: PhysicalInfo) => Promise<void>;
   onAddShoe: (shoe: Omit<RunningShoe, 'id'>) => Promise<void>;
   onUpdateShoe: (shoe: RunningShoe) => Promise<void>;
@@ -38,6 +47,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   physicalInfo,
   shoes,
   races,
+  sessions = [],
   onSavePhysical,
   onAddShoe,
   onUpdateShoe,
@@ -55,7 +65,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [physicalSavedAlert, setPhysicalSavedAlert] = useState(false);
 
   // Shoes State
-  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('데일리');
+  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('전체');
+  const [shoeStatusFilter, setShoeStatusFilter] = useState<'all' | 'needs_replacement' | 'safe'>('all');
+  const [shoeSortBy, setShoeSortBy] = useState<'urgent_first' | 'mileage_desc' | 'wear_pct_desc' | 'recent_worn' | 'name_asc'>('urgent_first');
+  const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
   const [shoeSearchQuery, setShoeSearchQuery] = useState<string>('');
   const [isShoeModalOpen, setIsShoeModalOpen] = useState(false);
   const [newShoeName, setNewShoeName] = useState('');
@@ -210,28 +223,199 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setEditingRaceForTarget(null);
   };
 
-  // Filter Shoes ('전체' 탭을 가장 마지막 위치로 배치)
-  const shoeCategories: (ShoeCategory | '전체')[] = [
+  // Sports science category-specific lifespan guidance tips
+  const getCategoryTip = (category: ShoeCategory) => {
+    switch (category) {
+      case '레이싱':
+        return '카본 플레이트·초임계 폼 최고 반발탄성은 250~350km 구간 최적 발휘';
+      case '스피드':
+        return '인터벌·템포런 고강도 지면 충격 흡수와 가속 지탱 (400~500km 권장)';
+      case '데일리':
+        return '매일의 조깅·회복주 무릎/발목 관절 보호 미드솔 완충 (600~800km 권장)';
+      case '장거리':
+        return '20~35km LSD 지속주 시 체중 3배의 누적 하중 분산 (600~750km 권장)';
+      case '트레일':
+        return '비포장 트레일 접지력 및 바위 충격 보호 (500~700km 권장)';
+    }
+  };
+
+  // Map session history to shoes (last worn date, sessions count, total session km)
+  const shoeSessionStats = useMemo(() => {
+    const stats: Record<
+      string,
+      { count: number; lastWornDate?: string; lastSessionTitle?: string; totalSessionKm: number }
+    > = {};
+
+    sessions.forEach((sess) => {
+      const matchShoe = shoes.find(
+        (s) =>
+          (sess.shoeId && s.id === sess.shoeId) ||
+          (sess.shoeName && sess.shoeName.toLowerCase().includes(s.name.toLowerCase()))
+      );
+
+      if (matchShoe) {
+        if (!stats[matchShoe.id]) {
+          stats[matchShoe.id] = {
+            count: 0,
+            lastWornDate: sess.date,
+            lastSessionTitle: sess.title,
+            totalSessionKm: 0,
+          };
+        }
+        stats[matchShoe.id].count += 1;
+        stats[matchShoe.id].totalSessionKm =
+          Math.round((stats[matchShoe.id].totalSessionKm + (sess.totalDistanceKm || 0)) * 10) / 10;
+
+        if (
+          !stats[matchShoe.id].lastWornDate ||
+          new Date(sess.date).getTime() > new Date(stats[matchShoe.id].lastWornDate!).getTime()
+        ) {
+          stats[matchShoe.id].lastWornDate = sess.date;
+          stats[matchShoe.id].lastSessionTitle = sess.title;
+        }
+      }
+    });
+
+    return stats;
+  }, [shoes, sessions]);
+
+  // Analyzed Shoes with wear rate and status
+  const analyzedShoes = useMemo(() => {
+    return shoes.map((shoe) => {
+      const maxMil = shoe.maxMileage && shoe.maxMileage > 0 ? shoe.maxMileage : (shoe.category === '레이싱' ? 300 : 600);
+      const mileage = Math.round((shoe.mileage || 0) * 10) / 10;
+      const wearPct = Math.round((mileage / maxMil) * 100);
+      const remainingKm = Math.round((maxMil - mileage) * 10) / 10;
+      const sessionStat = shoeSessionStats[shoe.id];
+
+      let status: 'optimal' | 'warning' | 'near_limit' | 'overdue';
+      let statusLabel: string;
+      let statusColor: string;
+      let badgeBg: string;
+
+      if (wearPct >= 100) {
+        status = 'overdue';
+        statusLabel = '수명 종료 / 교체 요망';
+        statusColor = 'text-rose-400';
+        badgeBg = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
+      } else if (wearPct >= 90) {
+        status = 'near_limit';
+        statusLabel = '교체 임박 (D-Day)';
+        statusColor = 'text-orange-400';
+        badgeBg = 'bg-orange-500/20 text-orange-300 border-orange-500/40';
+      } else if (wearPct >= 70) {
+        status = 'warning';
+        statusLabel = '마모 진행 (주의)';
+        statusColor = 'text-amber-400';
+        badgeBg = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+      } else {
+        status = 'optimal';
+        statusLabel = '최상 컨디션';
+        statusColor = 'text-emerald-400';
+        badgeBg = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      }
+
+      return {
+        ...shoe,
+        effectiveMaxMileage: maxMil,
+        effectiveMileage: mileage,
+        wearPct,
+        remainingKm,
+        status,
+        statusLabel,
+        statusColor,
+        badgeBg,
+        sessionCount: sessionStat?.count || 0,
+        lastWornDate: sessionStat?.lastWornDate,
+        lastSessionTitle: sessionStat?.lastSessionTitle,
+      };
+    });
+  }, [shoes, shoeSessionStats]);
+
+  // Executive Metrics
+  const shoeMetrics = useMemo(() => {
+    const totalShoes = analyzedShoes.length;
+    const totalMileage = Math.round(analyzedShoes.reduce((sum, s) => sum + s.effectiveMileage, 0) * 10) / 10;
+    const overdueCount = analyzedShoes.filter((s) => s.status === 'overdue').length;
+    const nearLimitCount = analyzedShoes.filter((s) => s.status === 'near_limit').length;
+    const warningCount = analyzedShoes.filter((s) => s.status === 'warning').length;
+    const optimalCount = analyzedShoes.filter((s) => s.status === 'optimal').length;
+    const urgentCount = overdueCount + nearLimitCount;
+    const safeCount = optimalCount + warningCount;
+
+    const avgWearPct =
+      totalShoes > 0
+        ? Math.round(analyzedShoes.reduce((sum, s) => sum + s.wearPct, 0) / totalShoes)
+        : 0;
+
+    return {
+      totalShoes,
+      totalMileage,
+      overdueCount,
+      nearLimitCount,
+      warningCount,
+      optimalCount,
+      urgentCount,
+      safeCount,
+      avgWearPct,
+    };
+  }, [analyzedShoes]);
+
+  // Categories list
+  const shoeCategories: ('전체' | ShoeCategory)[] = [
+    '전체',
     '데일리',
     '스피드',
     '장거리',
     '레이싱',
     '트레일',
-    '전체',
   ];
-  const filteredShoes = shoes.filter((s) => {
-    if (selectedShoeCategory !== '전체' && s.category !== selectedShoeCategory) {
-      return false;
+
+  // Filtered & Sorted Shoes
+  const filteredAndSortedShoes = useMemo(() => {
+    let result = [...analyzedShoes];
+
+    // Status filter
+    if (shoeStatusFilter === 'needs_replacement') {
+      result = result.filter((s) => s.status === 'overdue' || s.status === 'near_limit');
+    } else if (shoeStatusFilter === 'safe') {
+      result = result.filter((s) => s.status === 'optimal' || s.status === 'warning');
     }
+
+    // Category filter
+    if (selectedShoeCategory !== '전체') {
+      result = result.filter((s) => s.category === selectedShoeCategory);
+    }
+
+    // Search query
     if (shoeSearchQuery.trim()) {
       const q = shoeSearchQuery.toLowerCase().trim();
-      const matchName = s.name.toLowerCase().includes(q);
-      const matchBrand = s.brand.toLowerCase().includes(q);
-      const matchReview = s.review.toLowerCase().includes(q);
-      if (!matchName && !matchBrand && !matchReview) return false;
+      result = result.filter((s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.brand.toLowerCase().includes(q)
+      );
     }
-    return true;
-  });
+
+    // Sort
+    if (shoeSortBy === 'urgent_first') {
+      const order = { overdue: 0, near_limit: 1, warning: 2, optimal: 3 };
+      result.sort((a, b) => order[a.status] - order[b.status] || b.wearPct - a.wearPct);
+    } else if (shoeSortBy === 'mileage_desc') {
+      result.sort((a, b) => b.effectiveMileage - a.effectiveMileage);
+    } else if (shoeSortBy === 'wear_pct_desc') {
+      result.sort((a, b) => b.wearPct - a.wearPct);
+    } else if (shoeSortBy === 'recent_worn') {
+      result.sort((a, b) => {
+        const timeA = a.lastWornDate ? new Date(a.lastWornDate).getTime() : 0;
+        const timeB = b.lastWornDate ? new Date(b.lastWornDate).getTime() : 0;
+        return timeB - timeA;
+      });
+    } else if (shoeSortBy === 'name_asc') {
+      result.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    }
+
+    return result;
+  }, [analyzedShoes, shoeStatusFilter, selectedShoeCategory, shoeSearchQuery, shoeSortBy]);
 
   // Sort races by nearest date first (가까운 날짜 순 정렬)
   const sortedRaces = useMemo(() => {
@@ -337,75 +521,313 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         </form>
       </section>
 
-      {/* 2. 보유 러닝화 목록 섹션 */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
-              <Footprints className="w-5 h-5" />
+      {/* 2. 보유 러닝화 로테이션 & 마일리지 수명 관리 섹션 */}
+      <section id="shoe-closet-section" className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl space-y-6">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 sm:p-3 bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 text-cyan-400 rounded-2xl border border-cyan-500/30 shadow-lg shadow-cyan-500/10">
+              <Footprints className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                <span>보유 러닝화 로테이션</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <span>보유 러닝화 로테이션 & 마일리지 수명 관리</span>
+                </h2>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono font-semibold">
                   {shoes.length}켤레
                 </span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                훈련 목적별 신발 로테이션(데일리/스피드/LSD/레이싱/트레일) 및 마일리지 수명 관리
+                {shoeMetrics.urgentCount > 0 && (
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold animate-pulse flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    교체 알림 {shoeMetrics.urgentCount}켤레
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                훈련 목적별 신발 로테이션(데일리/스피드/LSD/레이싱/트레일) 및 미드솔 마일리지 수명·교체 주기 관리
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
             <button
-              onClick={() => setIsShoeModalOpen(true)}
-              className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:border-cyan-400"
+              type="button"
+              onClick={() => setIsGuidanceOpen((prev) => !prev)}
+              className="px-3 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-white/10 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-cyan-400" />
+              <Info className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{isGuidanceOpen ? '가이드 접기' : '교체 기준 가이드'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsShoeModalOpen(true)}
+              className="px-3.5 py-2 text-xs font-semibold text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 rounded-xl transition-all shadow-md shadow-cyan-500/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
               <span>러닝화 등록</span>
             </button>
           </div>
         </div>
 
-        {/* Search bar & Category Filter Buttons */}
-        <div className="space-y-3 mb-5">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={shoeSearchQuery}
-              onChange={(e) => setShoeSearchQuery(e.target.value)}
-              placeholder="러닝화 모델명 또는 브랜드 검색 (예: 베이퍼플라이, 알파플라이, 아디오스, 메타스피드, 호카, 나이트로)..."
-              className="w-full pl-9 pr-4 py-2 glass-input rounded-xl text-xs"
-            />
-            {shoeSearchQuery && (
-              <button
-                onClick={() => setShoeSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-              >
-                지우기
-              </button>
-            )}
+        {/* Executive Key Stat Gauges */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>총 누적 주행</span>
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-cyan-300 font-mono">
+              {shoeMetrics.totalMileage.toLocaleString()} <span className="text-xs font-normal text-slate-400">km</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>보유 신발</span>
+              <strong className="text-white">{shoeMetrics.totalShoes}켤레</strong>
+            </div>
           </div>
 
-          {/* Category Filter Buttons (Mobile-first large touch targets) */}
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>평균 수명 소진율</span>
+              <BarChart3 className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-300 font-mono">
+              {shoeMetrics.avgWearPct} <span className="text-xs font-normal text-slate-400">%</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1.5">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  shoeMetrics.avgWearPct >= 80 ? 'bg-amber-400' : 'bg-emerald-400'
+                }`}
+                style={{ width: `${Math.min(shoeMetrics.avgWearPct, 100)}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>교체 임박 & 수명 초과</span>
+              <AlertTriangle className={`w-4 h-4 ${shoeMetrics.urgentCount > 0 ? 'text-rose-400' : 'text-slate-500'}`} />
+            </div>
+            <div className={`text-xl sm:text-2xl font-black font-mono ${shoeMetrics.urgentCount > 0 ? 'text-rose-400' : 'text-slate-200'}`}>
+              {shoeMetrics.urgentCount} <span className="text-xs font-normal text-slate-400">켤레</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>수명 초과: <strong className="text-rose-400">{shoeMetrics.overdueCount}</strong></span>
+              <span>임박: <strong className="text-amber-400">{shoeMetrics.nearLimitCount}</strong></span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-white/10 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+              <span>안전 & 최상 컨디션</span>
+              <CheckCircle2 className="w-4 h-4 text-teal-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-teal-300 font-mono">
+              {shoeMetrics.optimalCount} <span className="text-xs font-normal text-slate-400">켤레</span>
+            </div>
+            <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>마모 진행: <strong className="text-amber-300">{shoeMetrics.warningCount}</strong></span>
+              <span>최적: <strong className="text-emerald-300">{shoeMetrics.optimalCount}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Replacement Alert Banner (특정 마일리지 도달 시 교체 알림) */}
+        {shoeMetrics.urgentCount > 0 && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-slate-900/90 to-amber-950/40 border border-rose-500/40 shadow-xl shadow-rose-950/30">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex-shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
+                      <span>러닝화 교체 및 은퇴 권장 알림</span>
+                    </h3>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                      🚨 총 {shoeMetrics.urgentCount}켤레 대상
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    미드솔 완충 폼의 수명이 한계에 도달했습니다. 쿠션 반발력 저하는 
+                    <strong className="text-rose-300"> 족저근막염, 정강이 통증(신스프린트), 무릎 관절 부상</strong>의 주된 원인이 됩니다.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {analyzedShoes
+                      .filter((s) => s.status === 'overdue' || s.status === 'near_limit')
+                      .map((s) => (
+                        <span
+                          key={s.id}
+                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
+                            s.status === 'overdue'
+                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          }`}
+                        >
+                          <span>{s.name}</span>
+                          <span className="font-mono text-[11px]">
+                            ({s.effectiveMileage}km / {s.effectiveMaxMileage}km, {s.wearPct}%)
+                          </span>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShoeStatusFilter(shoeStatusFilter === 'needs_replacement' ? 'all' : 'needs_replacement')}
+                className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer self-start sm:self-center ${
+                  shoeStatusFilter === 'needs_replacement'
+                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                    : 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40'
+                }`}
+              >
+                <span>{shoeStatusFilter === 'needs_replacement' ? '전체 보기로 복귀' : '교체 대상만 모아보기'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sports Science Guidance Expandable Panel */}
+        {isGuidanceOpen && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-xs text-slate-300 space-y-3 animate-fadeIn">
+            <div className="flex items-center gap-2 font-bold text-cyan-300 text-sm">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>스포츠 사이언스 기반 러닝화 카테고리별 교체 기준</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 space-y-1">
+                <span className="text-xs font-bold text-rose-300">카본 레이싱화 (250~350km)</span>
+                <p className="text-[11px] text-slate-400">
+                  초임계 폼(ZoomX, Lightstrike Pro 등)과 카본 플레이트의 최고 반발탄성은 300km 내외에서 감쇄됩니다. 대회용 이후에는 템포/인터벌 연습화로 전환 추천.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 space-y-1">
+                <span className="text-xs font-bold text-purple-300">스피드/템포 트레이너 (400~500km)</span>
+                <p className="text-[11px] text-slate-400">
+                  인터벌 및 빠른 페이스 주행을 지탱하는 나일론 플레이트/반발 쿠션화. 지면 충격 흡수 한계 도달 시 교체 준비.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 space-y-1">
+                <span className="text-xs font-bold text-blue-300">데일리 쿠션화 (600~800km)</span>
+                <p className="text-[11px] text-slate-400">
+                  매일 신는 조깅/회복주 신발. 겉창(아웃솔) 마모가 보이지 않더라도 미드솔 내부 기포가 영구 압축되므로 600km 초과 시 관절 보호를 위해 교체 요망.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 space-y-1">
+                <span className="text-xs font-bold text-emerald-300">장거리 LSD / 맥스쿠션 (600~750km)</span>
+                <p className="text-[11px] text-slate-400">
+                  장거리 20~35km 주행 시 체중의 3~4배 하중을 분산. 힐카운터 비틀림 및 미드솔 주름 발생 시 즉각 은퇴 권장.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Search bar & Category Filter Buttons */}
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={shoeSearchQuery}
+                onChange={(e) => setShoeSearchQuery(e.target.value)}
+                placeholder="러닝화 모델명 또는 브랜드 검색 (예: 베이퍼플라이, 알파플라이, 아디오스, 메타스피드, 호카, 나이트로)..."
+                className="w-full pl-9 pr-4 py-2 glass-input rounded-xl text-xs"
+              />
+              {shoeSearchQuery && (
+                <button
+                  onClick={() => setShoeSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                >
+                  지우기
+                </button>
+              )}
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span>정렬:</span>
+              </div>
+              <select
+                value={shoeSortBy}
+                onChange={(e) => setShoeSortBy(e.target.value as any)}
+                className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400 cursor-pointer"
+              >
+                <option value="urgent_first">교체 시급순 (경고 우선)</option>
+                <option value="mileage_desc">누적 마일리지 높은 순</option>
+                <option value="wear_pct_desc">수명 소진율(%) 높은 순</option>
+                <option value="recent_worn">최근 착용일 순</option>
+                <option value="name_asc">모델명 가나다순</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Category & Status Filter Tabs */}
           <div className="flex items-center gap-1.5 p-1.5 bg-slate-900/60 rounded-xl border border-white/5 overflow-x-auto scrollbar-none">
-            {shoeCategories.map((cat) => {
-              const count = cat === '전체' ? shoes.length : shoes.filter((s) => s.category === cat).length;
+            {/* Status quick filters */}
+            <button
+              type="button"
+              onClick={() => setShoeStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                shoeStatusFilter === 'all'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              전체 ({shoes.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShoeStatusFilter('needs_replacement')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
+                shoeStatusFilter === 'needs_replacement'
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-bold'
+                  : 'text-rose-300 hover:text-rose-200 hover:bg-rose-500/10'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              <span>교체 대상 ({shoeMetrics.urgentCount})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShoeStatusFilter('safe')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                shoeStatusFilter === 'safe'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-bold'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              정상·양호 ({shoeMetrics.safeCount})
+            </button>
+
+            <div className="h-4 w-px bg-white/10 mx-1 flex-shrink-0" />
+
+            {/* Category tabs */}
+            {shoeCategories.filter((c) => c !== '전체').map((cat) => {
+              const count = shoes.filter((s) => s.category === cat).length;
+              if (count === 0) return null;
               return (
                 <button
                   key={cat}
-                  onClick={() => setSelectedShoeCategory(cat)}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer min-h-[38px] flex items-center gap-1.5 ${
+                  onClick={() => setSelectedShoeCategory(selectedShoeCategory === cat ? '전체' : cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                     selectedShoeCategory === cat
-                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                      ? 'bg-white/20 text-white font-bold border border-white/30'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <span>{cat}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    selectedShoeCategory === cat ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'
+                    selectedShoeCategory === cat ? 'bg-white/30 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {count}
                   </span>
@@ -416,24 +838,24 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         </div>
 
         {/* Shoes Grid */}
-        {filteredShoes.length === 0 ? (
+        {filteredAndSortedShoes.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-slate-900/40 border border-white/5">
             <Footprints className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-            <p className="text-sm text-slate-400">등록된 러닝화가 없습니다.</p>
+            <p className="text-sm text-slate-400">선택한 조건에 해당하는 러닝화가 없습니다.</p>
             <button
-              onClick={() => setIsShoeModalOpen(true)}
-              className="mt-3 text-xs text-cyan-400 hover:underline"
+              onClick={() => {
+                setSelectedShoeCategory('전체');
+                setShoeStatusFilter('all');
+                setShoeSearchQuery('');
+              }}
+              className="mt-3 text-xs text-cyan-400 hover:underline cursor-pointer"
             >
-              새로운 러닝화를 등록해 보세요.
+              필터 초기화
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredShoes.map((shoe) => {
-              const maxMil = shoe.maxMileage || 600;
-              const pct = Math.min(Math.round((shoe.mileage / maxMil) * 100), 100);
-              const isOverdue = shoe.mileage >= maxMil;
-
+            {filteredAndSortedShoes.map((shoe) => {
               const categoryBadgeColors: Record<ShoeCategory, string> = {
                 데일리: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
                 스피드: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
@@ -442,29 +864,51 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 트레일: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
               };
 
+              let barColor = 'from-emerald-400 to-teal-400';
+              if (shoe.status === 'overdue') {
+                barColor = 'from-rose-500 to-red-600 animate-pulse';
+              } else if (shoe.status === 'near_limit') {
+                barColor = 'from-amber-400 to-orange-500';
+              } else if (shoe.status === 'warning') {
+                barColor = 'from-cyan-400 to-amber-400';
+              }
+
               return (
                 <div
                   key={shoe.id}
-                  className="glass-card rounded-xl p-4 border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between"
+                  className={`glass-card rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${
+                    shoe.status === 'overdue'
+                      ? 'bg-rose-950/20 border-rose-500/40 hover:border-rose-500/60 shadow-lg shadow-rose-950/20'
+                      : shoe.status === 'near_limit'
+                      ? 'bg-amber-950/20 border-amber-500/30 hover:border-amber-500/50'
+                      : 'border-white/10 hover:border-white/20'
+                  }`}
                 >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
+                  <div className="space-y-2.5">
+                    {/* Header: Category & Brand & Status Badge & Actions */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span
-                          className={`text-[11px] px-2 py-0.5 rounded-md font-medium border ${
+                          className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border ${
                             categoryBadgeColors[shoe.category]
                           }`}
                         >
                           {shoe.category}
                         </span>
                         <span className="text-xs text-slate-400 font-medium">{shoe.brand}</span>
+                        <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold border ${shoe.badgeBg} flex items-center gap-1`}>
+                          {shoe.status === 'overdue' && <AlertTriangle className="w-3 h-3 text-rose-400" />}
+                          {shoe.status === 'near_limit' && <AlertCircle className="w-3 h-3 text-orange-400" />}
+                          {shoe.status === 'optimal' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                          <span>{shoe.statusLabel}</span>
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           onClick={() => handleOpenEditShoe(shoe)}
                           className="p-1.5 text-slate-400 hover:text-cyan-400 rounded-lg transition-colors cursor-pointer"
-                          title="러닝화 전체 정보 및 마일리지 수정"
+                          title="러닝화 정보 및 마일리지 수정"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -483,50 +927,108 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       </div>
                     </div>
 
-                    <h3 className="text-base font-bold text-white mb-2">{shoe.name}</h3>
+                    {/* Shoe Model Name */}
+                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">{shoe.name}</h3>
 
-                    {/* 한줄평 */}
-                    <div className="p-2.5 rounded-lg bg-slate-900/60 border border-white/5 text-xs text-slate-300 mb-3 italic">
-                      &ldquo;{shoe.review}&rdquo;
-                    </div>
-                  </div>
-
-                  {/* Mileage progress bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">누적 주행거리:</span>
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-white">
-                        <span className="text-cyan-400 text-sm">
-                          {shoe.mileage}km
-                        </span>
-                        <span className="text-slate-500 font-normal">/ {maxMil}km ({pct}%)</span>
+                    {/* Unified Mileage & Lifespan Management Contents (한줄평 제거 후 마일리지 관리 통합) */}
+                    <div className="space-y-2 pt-1">
+                      {/* Unified Mileage Header */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-medium">누적 주행거리</span>
+                        <div className="flex items-center gap-1.5 font-mono">
+                          <span className={`text-base font-black ${
+                            shoe.status === 'overdue' ? 'text-rose-400' : 'text-cyan-300'
+                          }`}>
+                            {shoe.effectiveMileage}km
+                          </span>
+                          <span className="text-slate-500">/ {shoe.effectiveMaxMileage}km</span>
+                          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ml-1 ${
+                            shoe.wearPct >= 100
+                              ? 'bg-rose-500/30 text-rose-300'
+                              : shoe.wearPct >= 90
+                              ? 'bg-amber-500/30 text-amber-300'
+                              : 'bg-slate-800 text-slate-300'
+                          }`}>
+                            {shoe.wearPct}%
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          isOverdue
-                            ? 'bg-rose-500'
-                            : pct > 80
-                            ? 'bg-amber-400'
-                            : 'bg-cyan-400'
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                      {/* Visual Progress Bar */}
+                      <div className="w-full h-2.5 rounded-full bg-slate-950 p-0.5 border border-white/5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 bg-gradient-to-r ${barColor}`}
+                          style={{ width: `${Math.min(shoe.wearPct, 100)}%` }}
+                        />
+                      </div>
 
-                    {isOverdue && (
-                      <p className="text-[10px] text-rose-400 mt-1">
-                        ⚠️ 수명 마일리지 초과: 미드솔 쿠션 수명이 다해 무릎 부상 위험이 있습니다.
-                      </p>
-                    )}
+                      {/* Milestone Tick Labels */}
+                      <div className="flex justify-between text-[10px] text-slate-500 font-mono px-0.5">
+                        <span>0km (새 신발)</span>
+                        <span>50%</span>
+                        <span className="text-amber-400/80">90%</span>
+                        <span className="text-rose-400/80">{shoe.effectiveMaxMileage}km (수명 한계)</span>
+                      </div>
+
+                      {/* Wear Status & Remaining Distance Callout */}
+                      {shoe.status === 'overdue' ? (
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-1.5 font-bold">
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                          <span>⚠️ {Math.abs(shoe.remainingKm)}km 초과 주행 — 완충 한계 도달 (관절 부상 방지를 위해 즉시 교체 요망)</span>
+                        </div>
+                      ) : shoe.status === 'near_limit' ? (
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-1.5 font-semibold">
+                          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span>⏱️ 잔여 {shoe.remainingKm}km 후 수명 도달 (새 신발 교체 준비 권장)</span>
+                        </div>
+                      ) : shoe.status === 'warning' ? (
+                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 text-xs flex items-center justify-between">
+                          <span className="text-slate-400">마모 진행:</span>
+                          <span>잔여 <strong className="text-amber-300 font-mono">{shoe.remainingKm}km</strong> 사용 가능</span>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 text-xs flex items-center justify-between">
+                          <span className="text-slate-400">미드솔 쿠션:</span>
+                          <span>잔여 <strong className="text-emerald-400 font-mono">{shoe.remainingKm}km</strong> (최적 완충 컨디션)</span>
+                        </div>
+                      )}
+
+                      {/* Category Lifespan Tip */}
+                      <div className="text-[11px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-white/5 flex items-start gap-1.5">
+                        <span className="text-cyan-400 flex-shrink-0">💡</span>
+                        <span className="leading-relaxed">{getCategoryTip(shoe.category)}</span>
+                      </div>
+
+                      {/* Recent Workout Note if linked in sessions */}
+                      {shoe.lastWornDate && (
+                        <div className="text-[11px] text-cyan-400/90 font-mono flex items-center gap-1.5 pt-0.5">
+                          <span className="px-2 py-0.5 bg-slate-950 rounded border border-white/5">
+                            최근 훈련: {shoe.lastWornDate}
+                          </span>
+                          {shoe.lastSessionTitle && (
+                            <span className="text-slate-400 truncate max-w-[200px]">({shoe.lastSessionTitle})</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Bottom Rotation Advice Tip */}
+        <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/20 flex items-start gap-3 text-xs text-slate-300">
+          <span className="text-lg mt-0.5">👟</span>
+          <div className="space-y-1">
+            <strong className="text-emerald-300">신발 수명을 20% 늘리는 스마트 로테이션 원칙:</strong>
+            <p className="text-slate-400 leading-relaxed text-[11px]">
+              러닝화 미드솔은 1회 주행 후 원래의 탄성 구조로 완전 복원되는 데 약 24~48시간이 필요합니다. 
+              스피드 인터벌에는 카본/경량화, 매일의 조깅/회복주에는 맥스쿠션 데일리화로 2~3켤레를 번갈아 착용하면 충격 흡수 성능을 오래 보존할 수 있습니다.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* 3. 참가 대회 & D-day 섹션 */}

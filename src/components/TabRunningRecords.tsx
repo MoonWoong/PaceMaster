@@ -37,6 +37,7 @@ import {
   WeeklyPlanSettings,
   RunnerStateAnalysis,
   RunningShoe,
+  SpeedWorkoutType,
 } from '../types';
 import {
   estimateBestVDOT,
@@ -59,6 +60,8 @@ import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
 import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
 import { TrainingShoeModal } from './TrainingShoeModal';
 import { TrainingCalendarView } from './TrainingCalendarView';
+import { CsvWorkoutUploadModal, ParsedCsvUploadItem } from './CsvWorkoutUploadModal';
+import { ShoeMileageAnalyticsCard } from './ShoeMileageAnalyticsCard';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -71,6 +74,9 @@ interface TabRunningRecordsProps {
   onSaveGoals: (goals: RunningGoals) => Promise<void>;
   onAddTrainingSession: (
     session: Omit<TrainingSession, 'id' | 'createdAt'>
+  ) => Promise<void>;
+  onAddBatchTrainingSessions?: (
+    items: Omit<TrainingSession, 'id' | 'createdAt'>[]
   ) => Promise<void>;
   onUpdateTrainingSession?: (sessionId: string, updates: Partial<TrainingSession>) => Promise<void>;
   onDeleteTrainingSession: (id: string) => Promise<void>;
@@ -90,6 +96,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   onSaveRecords,
   onSaveGoals,
   onAddTrainingSession,
+  onAddBatchTrainingSessions,
   onUpdateTrainingSession,
   onDeleteTrainingSession,
   onClearAllTrainingSessions,
@@ -99,6 +106,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 }) => {
   // Session Shoe Modal State
   const [shoeModalSession, setShoeModalSession] = useState<TrainingSession | null>(null);
+  // CSV Upload & Memo Modal State
+  const [pendingCsvItems, setPendingCsvItems] = useState<ParsedCsvUploadItem[]>([]);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
+  // Shoe Analytics Toggle State
+  const [showShoeAnalytics, setShowShoeAnalytics] = useState<boolean>(false);
   // Running Records State
   const [pb5k, setPb5k] = useState(records.pb5k || '00:21:00');
   const [pb10k, setPb10k] = useState(records.pb10k || '00:43:30');
@@ -140,9 +152,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const [customSpeedDay, setCustomSpeedDay] = useState<DayOfWeek | '없음'>(
     (weeklyPlanSettings?.speedDay as DayOfWeek | '없음') || '화요일'
   );
-  const [customSpeedType, setCustomSpeedType] = useState<
-    '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주'
-  >(weeklyPlanSettings?.speedWorkoutType || '인터벌');
+  const [customSpeedType, setCustomSpeedType] = useState<SpeedWorkoutType>(
+    weeklyPlanSettings?.speedWorkoutType || '인터벌'
+  );
   const [customLongRunDay, setCustomLongRunDay] = useState<DayOfWeek | '없음'>(
     (weeklyPlanSettings?.longRunDay as DayOfWeek | '없음') || '일요일'
   );
@@ -793,20 +805,80 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               finalMaxHr = lapsPeakHr || 165;
             }
 
+            // If candidateRows is empty and summaryRow provided total metrics, generate at least 1 lap
+            if (parsedLaps.length === 0 && finalDistanceKm > 0) {
+              parsedLaps.push({
+                lap: '1',
+                time: finalTime,
+                cumulativeTime: finalTime,
+                distanceKm: finalDistanceKm,
+                avgPace: finalAvgPace,
+                avgGap: finalAvgPace,
+                avgHr: finalAvgHr,
+                maxHr: finalMaxHr,
+              });
+            }
+
             const { dateStr, sessionTitle } = parseFilename(file.name);
             const displayTitle = sessionTitle.includes('km')
               ? sessionTitle
               : `${sessionTitle} (${finalDistanceKm.toFixed(2)}km)`;
 
+            // Extract activity date from CSV if available (e.g. Activity Date, Start Time, 날짜)
+            const candidateDateKeys = [
+              '날짜',
+              '일자',
+              'Date',
+              '활동 일시',
+              '활동일시',
+              '시작 시간',
+              '시작시간',
+              'Start Time',
+              'Activity Date',
+              'Date/Time',
+              'Timestamp',
+            ];
+            const rawDateFromCsv =
+              (summaryRow ? getRowValue(summaryRow, candidateDateKeys) : '') ||
+              (candidateRows[0] ? getRowValue(candidateRows[0], candidateDateKeys) : '');
+
+            let effectiveDate = dateStr;
+            if (rawDateFromCsv) {
+              const dateMatch = rawDateFromCsv.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+              if (dateMatch) {
+                effectiveDate = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
+              }
+            }
+
+            // Extract notes/memo column if present in CSV
+            const candidateMemoKeys = [
+              '메모',
+              '훈련메모',
+              '훈련 메모',
+              '메모란',
+              '비고',
+              '일지',
+              '노트',
+              'Notes',
+              'Note',
+              'Memo',
+              'Description',
+              'Comments',
+              'Comment',
+            ];
+            const rawNoteFromCsv =
+              (summaryRow ? getRowValue(summaryRow, candidateMemoKeys) : '') ||
+              (candidateRows[0] ? getRowValue(candidateRows[0], candidateMemoKeys) : '');
+
             resolve({
-              date: dateStr,
+              date: effectiveDate,
               title: displayTitle,
               totalDistanceKm: finalDistanceKm,
               totalTime: finalTime,
               avgPace: finalAvgPace,
               avgHr: finalAvgHr,
               maxHr: finalMaxHr,
-              notes: `[파일명 자동 인식: ${file.name}]`,
+              notes: rawNoteFromCsv || '',
               laps: parsedLaps,
             });
           } catch (err: any) {
@@ -820,50 +892,82 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     });
   };
 
-  // Handle Multi CSV File Upload
+  // Handle Multi CSV File Upload - Opens CsvWorkoutUploadModal with memo input
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
     const files = Array.from(fileList);
+    setCsvStatus(`⏳ ${files.length}개 CSV 파일 파싱 및 분석 중...`);
 
-    // Verify security key once before batch registration
-    const ok = await verifyRunnerSecurityKey(
-      `가민 CSV 훈련 데이터 ${files.length}개 일괄 등록`
-    );
-    if (!ok) {
-      e.target.value = '';
-      return;
-    }
-
-    setCsvStatus(`⏳ ${files.length}개 CSV 파일 파싱 및 등록 중...`);
-
-    let successCount = 0;
+    const parsedItems: ParsedCsvUploadItem[] = [];
     const errors: string[] = [];
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       try {
         const sessionData = await parseSingleCsvFile(file);
-        await onAddTrainingSession(sessionData);
-        successCount++;
+        parsedItems.push({
+          id: `csv-${Date.now()}-${i}`,
+          fileName: file.name,
+          date: sessionData.date,
+          title: sessionData.title,
+          totalDistanceKm: sessionData.totalDistanceKm,
+          totalTime: sessionData.totalTime,
+          avgPace: sessionData.avgPace,
+          avgHr: sessionData.avgHr,
+          maxHr: sessionData.maxHr,
+          notes: sessionData.notes || '',
+          laps: sessionData.laps,
+        });
       } catch (err: any) {
         console.error(`Failed to process ${file.name}`, err);
         errors.push(`${file.name}: ${err.message || '파싱 오류'}`);
       }
     }
 
-    if (errors.length === 0) {
-      setCsvStatus(`✅ 총 ${successCount}개 훈련 세션이 날짜와 이름으로 자동 등록되었습니다!`);
+    if (errors.length > 0) {
+      setCsvStatus(`⚠️ ${errors.length}개 파일 파싱 실패: ${errors[0]}`);
+      setTimeout(() => setCsvStatus(''), 5000);
     } else {
-      setCsvStatus(
-        `⚠️ ${successCount}개 등록 성공, ${errors.length}개 실패 (${errors[0]})`
-      );
+      setCsvStatus('');
     }
 
-    setTimeout(() => setCsvStatus(''), 5000);
+    if (parsedItems.length > 0) {
+      setPendingCsvItems(parsedItems);
+      setIsCsvModalOpen(true);
+    }
 
     // Reset input
     e.target.value = '';
+  };
+
+  // Save Batch CSV Sessions with Custom Memos & Shoes
+  const handleSaveBatchCsvSessions = async (
+    items: Omit<TrainingSession, 'id' | 'createdAt'>[]
+  ) => {
+    if (!items || items.length === 0) return;
+
+    setCsvStatus(`⏳ ${items.length}개 훈련 세션 및 메모 등록 저장 중...`);
+
+    try {
+      if (onAddBatchTrainingSessions) {
+        await onAddBatchTrainingSessions(items);
+      } else {
+        for (const item of items) {
+          await onAddTrainingSession(item);
+        }
+      }
+
+      setCsvStatus(`✅ 총 ${items.length}개 훈련 세션과 훈련 메모가 성공적으로 등록되었습니다!`);
+      setTimeout(() => setCsvStatus(''), 5000);
+      setIsCsvModalOpen(false);
+      setPendingCsvItems([]);
+    } catch (err: any) {
+      console.error('Failed to save batch CSV sessions', err);
+      setCsvStatus(`❌ 저장 실패: ${err.message || '저장 중 오류가 발생했습니다.'}`);
+      throw err;
+    }
   };
 
   const toggleMonth = (mKey: string) => {
@@ -1699,9 +1803,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* Shoe Rotation Guidance Banner */}
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs mb-5">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">👟</span>
+        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">👟</span>
             <div>
               <span className="font-bold text-emerald-300">스마트 러닝화 로테이션 추천 시스템: </span>
               <span className="text-slate-300">
@@ -1709,10 +1813,30 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               </span>
             </div>
           </div>
-          <div className="text-[11px] text-slate-400 font-mono flex-shrink-0 self-end sm:self-auto">
-            보유 신발: <strong className="text-white">{shoes.length}켤레</strong>
+          <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+            <span className="text-[11px] text-slate-400 font-mono">
+              보유 신발: <strong className="text-white">{shoes.length}켤레</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowShoeAnalytics((prev) => !prev)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Footprints className="w-3.5 h-3.5" />
+              <span>{showShoeAnalytics ? '신발 분석 닫기' : '신발 마일리지·수명 분석'}</span>
+            </button>
           </div>
         </div>
+
+        {/* Shoe Mileage Analytics Card (Expandable in Running Records tab) */}
+        {showShoeAnalytics && (
+          <div className="mb-6 animate-fadeIn">
+            <ShoeMileageAnalyticsCard
+              shoes={shoes}
+              sessions={trainingSessions}
+            />
+          </div>
+        )}
 
         {/* Training Days & Point Workouts Customization Form */}
         {isCustomizingPlan && (
@@ -1821,12 +1945,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       value={customSpeedType}
                       onChange={(e) =>
                         setCustomSpeedType(
-                          e.target.value as '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주'
+                          e.target.value as SpeedWorkoutType
                         )
                       }
                       className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-rose-400"
                     >
-                      <option value="인터벌">인터벌 (트랙 400m x 8~10회)</option>
+                      <option value="인터벌">400m 인터벌 (트랙 400m 질주 x 6~10회)</option>
+                      <option value="800m 인터벌">800m 인터벌 (야소 800 / 800m 질주 x 4~6회)</option>
+                      <option value="1~3k 인터벌">1~3k 인터벌 (1~3km 롱 크루즈 인터벌 x 3~5회)</option>
                       <option value="템포런">템포런 (젖산역치 지속주)</option>
                       <option value="변속주(파틀렉)">변속주 (파틀렉 Fartlek)</option>
                       <option value="빌드업주">빌드업주 (네거티브 스플릿)</option>
@@ -2291,6 +2417,20 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             }
           }}
           onClose={() => setShoeModalSession(null)}
+        />
+      )}
+
+      {/* CSV Workout Upload & Memo Input Modal */}
+      {isCsvModalOpen && (
+        <CsvWorkoutUploadModal
+          isOpen={isCsvModalOpen}
+          parsedItems={pendingCsvItems}
+          shoes={shoes}
+          onClose={() => {
+            setIsCsvModalOpen(false);
+            setPendingCsvItems([]);
+          }}
+          onSaveBatch={handleSaveBatchCsvSessions}
         />
       )}
     </div>

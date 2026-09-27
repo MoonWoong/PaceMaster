@@ -10,6 +10,7 @@ import { PaceCalculatorModal } from './components/PaceCalculatorModal';
 import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { DailyInsightCard } from './components/DailyInsightCard';
+import { RunningPerformanceSummaryCard } from './components/RunningPerformanceSummaryCard';
 import { GoalProgressBarSection } from './components/GoalProgressBarSection';
 import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
 import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
@@ -42,6 +43,7 @@ import {
   saveRunningGoals,
   getTrainingSessions,
   addTrainingSession,
+  addBatchTrainingSessions,
   updateTrainingSession,
   deleteTrainingSession,
   clearAllTrainingSessions,
@@ -236,6 +238,39 @@ export default function App() {
     }
   };
 
+  const handleAddBatchTrainingSessions = async (
+    sessionsData: Omit<TrainingSession, 'id' | 'createdAt'>[]
+  ) => {
+    if (!sessionsData || sessionsData.length === 0) return;
+
+    const createdList = await addBatchTrainingSessions(sessionsData);
+    setTrainingSessions((prev) => {
+      const combined = [...createdList, ...prev];
+      return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+
+    // Accumulate shoe mileage across all sessions in the batch
+    const mileageMap: Record<string, number> = {};
+    for (const s of sessionsData) {
+      if (s.shoeId && s.totalDistanceKm > 0) {
+        mileageMap[s.shoeId] = (mileageMap[s.shoeId] || 0) + s.totalDistanceKm;
+      }
+    }
+
+    if (Object.keys(mileageMap).length > 0) {
+      for (const [sId, dist] of Object.entries(mileageMap)) {
+        const targetShoe = shoes.find((s) => s.id === sId);
+        if (targetShoe) {
+          const updatedShoe: RunningShoe = {
+            ...targetShoe,
+            mileage: Math.round(((targetShoe.mileage || 0) + dist) * 100) / 100,
+          };
+          await handleUpdateShoe(updatedShoe);
+        }
+      }
+    }
+  };
+
   const handleUpdateTrainingSession = async (
     sessionId: string,
     updates: Partial<TrainingSession>
@@ -307,12 +342,24 @@ export default function App() {
           onUpdateRace={handleUpdateRace}
         />
 
-        {/* 2. Today's AI Running Insight & Condition Diagnosis */}
+        {/* 2. Cumulative Running Performance AI Summary (Strengths & Areas for Improvement) */}
+        <RunningPerformanceSummaryCard
+          sessions={trainingSessions}
+          records={runningRecords}
+          goals={runningGoals}
+          races={races}
+          isAppLoading={isLoading}
+          onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
+          onNavigateToRecords={() => setActiveTab('running_records')}
+        />
+
+        {/* 3. Today's AI Running Insight & Condition Diagnosis */}
         <DailyInsightCard
           sessions={trainingSessions}
           races={races}
           records={runningRecords}
           goals={runningGoals}
+          isAppLoading={isLoading}
           onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
         />
 
@@ -352,6 +399,7 @@ export default function App() {
                   physicalInfo={physicalInfo}
                   shoes={shoes}
                   races={races}
+                  sessions={trainingSessions}
                   onSavePhysical={handleSavePhysical}
                   onAddShoe={handleAddShoe}
                   onUpdateShoe={handleUpdateShoe}
@@ -374,6 +422,7 @@ export default function App() {
                   onSaveRecords={handleSaveRecords}
                   onSaveGoals={handleSaveGoals}
                   onAddTrainingSession={handleAddTrainingSession}
+                  onAddBatchTrainingSessions={handleAddBatchTrainingSessions}
                   onUpdateTrainingSession={handleUpdateTrainingSession}
                   onDeleteTrainingSession={handleDeleteTrainingSession}
                   onClearAllTrainingSessions={handleClearAllTrainingSessions}

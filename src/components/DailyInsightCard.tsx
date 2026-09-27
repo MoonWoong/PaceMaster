@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Sparkles,
   RefreshCw,
@@ -22,23 +22,39 @@ interface DailyInsightCardProps {
   races: RegisteredRace[];
   records: RunningRecords;
   goals: RunningGoals;
+  isAppLoading?: boolean;
   onOpenTodayWorkoutModal?: () => void;
 }
 
 const CACHE_KEY = 'pacemaster_daily_insight_cache';
+
+const formatGeneratedAt = () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    weekday: 'short',
+  });
+  const timeStr = now.toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${dateStr} ${timeStr}`;
+};
 
 export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
   sessions,
   races,
   records,
   goals,
+  isAppLoading,
   onOpenTodayWorkoutModal,
 }) => {
   const todayDateStr = new Date().toISOString().split('T')[0];
   const todaySession = sessions.find((s) => s.date === todayDateStr);
 
   const [insight, setInsight] = useState<DailyInsightData>(() => {
-    // Try restoring from localStorage first
+    // Try restoring from localStorage first for immediate display without flash
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
@@ -125,12 +141,7 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
               analysis: result.analysis,
               recommendedToday: result.recommendedToday,
               cheerMessage: result.cheerMessage,
-              generatedAt: new Date().toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'short',
-              }),
+              generatedAt: formatGeneratedAt(),
               source: result.source || 'gemini',
             };
 
@@ -153,6 +164,7 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
 
       // Fallback
       const fallbackData = generateHeuristicDailyInsight({ sessions, races, records, goals });
+      fallbackData.generatedAt = formatGeneratedAt();
       setInsight(fallbackData);
       try {
         localStorage.setItem(
@@ -167,23 +179,29 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
     [sessions, races, records, goals]
   );
 
-  // Trigger Gemini insight automatically on mount or session update if cached is not gemini
+  // Track auto-refresh on screen load
+  const hasRefreshedOnLoadRef = useRef(false);
+  const prevSessionsLengthRef = useRef<number | null>(null);
+
+  // Automatically refresh insight once when screen loads, and when sessions change
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.dateKey === today && parsed.data?.source === 'gemini') {
-          return; // Already fetched today with Gemini
-        }
-      }
-    } catch {
-      // ignore
+    // If the app is still loading initial DB data, wait until complete
+    if (isAppLoading) return;
+
+    // 1. Initial screen load auto-refresh: runs once whenever the screen is loaded/reloaded
+    if (!hasRefreshedOnLoadRef.current) {
+      hasRefreshedOnLoadRef.current = true;
+      prevSessionsLengthRef.current = sessions.length;
+      fetchGeminiInsight(false);
+      return;
     }
 
-    fetchGeminiInsight(false);
-  }, [fetchGeminiInsight]);
+    // 2. Also auto-refresh if a workout session was added or removed
+    if (prevSessionsLengthRef.current !== null && prevSessionsLengthRef.current !== sessions.length) {
+      prevSessionsLengthRef.current = sessions.length;
+      fetchGeminiInsight(false);
+    }
+  }, [isAppLoading, sessions.length, fetchGeminiInsight]);
 
   // Color mappings for readiness score
   const readinessColor =
@@ -211,8 +229,9 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <span>오늘의 러닝 인사이트 & 컨디션 진단</span>
               </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold">
-                AI Coach
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold flex items-center gap-1.5">
+                {isLoading && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping inline-block" />}
+                <span>{isLoading ? '실시간 분석 갱신 중...' : 'AI Coach'}</span>
               </span>
             </div>
             <p className="text-xs text-slate-300">
@@ -337,8 +356,10 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
             <span className="flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3 text-cyan-400" />
               <span>
-                {insight.source === 'gemini'
-                  ? 'Gemini 3.8 Flash AI 기반 실시간 분석 완료'
+                {isLoading
+                  ? '최신 훈련 데이터 기반으로 AI 인사이트 실시간 분석 중...'
+                  : insight.source === 'gemini'
+                  ? 'Gemini 3.8 Flash AI 실시간 분석 완료'
                   : '스포츠 사이언스 분석 엔진 기반'}
               </span>
             </span>

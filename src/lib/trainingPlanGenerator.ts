@@ -1,4 +1,4 @@
-import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe } from '../types';
+import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe, SpeedWorkoutType } from '../types';
 import { getTrainingPaces, formatPace } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 
@@ -7,7 +7,7 @@ export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | 
 export interface PlanCustomOptions {
   trainingDays: DayOfWeek[]; // User selected running days (e.g. ['화요일', '목요일', '토요일', '일요일'])
   speedDay: DayOfWeek | '없음'; // Day for speed/interval/tempo point workout
-  speedWorkoutType: '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주'; // Specific speed point
+  speedWorkoutType: SpeedWorkoutType; // Specific speed point
   longRunDay: DayOfWeek | '없음'; // Day for long slow distance point workout
   targetRaceCourse?: string; // 풀코스, 하프, 10K, 5K
   weeklyMileageGoal?: number; // Target weekly volume in km
@@ -412,6 +412,97 @@ export function generateWeeklyTrainingPlan(
           description: `워밍업 2km + 트랙 400m 질주(${intervalPace} 페이스) 및 200m 불완전 휴식 90초 ${intervalReps}회 반복 + 쿨다운 ${cooldownKm}km. 심폐 환기량 극대화.`,
           intensity: '높음',
           stages: intervalStages,
+        };
+      } else if (speedWorkoutType === '800m 인터벌') {
+        const reps = defaultSpeedDist >= 12 ? 6 : defaultSpeedDist >= 9 ? 5 : 4;
+        const warmupKm = 2;
+        const repWorkKm = 0.8;
+        const repRestKm = 0.4;
+        const mainWorkVolume = reps * (repWorkKm + repRestKm);
+        const cooldownKm = Math.max(1, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
+        const actualTotalDist = Math.round((warmupKm + mainWorkVolume + cooldownKm) * 10) / 10;
+
+        const yassoStages: WorkoutStage[] = [
+          {
+            step: '워밍업 (1~2km)',
+            distanceKm: warmupKm,
+            pace: `${easyMin} ~ ${easyMax}`,
+            zone: 'Zone 1~2',
+            focus: '가벼운 조깅 + 고관절 가동성 스트레칭 및 80m 질주 2회',
+          },
+          {
+            step: `본세트 (800m 질주 x ${reps}회)`,
+            distanceKm: Math.round(mainWorkVolume * 10) / 10,
+            pace: intervalPace,
+            zone: 'Zone 5 (VO2max / 야소 800)',
+            focus: `트랙 800m(2바퀴) ${intervalPace} 일정한 페이스 유지, 세트 간 400m(2분~2분30초) 불완전 회복 조깅`,
+          },
+          {
+            step: `쿨다운 (${actualTotalDist - cooldownKm + 0.1}~${actualTotalDist}km)`,
+            distanceKm: cooldownKm,
+            pace: easyMax,
+            zone: 'Zone 1 (회복)',
+            focus: '심박 안정화, 체온 회복 및 젖산 완충을 위한 조깅',
+          },
+        ];
+
+        return {
+          day: dayName,
+          dayShort,
+          type: '인터벌',
+          title: `[포인트: 스피드] 800m 야소 인터벌 (800m x ${reps}회)`,
+          distanceKm: actualTotalDist,
+          targetPace: intervalPace,
+          targetZone: 'Zone 5 (VO2max / 야소 800)',
+          description: `워밍업 2km + 트랙 800m 질주(${intervalPace} 페이스) 및 400m(약 2분 15초) 불완전 회복 조깅 ${reps}세트 반복 + 쿨다운 ${cooldownKm}km. 풀코스 목표 서브 달성을 위한 핵심 심폐 지구력 및 젖산 내성 극대화.`,
+          intensity: '높음',
+          stages: yassoStages,
+        };
+      } else if (speedWorkoutType === '1~3k 인터벌') {
+        const isLongVolume = defaultSpeedDist >= 12;
+        const repDistKm = isLongVolume ? 2 : 1; // 1km or 2km repeats
+        const reps = isLongVolume ? (defaultSpeedDist >= 14 ? 4 : 3) : (defaultSpeedDist >= 9 ? 5 : 4);
+        const restKm = 0.4; // 400m jog
+        const warmupKm = 2;
+        const mainWorkVolume = reps * (repDistKm + restKm);
+        const cooldownKm = Math.max(1, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
+        const actualTotalDist = Math.round((warmupKm + mainWorkVolume + cooldownKm) * 10) / 10;
+
+        const cruiseStages: WorkoutStage[] = [
+          {
+            step: '워밍업 (1~2km)',
+            distanceKm: warmupKm,
+            pace: `${easyMin} ~ ${easyMax}`,
+            zone: 'Zone 1~2',
+            focus: '가벼운 조깅 + 호흡 리듬 정렬 및 동적 스트레칭',
+          },
+          {
+            step: `본세트 (${repDistKm}km 롱 인터벌 x ${reps}회)`,
+            distanceKm: Math.round(mainWorkVolume * 10) / 10,
+            pace: `${tempoPace} ~ ${intervalPace}`,
+            zone: 'Zone 4~5 (크루즈 역치 인터벌)',
+            focus: `${repDistKm}km 정속 크루즈 주행(${tempoPace}), 세트 간 400m(90초~2분) 불완전 회복 조깅`,
+          },
+          {
+            step: `쿨다운 (${actualTotalDist - cooldownKm + 0.1}~${actualTotalDist}km)`,
+            distanceKm: cooldownKm,
+            pace: easyMax,
+            zone: 'Zone 1 (회복)',
+            focus: '정리 운동 및 심폐 젖산 회복',
+          },
+        ];
+
+        return {
+          day: dayName,
+          dayShort,
+          type: '인터벌',
+          title: `[포인트: 스피드] 1~3k 롱 크루즈 인터벌 (${repDistKm}km x ${reps}회)`,
+          distanceKm: actualTotalDist,
+          targetPace: `${tempoPace} ~ ${intervalPace}`,
+          targetZone: 'Zone 4~5 (크루즈 역치 인터벌)',
+          description: `워밍업 2km + ${repDistKm}km 롱 크루즈 인터벌(${tempoPace}) ${reps}회 반복 (세트 간 400m 조깅 휴식) + 쿨다운 ${cooldownKm}km. 하프/풀코스 실전 레이스 페이스 지구력 및 역치 한계 속도 적응.`,
+          intensity: '높음',
+          stages: cruiseStages,
         };
       } else if (speedWorkoutType === '템포런') {
         const warmupKm = 2;

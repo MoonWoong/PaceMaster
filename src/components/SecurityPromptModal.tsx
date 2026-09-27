@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldCheck, Lock, X, AlertCircle } from 'lucide-react';
 import {
   registerSecurityPromptListener,
@@ -56,12 +57,12 @@ export const SecurityPromptModal: React.FC = () => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md p-6 glass-panel rounded-2xl border border-white/20 shadow-2xl">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-md p-6 glass-panel rounded-2xl border border-white/20 shadow-2xl bg-slate-900/95">
         <button
           onClick={handleCancel}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors cursor-pointer"
           aria-label="닫기"
         >
           <X className="w-5 h-5" />
@@ -102,7 +103,7 @@ export const SecurityPromptModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200 px-1 py-0.5"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200 px-1 py-0.5 cursor-pointer"
               >
                 {showPassword ? '숨김' : '표시'}
               </button>
@@ -122,19 +123,20 @@ export const SecurityPromptModal: React.FC = () => {
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 rounded-xl transition-colors"
+              className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 rounded-xl transition-colors cursor-pointer"
             >
               취소
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+              className="px-5 py-2 text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer"
             >
               인증 확인
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

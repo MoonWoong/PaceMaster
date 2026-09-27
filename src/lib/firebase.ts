@@ -22,6 +22,7 @@ import {
   collection,
   getDocs,
   deleteField,
+  writeBatch,
 } from 'firebase/firestore';
 import {
   PhysicalInfo,
@@ -545,12 +546,14 @@ export async function addTrainingSession(
 ): Promise<TrainingSession> {
   const newSession: TrainingSession = {
     ...session,
-    id: `ts_${Date.now()}`,
+    id: `ts_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     createdAt: new Date().toISOString(),
   };
 
   const current = await getTrainingSessions();
-  const nextList = [newSession, ...current];
+  const nextList = [newSession, ...current].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
   setLocalItem('training_sessions', nextList);
 
   if (firestoreInstance) {
@@ -562,6 +565,52 @@ export async function addTrainingSession(
   }
 
   return newSession;
+}
+
+export async function addBatchTrainingSessions(
+  sessions: Omit<TrainingSession, 'id' | 'createdAt'>[]
+): Promise<TrainingSession[]> {
+  if (!sessions || sessions.length === 0) return [];
+
+  const baseTimestamp = Date.now();
+  const createdSessions: TrainingSession[] = sessions.map((s, idx) => ({
+    ...s,
+    id: `ts_${baseTimestamp}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
+    createdAt: new Date(baseTimestamp + idx * 10).toISOString(),
+  }));
+
+  // Update local storage first for instant UI response and offline safety
+  const current = await getTrainingSessions();
+  const nextList = [...createdSessions, ...current].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  setLocalItem('training_sessions', nextList);
+
+  // Firestore sync: batch commit
+  if (firestoreInstance) {
+    try {
+      const batch = writeBatch(firestoreInstance);
+      for (const s of createdSessions) {
+        const ref = doc(firestoreInstance, 'training_sessions', s.id);
+        batch.set(ref, cleanFirestoreData(s, false));
+      }
+      await batch.commit();
+      console.log(`[Firebase] Batch added ${createdSessions.length} training sessions.`);
+    } catch (e) {
+      console.error('Firestore addBatchTrainingSessions failed, falling back to parallel setDoc', e);
+      try {
+        await Promise.all(
+          createdSessions.map((s) =>
+            setDoc(doc(firestoreInstance!, 'training_sessions', s.id), cleanFirestoreData(s, false))
+          )
+        );
+      } catch (err2) {
+        console.error('Individual fallback setDoc failed', err2);
+      }
+    }
+  }
+
+  return createdSessions;
 }
 
 export async function updateTrainingSession(

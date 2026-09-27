@@ -114,12 +114,17 @@ export function generateHeuristicDailyInsight(params: {
     analysis: analysisText,
     recommendedToday,
     cheerMessage,
-    generatedAt: now.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    }),
+    generatedAt:
+      now.toLocaleDateString('ko-KR', {
+        month: 'short',
+        day: 'numeric',
+        weekday: 'short',
+      }) +
+      ' ' +
+      now.toLocaleTimeString('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
     source: 'heuristic',
   };
 }

@@ -75,10 +75,18 @@ export interface TrainingSession {
   createdAt: string;
 }
 
+export type SpeedWorkoutType =
+  | '인터벌'
+  | '800m 인터벌'
+  | '1~3k 인터벌'
+  | '템포런'
+  | '변속주(파틀렉)'
+  | '빌드업주';
+
 export interface WeeklyPlanSettings {
   trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
   speedDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
-  speedWorkoutType: '인터벌' | '템포런' | '변속주(파틀렉)' | '빌드업주';
+  speedWorkoutType: SpeedWorkoutType;
   longRunDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
   targetRaceCourse?: '10K' | '하프' | '풀코스';
   updatedAt?: string;
