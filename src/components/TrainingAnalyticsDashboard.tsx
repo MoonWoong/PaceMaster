@@ -22,7 +22,6 @@ interface TrainingAnalyticsDashboardProps {
   sessions: TrainingSession[];
   maxHr?: number;
   thresholdHr?: number;
-  onLoadDemo?: () => void;
 }
 
 interface WeeklyDataPoint {
@@ -55,9 +54,8 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
   sessions,
   maxHr = 190,
   thresholdHr = 172,
-  onLoadDemo,
 }) => {
-  const [timeRange, setTimeRange] = useState<'8w' | '12w' | 'all'>('8w');
+  const [timeRange, setTimeRange] = useState<'4w' | '8w' | '12w' | 'all'>('4w');
   const [hoveredWeek, setHoveredWeek] = useState<WeeklyDataPoint | null>(null);
   const [hoveredZone, setHoveredZone] = useState<IntensityZoneData | null>(null);
 
@@ -199,7 +197,9 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
   // Filter weekly data based on timeRange
   const displayedWeeklyData = useMemo(() => {
     if (allWeeklyData.length === 0) return [];
-    if (timeRange === '8w') {
+    if (timeRange === '4w') {
+      return allWeeklyData.slice(-4);
+    } else if (timeRange === '8w') {
       return allWeeklyData.slice(-8);
     } else if (timeRange === '12w') {
       return allWeeklyData.slice(-12);
@@ -220,7 +220,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
       5: { distance: 0, count: 0 },
     };
 
-    // Calculate intensity across sessions in the selected range
+    // Calculate intensity across sessions in the selected range (derived from timeRange)
     const activeWeeksSet = new Set(displayedWeeklyData.map((w) => w.weekKey));
     const activeSessions = sessions.filter((s) => {
       const d = new Date(s.date);
@@ -292,6 +292,11 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
 
     return result;
   }, [sessions, maxHr, thresholdHr, displayedWeeklyData]);
+
+  // Total mileage in selected intensity range
+  const totalIntensityDist = useMemo(() => {
+    return Math.round(intensityData.reduce((acc, z) => acc + z.distanceKm, 0) * 10) / 10;
+  }, [intensityData]);
 
   // Polarized 80:20 metric: Zone 1 + Zone 2 = Low, Zone 3 = Medium, Zone 4 + 5 = High
   const polarizedRatio = useMemo(() => {
@@ -651,6 +656,17 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
         <div className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
           <button
             type="button"
+            onClick={() => setTimeRange('4w')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              timeRange === '4w'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            최근 4주
+          </button>
+          <button
+            type="button"
             onClick={() => setTimeRange('8w')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               timeRange === '8w'
@@ -767,15 +783,10 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
           <div className="relative w-full aspect-[16/8] min-h-[220px]">
             {displayedWeeklyData.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                <p className="text-xs text-slate-400 mb-2">등록된 훈련 세션 데이터가 없습니다.</p>
-                {onLoadDemo && (
-                  <button
-                    onClick={onLoadDemo}
-                    className="px-3 py-1.5 text-xs font-semibold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer transition-colors"
-                  >
-                    가민 샘플 데이터로 분석 체험하기
-                  </button>
-                )}
+                <p className="text-xs text-slate-400">등록된 훈련 세션 데이터가 없습니다.</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  가민 CSV 파일을 업로드하면 주간 마일리지 추세가 자동으로 분석 및 시각화됩니다.
+                </p>
               </div>
             ) : (
               <svg ref={mileageChartRef} className="w-full h-full overflow-visible" />
@@ -830,15 +841,34 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
 
         {/* Right Chart: Training Intensity Distribution (5 cols) */}
         <div className="lg:col-span-5 bg-slate-950/60 rounded-xl p-4 border border-white/5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <PieIcon className="w-4 h-4 text-emerald-400" />
-              <h4 className="text-xs sm:text-sm font-bold text-white">
-                심박존 훈련 강도 분포 (Intensity)
+              <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                <span>심박존 훈련강도 분포</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                  {timeRange === '4w' ? '최근 4주' : timeRange === '8w' ? '최근 8주' : timeRange === '12w' ? '최근 12주' : '전체 기간'}
+                </span>
               </h4>
             </div>
             <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-medium">
               80:20 Polarized
+            </span>
+          </div>
+
+          <div className="text-[11px] text-slate-400 mb-2 flex items-center justify-between pb-1 border-b border-white/5">
+            <span>
+              {timeRange === '4w'
+                ? '최근 4주간'
+                : timeRange === '8w'
+                ? '최근 8주간'
+                : timeRange === '12w'
+                ? '최근 12주간'
+                : '전체 기간'}{' '}
+              누적 훈련 거리: <strong className="text-emerald-300 font-bold">{totalIntensityDist} km</strong>
+            </span>
+            <span className="text-[10px] text-slate-400">
+              80:20 양극화 기준
             </span>
           </div>
 

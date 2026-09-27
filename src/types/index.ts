@@ -26,6 +26,7 @@ export interface RegisteredRace {
   location: string;
   websiteUrl?: string;
   isTarget?: boolean;
+  targetTime?: string; // specific target time e.g. "03:15:00"
   createdAt: string;
 }
 
@@ -68,6 +69,8 @@ export interface TrainingSession {
   avgHr: number;
   maxHr: number;
   notes?: string;
+  shoeName?: string; // 착용 러닝화 (마일리지 연동 없음)
+  shoeId?: string;
   laps: TrainingLap[];
   createdAt: string;
 }
@@ -87,6 +90,14 @@ export interface WorkoutStage {
   pace: string;
   zone: string;
   focus: string;
+}
+
+export interface RecommendedShoeInfo {
+  shoeId?: string;
+  shoeName: string;
+  brand?: string;
+  category?: ShoeCategory;
+  reason: string;
 }
 
 export interface RunnerStateAnalysis {
@@ -126,6 +137,7 @@ export interface WeeklyPlanDay {
   description: string;
   intensity: '낮음' | '보통' | '높음' | '휴식';
   stages?: WorkoutStage[];
+  recommendedShoe?: RecommendedShoeInfo;
 }
 
 export interface MarathonEvent {

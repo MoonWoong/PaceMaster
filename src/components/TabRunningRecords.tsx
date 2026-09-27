@@ -23,6 +23,10 @@ import {
   ArrowDownRight,
   Compass,
   Share2,
+  Calculator,
+  Save,
+  Footprints,
+  List,
 } from 'lucide-react';
 import {
   RunningRecords,
@@ -32,6 +36,7 @@ import {
   WeeklyPlanDay,
   WeeklyPlanSettings,
   RunnerStateAnalysis,
+  RunningShoe,
 } from '../types';
 import {
   estimateBestVDOT,
@@ -47,25 +52,32 @@ import {
   DayOfWeek,
   PlanCustomOptions,
 } from '../lib/trainingPlanGenerator';
+import { attachShoeRecommendationsToPlan } from '../lib/shoeRecommender';
 import { verifyRunnerSecurityKey } from '../lib/security';
 import { TrainingShareModal } from './TrainingShareModal';
 import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
 import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
+import { TrainingShoeModal } from './TrainingShoeModal';
+import { TrainingCalendarView } from './TrainingCalendarView';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
   goals: RunningGoals;
   trainingSessions: TrainingSession[];
   weeklyPlan: WeeklyPlanDay[];
+  weeklyPlanSettings?: WeeklyPlanSettings;
+  shoes?: RunningShoe[];
   onSaveRecords: (records: RunningRecords) => Promise<void>;
   onSaveGoals: (goals: RunningGoals) => Promise<void>;
   onAddTrainingSession: (
     session: Omit<TrainingSession, 'id' | 'createdAt'>
   ) => Promise<void>;
+  onUpdateTrainingSession?: (sessionId: string, updates: Partial<TrainingSession>) => Promise<void>;
   onDeleteTrainingSession: (id: string) => Promise<void>;
   onClearAllTrainingSessions?: () => Promise<void>;
-  weeklyPlanSettings?: WeeklyPlanSettings;
   onSaveWeeklyPlan: (plan: WeeklyPlanDay[], settings?: WeeklyPlanSettings) => Promise<void>;
+  onOpenPaceCalculator?: () => void;
+  onOpenTodayWorkoutModal?: () => void;
 }
 
 export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
@@ -74,13 +86,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   trainingSessions,
   weeklyPlan,
   weeklyPlanSettings,
+  shoes = [],
   onSaveRecords,
   onSaveGoals,
   onAddTrainingSession,
+  onUpdateTrainingSession,
   onDeleteTrainingSession,
   onClearAllTrainingSessions,
   onSaveWeeklyPlan,
+  onOpenPaceCalculator,
+  onOpenTodayWorkoutModal,
 }) => {
+  // Session Shoe Modal State
+  const [shoeModalSession, setShoeModalSession] = useState<TrainingSession | null>(null);
   // Running Records State
   const [pb5k, setPb5k] = useState(records.pb5k || '00:21:00');
   const [pb10k, setPb10k] = useState(records.pb10k || '00:43:30');
@@ -103,6 +121,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   // Accordion expanded state for training sessions (기본으로 닫힌 상태)
   const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
+
+  // Training Sessions View Mode: 'list' (리스트 보기) vs 'calendar' (달력 보기)
+  const [sessionViewMode, setSessionViewMode] = useState<'list' | 'calendar'>('list');
 
   // Share Modal State
   const [sharingSession, setSharingSession] = useState<TrainingSession | null>(null);
@@ -351,19 +372,23 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
       speedWorkoutType: customSpeedType,
       longRunDay: customLongRunDay,
       trainingSessions,
+      shoes,
     });
     await onSaveWeeklyPlan(newPlan, settings);
   };
 
-  // Active weekly plan (if empty, generate default with custom options)
+  // Active weekly plan (if empty, generate default with custom options; enrich with shoe recommendations)
   const activePlan = useMemo(() => {
-    if (weeklyPlan && weeklyPlan.length > 0) return weeklyPlan;
+    if (weeklyPlan && weeklyPlan.length > 0) {
+      return attachShoeRecommendationsToPlan(weeklyPlan, shoes, trainingSessions);
+    }
     return generateWeeklyTrainingPlan(currentVDOT, evalSelectedDistance, {
       trainingDays: customTrainingDays,
       speedDay: customSpeedDay,
       speedWorkoutType: customSpeedType,
       longRunDay: customLongRunDay,
       trainingSessions,
+      shoes,
     });
   }, [
     weeklyPlan,
@@ -374,6 +399,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     customSpeedType,
     customLongRunDay,
     trainingSessions,
+    shoes,
   ]);
 
   // Helper to parse filename into date and training title
@@ -840,36 +866,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     e.target.value = '';
   };
 
-  // Demo CSV Loader for 1-click test
-  const handleLoadDemoCSV = async () => {
-    const ok = await verifyRunnerSecurityKey('가민 샘플 CSV 훈련 데이터 불러오기');
-    if (!ok) return;
-
-    const demoLaps: TrainingLap[] = [
-      { lap: 1, time: '05:12', cumulativeTime: '05:12', distanceKm: 1.0, avgPace: "5'12\"", avgHr: 135, maxHr: 142 },
-      { lap: 2, time: '05:04', cumulativeTime: '10:16', distanceKm: 1.0, avgPace: "5'04\"", avgHr: 142, maxHr: 148 },
-      { lap: 3, time: '04:58', cumulativeTime: '15:14', distanceKm: 1.0, avgPace: "4'58\"", avgHr: 147, maxHr: 153 },
-      { lap: 4, time: '04:52', cumulativeTime: '20:06', distanceKm: 1.0, avgPace: "4'52\"", avgHr: 151, maxHr: 156 },
-      { lap: 5, time: '04:45', cumulativeTime: '24:51', distanceKm: 1.0, avgPace: "4'45\"", avgHr: 155, maxHr: 161 },
-      { lap: 6, time: '04:38', cumulativeTime: '29:29', distanceKm: 1.0, avgPace: "4'38\"", avgHr: 160, maxHr: 168 },
-    ];
-
-    await onAddTrainingSession({
-      date: '2026-09-24',
-      title: '트랙 빌드업 런 6km (샘플 CSV 데이터)',
-      totalDistanceKm: 6.0,
-      totalTime: '00:29:29',
-      avgPace: "4'54\"",
-      avgHr: 148,
-      maxHr: 168,
-      notes: '1km마다 5~10초씩 페이스를 올리는 네거티브 스플릿 빌드업 훈련.',
-      laps: demoLaps,
-    });
-
-    setCsvStatus('✅ 샘플 CSV 훈련 기록이 등록되었습니다!');
-    setTimeout(() => setCsvStatus(''), 3000);
-  };
-
   const toggleMonth = (mKey: string) => {
     setExpandedMonths((prev) => ({ ...prev, [mKey]: !prev[mKey] }));
   };
@@ -897,19 +893,33 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </div>
           </div>
 
-          {/* VDOT & Tier Hero Badge */}
-          <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-slate-900/90 border border-emerald-500/40">
-            <div className="text-right">
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                VDOT
+          <div className="flex flex-wrap items-center gap-2.5">
+            {onOpenPaceCalculator && (
+              <button
+                type="button"
+                onClick={onOpenPaceCalculator}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 hover:text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                title="목표 거리와 예상 완주 시간으로 필요한 평균 페이스 계산하기"
+              >
+                <Calculator className="w-3.5 h-3.5 text-cyan-400" />
+                <span>목표 페이스 계산기</span>
+              </button>
+            )}
+
+            {/* VDOT & Tier Hero Badge */}
+            <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-slate-900/90 border border-emerald-500/40">
+              <div className="text-right">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  VDOT
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-emerald-400 font-athletic">
+                  {currentVDOT > 0 ? currentVDOT.toFixed(1) : '--'}
+                </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-athletic">
-                {currentVDOT > 0 ? currentVDOT.toFixed(1) : '--'}
+              <div className="h-7 w-px bg-white/15" />
+              <div className="text-left">
+                <div className="text-xs font-bold text-white">{runnerTier.label}</div>
               </div>
-            </div>
-            <div className="h-7 w-px bg-white/15" />
-            <div className="text-left">
-              <div className="text-xs font-bold text-white">{runnerTier.label}</div>
             </div>
           </div>
         </div>
@@ -1000,9 +1010,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             <button
               type="submit"
               disabled={isSavingRecords}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSavingRecords ? '저장 중...' : '러닝 정보 저장 (보안 확인)'}
+              <Save className="w-4 h-4" />
+              <span>{isSavingRecords ? '저장 중...' : '러닝 정보 저장'}</span>
             </button>
           </div>
         </form>
@@ -1087,7 +1098,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
       </section>
 
       {/* 2. 러닝 목표 & 가상 AI 검증 로직 */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
+      <section
+        id="running-goals-card"
+        tabIndex={-1}
+        className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl outline-none transition-all duration-300"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-purple-500/20 text-purple-400 rounded-xl border border-purple-500/30">
@@ -1146,9 +1161,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             <div>
               <button
                 type="submit"
-                className="w-full py-2 px-3 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-purple-500/40 hover:border-purple-400 rounded-xl transition-all shadow-sm cursor-pointer"
+                className="w-full py-2.5 px-4 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
               >
-                목표 기록 저장 (보안 확인)
+                <Save className="w-4 h-4" />
+                <span>목표 기록 저장</span>
               </button>
             </div>
           </div>
@@ -1271,14 +1287,17 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               </button>
             )}
 
-            {/* Quick Demo CSV Button */}
-            <button
-              onClick={handleLoadDemoCSV}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>가민 샘플 CSV 불러오기</span>
-            </button>
+            {/* Today's Workout Direct Log Button */}
+            {onOpenTodayWorkoutModal && (
+              <button
+                type="button"
+                onClick={onOpenTodayWorkoutModal}
+                className="px-4 py-2 text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Footprints className="w-3.5 h-3.5" />
+                <span>오늘의 훈련 직접 기록</span>
+              </button>
+            )}
 
             {/* CSV File Upload Input */}
             <label className="px-4 py-2 text-xs font-semibold text-slate-950 bg-blue-400 hover:bg-blue-300 rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5">
@@ -1314,13 +1333,68 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         )}
 
-        {/* Monthly Accordion of Training Sessions (All closed by default, with Monday-Sunday weekly mileage) */}
-        {groupedMonthlyTraining.length === 0 ? (
+        {/* View Mode Switcher: 리스트 보기 vs 달력 보기 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/60 border border-white/10 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-300">보기 모드:</span>
+            <div className="inline-flex p-1 rounded-xl bg-slate-950 border border-white/10 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setSessionViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  sessionViewMode === 'list'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                <span>리스트 보기</span>
+                <span className="text-[10px] font-mono opacity-80">({trainingSessions.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSessionViewMode('calendar')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  sessionViewMode === 'calendar'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>달력 보기 (캘린더)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-xs text-slate-400">
+            {sessionViewMode === 'calendar' ? (
+              <span>날짜별 칸을 클릭하면 해당 날짜의 훈련 상세 정보와 러닝화 지정이 가능합니다.</span>
+            ) : (
+              <span>월별·주차별 마일리지와 랩 스플릿 차트를 확인하세요.</span>
+            )}
+          </div>
+        </div>
+
+        {/* Calendar View */}
+        {sessionViewMode === 'calendar' && (
+          <TrainingCalendarView
+            sessions={trainingSessions}
+            shoes={shoes}
+            onOpenShoeModal={(s) => setShoeModalSession(s)}
+            onShareSession={(s) => setSharingSession(s)}
+            onDeleteSession={onDeleteTrainingSession}
+            onOpenTodayWorkoutModal={onOpenTodayWorkoutModal}
+          />
+        )}
+
+        {/* List View: Monthly Accordion of Training Sessions */}
+        {sessionViewMode === 'list' && (
+          groupedMonthlyTraining.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-slate-900/40 border border-white/5">
             <Activity className="w-10 h-10 text-slate-600 mx-auto mb-2" />
             <p className="text-sm text-slate-400">등록된 훈련 기록이 없습니다.</p>
             <p className="text-xs text-slate-500 mt-1">
-              가민 등에서 추출한 CSV 파일을 업로드하거나 샘플 데이터를 불러와 보세요.
+              가민 등에서 추출한 CSV 파일을 업로드하여 훈련 일지를 등록해보세요.
             </p>
           </div>
         ) : (
@@ -1399,10 +1473,27 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                   {/* Summary Card Header */}
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
                                     <div>
-                                      <div className="flex items-center gap-2 mb-1">
+                                      <div className="flex flex-wrap items-center gap-2 mb-1">
                                         <span className="text-xs font-mono text-cyan-300 font-semibold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/20">
                                           {session.date}
                                         </span>
+
+                                        {/* Running Shoe Indicator & Quick Selector Modal Trigger */}
+                                        <button
+                                          type="button"
+                                          onClick={() => setShoeModalSession(session)}
+                                          className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-sm ${
+                                            session.shoeName
+                                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/25 font-semibold'
+                                              : 'bg-slate-800/80 text-slate-400 border-white/10 hover:text-white hover:border-emerald-500/30 hover:bg-slate-800'
+                                          }`}
+                                          title="착용 러닝화 입력 / 선택 (마일리지 연동 없음)"
+                                        >
+                                          <span>👟</span>
+                                          <span className="font-medium">
+                                            {session.shoeName ? session.shoeName : '+ 러닝화 입력'}
+                                          </span>
+                                        </button>
                                       </div>
                                       <h4 className="text-sm font-bold text-white">
                                         {session.title}
@@ -1548,7 +1639,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               );
             })}
           </div>
-        )}
+        )
+      )}
       </section>
 
       {/* D3.js 주간 마일리지 추세 및 훈련 강도 분포 분석 대시보드 */}
@@ -1556,7 +1648,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         sessions={trainingSessions}
         maxHr={Number(maxHr) || 190}
         thresholdHr={Number(thresholdHr) || 172}
-        onLoadDemo={handleLoadDemoCSV}
       />
 
       {/* AI 다음 주 맞춤 훈련 강도 추천 & 루틴 제안 (회복 / 유지 / 강화) */}
@@ -1564,6 +1655,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         sessions={trainingSessions}
         vdot={currentVDOT}
         targetRaceCourse={evalSelectedDistance}
+        shoes={shoes}
         onApplyRoutine={async (routineDays, settings) => {
           await onSaveWeeklyPlan(routineDays, settings);
         }}
@@ -1598,11 +1690,27 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </button>
             <button
               onClick={handleGenerateWeeklyPlan}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2"
+              className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              <span>AI 맞춤 계획표 생성 (보안 확인)</span>
+              <span>AI 맞춤 계획표 생성</span>
             </button>
+          </div>
+        </div>
+
+        {/* Shoe Rotation Guidance Banner */}
+        <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs mb-5">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">👟</span>
+            <div>
+              <span className="font-bold text-emerald-300">스마트 러닝화 로테이션 추천 시스템: </span>
+              <span className="text-slate-300">
+                훈련 강도(스피드/장거리/조깅)에 맞추고, 자주 안 신은 신발을 골고루 돌려 신도록 배정하여 미드솔 수명을 보존하고 부상을 예방합니다.
+              </span>
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 font-mono flex-shrink-0 self-end sm:self-auto">
+            보유 신발: <strong className="text-white">{shoes.length}켤레</strong>
           </div>
         </div>
 
@@ -2022,6 +2130,83 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         ))}
                       </div>
                     )}
+
+                    {/* Recommended Running Shoe & Rotation Rationale */}
+                    {dayPlan.type !== '휴식' && (
+                      <div className="mt-3 p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-sm">
+                        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                          <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                            <span className="text-base">👟</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] text-slate-400 font-semibold">추천 러닝화:</span>
+                              <strong className="text-emerald-300 font-bold truncate">
+                                {dayPlan.recommendedShoe?.shoeName || (shoes.length > 0 ? shoes[0].name : '보유 러닝화 미등록')}
+                              </strong>
+                              {dayPlan.recommendedShoe?.category && (
+                                <span
+                                  className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                                    dayPlan.recommendedShoe.category === '스피드' ||
+                                    dayPlan.recommendedShoe.category === '레이싱'
+                                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                      : dayPlan.recommendedShoe.category === '장거리'
+                                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                      : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                  }`}
+                                >
+                                  {dayPlan.recommendedShoe.category}
+                                </span>
+                              )}
+                            </div>
+                            {dayPlan.recommendedShoe?.reason && (
+                              <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1">
+                                <span className="text-emerald-400 font-mono">💡</span>
+                                <span>{dayPlan.recommendedShoe.reason}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick switch to another owned shoe */}
+                        {shoes.length > 0 && (
+                          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+                            <select
+                              value={dayPlan.recommendedShoe?.shoeName || ''}
+                              onChange={async (e) => {
+                                const chosenName = e.target.value;
+                                const chosenShoe = shoes.find((s) => s.name === chosenName);
+                                const updatedPlan = activePlan.map((d, dIdx) =>
+                                  dIdx === idx
+                                    ? {
+                                        ...d,
+                                        recommendedShoe: chosenShoe
+                                          ? {
+                                              shoeId: chosenShoe.id,
+                                              shoeName: chosenShoe.name,
+                                              brand: chosenShoe.brand,
+                                              category: chosenShoe.category,
+                                              reason: '사용자 직접 선택 러닝화',
+                                            }
+                                          : undefined,
+                                      }
+                                    : d
+                                );
+                                await onSaveWeeklyPlan(updatedPlan, weeklyPlanSettings);
+                              }}
+                              className="bg-slate-900 border border-white/10 hover:border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400 cursor-pointer"
+                            >
+                              <option value="">러닝화 직접 변경...</option>
+                              {shoes.map((s) => (
+                                <option key={s.id} value={s.name}>
+                                  [{s.brand}] {s.name} ({s.category})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2091,6 +2276,21 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           vdot={currentVDOT}
           runnerTierName={runnerTier.label}
           onClose={() => setSharingSession(null)}
+        />
+      )}
+
+      {/* Training Shoe Input & Selector Modal */}
+      {shoeModalSession && (
+        <TrainingShoeModal
+          session={shoeModalSession}
+          shoes={shoes}
+          recentSessions={trainingSessions}
+          onSave={async (shoeName, shoeId) => {
+            if (onUpdateTrainingSession) {
+              await onUpdateTrainingSession(shoeModalSession.id, { shoeName, shoeId });
+            }
+          }}
+          onClose={() => setShoeModalSession(null)}
         />
       )}
     </div>

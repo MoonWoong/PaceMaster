@@ -21,6 +21,7 @@ import {
   deleteDoc,
   collection,
   getDocs,
+  deleteField,
 } from 'firebase/firestore';
 import {
   PhysicalInfo,
@@ -152,6 +153,7 @@ const DEFAULT_RACES: RegisteredRace[] = [
     location: '서울 상암월드컵경기장 ~ 잠실종합운동장',
     websiteUrl: 'https://marathon.jtbc.com',
     isTarget: true,
+    targetTime: '03:09:59',
     createdAt: '2026-08-01',
   },
   {
@@ -162,6 +164,7 @@ const DEFAULT_RACES: RegisteredRace[] = [
     location: '강원도 춘천시 공지천 의암호 순환코스',
     websiteUrl: 'https://marathon.chosun.com',
     isTarget: false,
+    targetTime: '03:19:59',
     createdAt: '2026-08-10',
   },
 ];
@@ -209,6 +212,52 @@ function setLocalItem<T>(key: string, val: T): void {
   }
 }
 
+/**
+ * Recursively cleans objects and arrays to prevent Firestore from throwing:
+ * "Function setDoc() called with invalid data. Unsupported field value: undefined"
+ *
+ * - When convertUndefinedToDeleteField is true (used for setDoc with merge: true):
+ *   top-level properties with undefined values are converted to deleteField() so Firestore
+ *   removes those fields from the document.
+ * - When convertUndefinedToDeleteField is false (used for document creation or nested objects):
+ *   properties with undefined values are omitted entirely.
+ */
+export function cleanFirestoreData<T>(obj: T, convertUndefinedToDeleteField = false): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((item) => item !== undefined)
+      .map((item) => cleanFirestoreData(item, false)) as unknown as T;
+  }
+
+  if (typeof obj === 'object') {
+    // Preserve Firestore FieldValues (like deleteField()) and non-plain Objects (Date, etc.)
+    if (obj.constructor && obj.constructor.name !== 'Object') {
+      return obj;
+    }
+
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (val === undefined) {
+        if (convertUndefinedToDeleteField) {
+          cleaned[key] = deleteField();
+        }
+        // Otherwise omit key
+      } else if (val !== null && typeof val === 'object') {
+        cleaned[key] = cleanFirestoreData(val, false);
+      } else {
+        cleaned[key] = val;
+      }
+    }
+    return cleaned as T;
+  }
+
+  return obj;
+}
+
 /* ============================================================================
  * Async CRUD Operations: 1. Physical Info (신체 정보)
  * ============================================================================ */
@@ -232,7 +281,7 @@ export async function savePhysicalInfo(data: PhysicalInfo): Promise<void> {
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'runner_data', 'physical'), updated, { merge: true });
+      await setDoc(doc(firestoreInstance, 'runner_data', 'physical'), cleanFirestoreData(updated, false), { merge: true });
     } catch (e) {
       console.error('Firestore savePhysicalInfo failed', e);
     }
@@ -278,7 +327,7 @@ export async function setAllShoes(shoesList: RunningShoe[]): Promise<void> {
     try {
       // Overwrite collection
       for (const shoe of shoesList) {
-        await setDoc(doc(firestoreInstance, 'shoes', shoe.id), shoe);
+        await setDoc(doc(firestoreInstance, 'shoes', shoe.id), cleanFirestoreData(shoe, false));
       }
     } catch (e) {
       console.error('Firestore setAllShoes failed', e);
@@ -303,7 +352,7 @@ export async function addShoe(shoe: Omit<RunningShoe, 'id'>): Promise<RunningSho
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'shoes', newShoe.id), newShoe);
+      await setDoc(doc(firestoreInstance, 'shoes', newShoe.id), cleanFirestoreData(newShoe, false));
     } catch (e) {
       console.error('Firestore addShoe failed', e);
     }
@@ -319,7 +368,7 @@ export async function updateShoe(updatedShoe: RunningShoe): Promise<void> {
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'shoes', updatedShoe.id), updatedShoe, { merge: true });
+      await setDoc(doc(firestoreInstance, 'shoes', updatedShoe.id), cleanFirestoreData(updatedShoe, false), { merge: true });
     } catch (e) {
       console.error('Firestore updateShoe failed', e);
     }
@@ -374,7 +423,7 @@ export async function addRace(race: Omit<RegisteredRace, 'id'>): Promise<Registe
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'races', newRace.id), newRace);
+      await setDoc(doc(firestoreInstance, 'races', newRace.id), cleanFirestoreData(newRace, false));
     } catch (e) {
       console.error('Firestore addRace failed', e);
     }
@@ -393,6 +442,20 @@ export async function deleteRace(raceId: string): Promise<void> {
       await deleteDoc(doc(firestoreInstance, 'races', raceId));
     } catch (e) {
       console.error('Firestore deleteRace failed', e);
+    }
+  }
+}
+
+export async function updateRace(race: RegisteredRace): Promise<void> {
+  const current = await getRaces();
+  const nextList = current.map((r) => (r.id === race.id ? race : r));
+  setLocalItem('races', nextList);
+
+  if (firestoreInstance) {
+    try {
+      await setDoc(doc(firestoreInstance, 'races', race.id), cleanFirestoreData(race, false));
+    } catch (e) {
+      console.error('Firestore updateRace failed', e);
     }
   }
 }
@@ -420,7 +483,7 @@ export async function saveRunningRecords(records: RunningRecords): Promise<void>
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'runner_data', 'records'), updated, { merge: true });
+      await setDoc(doc(firestoreInstance, 'runner_data', 'records'), cleanFirestoreData(updated, false), { merge: true });
     } catch (e) {
       console.error('Firestore saveRunningRecords failed', e);
     }
@@ -450,7 +513,7 @@ export async function saveRunningGoals(goals: RunningGoals): Promise<void> {
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'runner_data', 'goals'), updated, { merge: true });
+      await setDoc(doc(firestoreInstance, 'runner_data', 'goals'), cleanFirestoreData(updated, false), { merge: true });
     } catch (e) {
       console.error('Firestore saveRunningGoals failed', e);
     }
@@ -492,13 +555,46 @@ export async function addTrainingSession(
 
   if (firestoreInstance) {
     try {
-      await setDoc(doc(firestoreInstance, 'training_sessions', newSession.id), newSession);
+      await setDoc(doc(firestoreInstance, 'training_sessions', newSession.id), cleanFirestoreData(newSession, false));
     } catch (e) {
       console.error('Firestore addTrainingSession failed', e);
     }
   }
 
   return newSession;
+}
+
+export async function updateTrainingSession(
+  sessionId: string,
+  updates: Partial<TrainingSession>
+): Promise<TrainingSession | null> {
+  const current = await getTrainingSessions();
+  const index = current.findIndex((s) => s.id === sessionId);
+  if (index === -1) return null;
+
+  // Clean local memory copy: delete keys explicitly set to undefined
+  const updatedSession = { ...current[index] };
+  for (const [key, val] of Object.entries(updates)) {
+    if (val === undefined) {
+      delete (updatedSession as any)[key];
+    } else {
+      (updatedSession as any)[key] = val;
+    }
+  }
+
+  current[index] = updatedSession;
+  setLocalItem('training_sessions', current);
+
+  if (firestoreInstance) {
+    try {
+      const firestoreUpdates = cleanFirestoreData(updates, true);
+      await setDoc(doc(firestoreInstance, 'training_sessions', sessionId), firestoreUpdates, { merge: true });
+    } catch (e) {
+      console.error('Firestore updateTrainingSession failed', e);
+    }
+  }
+
+  return updatedSession;
 }
 
 export async function deleteTrainingSession(sessionId: string): Promise<void> {
@@ -564,10 +660,13 @@ export async function saveWeeklyPlanSettings(settings: WeeklyPlanSettings): Prom
     try {
       await setDoc(
         doc(firestoreInstance, 'runner_data', 'weekly_plan'),
-        {
-          settings: updated,
-          updatedAt: new Date().toISOString(),
-        },
+        cleanFirestoreData(
+          {
+            settings: updated,
+            updatedAt: new Date().toISOString(),
+          },
+          false
+        ),
         { merge: true }
       );
     } catch (e) {
@@ -608,7 +707,7 @@ export async function saveWeeklyPlan(
       if (settings) {
         payload.settings = { ...settings, updatedAt: new Date().toISOString() };
       }
-      await setDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'), payload, {
+      await setDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'), cleanFirestoreData(payload, false), {
         merge: true,
       });
     } catch (e) {

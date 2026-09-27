@@ -13,6 +13,8 @@ import {
   ExternalLink,
   Search,
   RotateCcw,
+  Save,
+  Target,
 } from 'lucide-react';
 import { PhysicalInfo, RunningShoe, RegisteredRace, ShoeCategory } from '../types';
 import { calculateDDay } from '../lib/marathonData';
@@ -29,6 +31,7 @@ interface TabMyInfoProps {
   onResetShoes: () => Promise<void>;
   onAddRace: (race: Omit<RegisteredRace, 'id'>) => Promise<void>;
   onDeleteRace: (id: string) => Promise<void>;
+  onUpdateRace?: (race: RegisteredRace) => Promise<void>;
 }
 
 export const TabMyInfo: React.FC<TabMyInfoProps> = ({
@@ -42,6 +45,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   onResetShoes,
   onAddRace,
   onDeleteRace,
+  onUpdateRace,
 }) => {
   // Physical Info State
   const [height, setHeight] = useState(physicalInfo.height.toString());
@@ -76,6 +80,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [newRaceDate, setNewRaceDate] = useState('2026-11-01');
   const [newRaceCourse, setNewRaceCourse] = useState('풀 (42.195km)');
   const [newRaceLocation, setNewRaceLocation] = useState('서울');
+  const [newRaceTargetTime, setNewRaceTargetTime] = useState('');
+  const [editingRaceForTarget, setEditingRaceForTarget] = useState<RegisteredRace | null>(null);
+  const [editRaceTargetTime, setEditRaceTargetTime] = useState('');
 
   // Calculate BMI
   const heightM = parseFloat(height) / 100;
@@ -119,8 +126,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       name: newShoeName.trim(),
       brand: newShoeBrand.trim(),
       category: newShoeCategory,
-      mileage: parseFloat(newShoeMileage) || 0,
-      maxMileage: newShoeCategory === '레이싱' ? 300 : (parseFloat(newShoeMaxMileage) || 600),
+      mileage: Math.round((parseFloat(newShoeMileage) || 0) * 100) / 100,
+      maxMileage: newShoeCategory === '레이싱' ? 300 : (Math.round((parseFloat(newShoeMaxMileage) || 600) * 100) / 100),
       review: newShoeReview.trim() || '탄탄한 착화감과 접지력.',
       createdAt: new Date().toISOString().split('T')[0],
     });
@@ -160,8 +167,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       name: editShoeName.trim(),
       brand: editShoeBrand.trim(),
       category: editShoeCategory,
-      mileage: parseFloat(editMileage) || 0,
-      maxMileage: parseFloat(editMaxMileage) || (editShoeCategory === '레이싱' ? 300 : 600),
+      mileage: Math.round((parseFloat(editMileage) || 0) * 100) / 100,
+      maxMileage: Math.round((parseFloat(editMaxMileage) || (editShoeCategory === '레이싱' ? 300 : 600)) * 100) / 100,
       review: editReview.trim() || '탄탄한 착화감과 접지력.',
     });
 
@@ -181,12 +188,26 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       date: newRaceDate,
       course: newRaceCourse,
       location: newRaceLocation,
+      targetTime: newRaceTargetTime.trim() || undefined,
       isTarget: races.length === 0,
       createdAt: new Date().toISOString(),
     });
 
     setNewRaceName('');
+    setNewRaceTargetTime('');
     setIsRaceModalOpen(false);
+  };
+
+  const handleSaveRaceTargetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRaceForTarget || !onUpdateRace) return;
+
+    await onUpdateRace({
+      ...editingRaceForTarget,
+      targetTime: editRaceTargetTime.trim(),
+    });
+
+    setEditingRaceForTarget(null);
   };
 
   // Filter Shoes ('전체' 탭을 가장 마지막 위치로 배치)
@@ -307,10 +328,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <button
               type="submit"
               disabled={isSavingPhysical}
-              className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <UserCheck className="w-4 h-4" />
-              <span>{isSavingPhysical ? '저장 중...' : '신체 정보 저장 (보안 확인)'}</span>
+              <Save className="w-4 h-4" />
+              <span>{isSavingPhysical ? '저장 중...' : '신체 정보 저장'}</span>
             </button>
           </div>
         </form>
@@ -597,6 +618,29 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       <span>·</span>
                       <span className="text-slate-400">{race.location}</span>
                     </div>
+
+                    {/* Individual Race Target Time Display & Edit */}
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-white/5 text-xs mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-slate-400">목표 기록:</span>
+                        <span className="font-bold font-mono text-purple-300">
+                          {race.targetTime || '미설정'}
+                        </span>
+                      </div>
+                      {onUpdateRace && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRaceForTarget(race);
+                            setEditRaceTargetTime(race.targetTime || '');
+                          }}
+                          className="px-2 py-0.5 rounded text-[11px] font-semibold text-cyan-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+                        >
+                          목표 수정
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
@@ -685,8 +729,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   <label className="block text-xs text-slate-300 mb-1">현재 주행거리 (km)</label>
                   <input
                     type="number"
+                    step="0.01"
+                    min="0"
                     value={newShoeMileage}
                     onChange={(e) => setNewShoeMileage(e.target.value)}
+                    placeholder="0.00"
                     className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono"
                   />
                 </div>
@@ -791,6 +838,22 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 />
               </div>
 
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">
+                  대회 목표 완주 기록 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={newRaceTargetTime}
+                  onChange={(e) => setNewRaceTargetTime(e.target.value)}
+                  placeholder="예: 03:29:59 (hh:mm:ss)"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  * 이 대회의 목표 완주 시간을 설정하면 D-day 위젯에 맞춤 페이스와 함께 연동됩니다.
+                </span>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -801,9 +864,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition-all shadow-md shadow-amber-500/20"
+                  className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  대회 등록
+                  <Save className="w-4 h-4" />
+                  <span>대회 등록</span>
                 </button>
               </div>
             </form>
@@ -886,11 +950,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   </label>
                   <input
                     type="number"
-                    step="0.1"
+                    step="0.01"
                     min="0"
                     required
                     value={editMileage}
                     onChange={(e) => setEditMileage(e.target.value)}
+                    placeholder="0.00"
                     className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-white focus:border-cyan-400"
                   />
                 </div>
@@ -949,9 +1014,61 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
+                  className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  수정 저장 (보안 확인)
+                  <Save className="w-4 h-4" />
+                  <span>수정사항 저장</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 대회별 목표 완주 기록 수정 모달 */}
+      {editingRaceForTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="glass-panel rounded-2xl p-6 w-full max-w-md border border-white/20 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+              <Target className="w-5 h-5 text-purple-400" />
+              <span>대회 목표 기록 수정</span>
+            </h3>
+            <p className="text-xs text-slate-300 mb-4">
+              <strong className="text-white">{editingRaceForTarget.name}</strong> ({editingRaceForTarget.course})의 맞춤 목표 완주 시간을 설정합니다.
+            </p>
+
+            <form onSubmit={handleSaveRaceTargetSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">
+                  목표 완주 시간 (hh:mm:ss)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editRaceTargetTime}
+                  onChange={(e) => setEditRaceTargetTime(e.target.value)}
+                  placeholder="예: 03:19:59"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-white"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  대회마다 목표 완주 기록을 개별적으로 설정하여 관리할 수 있습니다.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingRaceForTarget(null)}
+                  className="px-4 py-2 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>목표 기록 저장</span>
                 </button>
               </div>
             </form>

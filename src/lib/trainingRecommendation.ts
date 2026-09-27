@@ -1,5 +1,6 @@
-import { TrainingSession, WeeklyPlanDay, WorkoutStage } from '../types';
+import { TrainingSession, WeeklyPlanDay, WorkoutStage, RunningShoe } from '../types';
 import { getTrainingPaces, formatPace } from './vdot';
+import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 
 export type IntensityLevel = '회복' | '유지' | '강화';
 
@@ -60,7 +61,8 @@ function getWeekMondayDate(dateStr: string): Date {
 export function analyzeAndRecommendTrainingIntensity(
   sessions: TrainingSession[] = [],
   vdot: number = 45,
-  targetRaceCourse: string = '풀코스'
+  targetRaceCourse: string = '풀코스',
+  shoes?: RunningShoe[]
 ): RecommendationAnalysis {
   const effectiveVdot = Math.max(28, Math.min(85, vdot));
   const paces = getTrainingPaces(effectiveVdot);
@@ -542,6 +544,17 @@ export function analyzeAndRecommendTrainingIntensity(
     },
   ];
 
+  // 4. Attach smart shoe recommendations to routines if shoes provided
+  const finalRecoveryDays = shoes && shoes.length > 0
+    ? attachShoeRecommendationsToPlan(recoveryDays, shoes, sessions)
+    : recoveryDays;
+  const finalMaintenanceDays = shoes && shoes.length > 0
+    ? attachShoeRecommendationsToPlan(maintenanceDays, shoes, sessions)
+    : maintenanceDays;
+  const finalBuildDays = shoes && shoes.length > 0
+    ? attachShoeRecommendationsToPlan(buildDays, shoes, sessions)
+    : buildDays;
+
   return {
     recommendedLevel,
     acwr,
@@ -574,7 +587,7 @@ export function analyzeAndRecommendTrainingIntensity(
           '글리코겐 저장소 완전 재충전 및 초회복 유도',
           '질주(Strides)로 다리 회전력 감각 보존',
         ],
-        days: recoveryDays,
+        days: finalRecoveryDays,
       },
       유지: {
         level: '유지',
@@ -591,7 +604,7 @@ export function analyzeAndRecommendTrainingIntensity(
           '주 1회 크루즈 역치 인터벌로 젖산 내성 유지',
           '부상 위험 0%의 최적 밸런스 유지',
         ],
-        days: maintenanceDays,
+        days: finalMaintenanceDays,
       },
       강화: {
         level: '강화',
@@ -608,7 +621,7 @@ export function analyzeAndRecommendTrainingIntensity(
           '최장 거리 LSD 확장을 통한 후반 지구력 극대화',
           '대회 목표 기록 달성을 위한 실전 레이스 감각 완성',
         ],
-        days: buildDays,
+        days: finalBuildDays,
       },
     },
   };

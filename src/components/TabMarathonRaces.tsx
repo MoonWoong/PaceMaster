@@ -36,6 +36,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState('');
+  const [registeredMessage, setRegisteredMessage] = useState('');
 
   // Available filter options
   const regions = [
@@ -120,11 +121,26 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
       createdAt: new Date().toISOString(),
     });
 
-    alert(`'${race.title}' 대회가 [내 정보] 참가 대회 목록에 등록되었습니다!`);
+    setRegisteredMessage(`'${race.title} (${courseToRegister})' 대회가 [내 정보] 참가 대회 목록에 등록되었습니다!`);
+    setTimeout(() => setRegisteredMessage(''), 4000);
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div id="marathon-races-tab" tabIndex={-1} className="space-y-6 animate-fadeIn outline-none">
+      {/* Registration Success Banner */}
+      {registeredMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between animate-fadeIn">
+          <span>{registeredMessage}</span>
+          <button
+            type="button"
+            onClick={() => setRegisteredMessage('')}
+            className="text-emerald-400 hover:text-white text-xs ml-2 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Refresh Control */}
       <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">

@@ -91,6 +91,8 @@
         "avgHr": { "type": "number", "description": "평균 심박수 (bpm)" },
         "maxHr": { "type": "number", "description": "최고 심박수 (bpm)" },
         "notes": { "type": "string", "description": "훈련 일지 메모" },
+        "shoeName": { "type": "string", "description": "착용 러닝화 이름" },
+        "shoeId": { "type": "string", "description": "착용 러닝화 고유 ID" },
         "laps": { "type": "array", "description": "랩별 상세 데이터 목록" },
         "createdAt": { "type": "string", "description": "등록 일시" }
       },

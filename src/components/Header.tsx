@@ -1,21 +1,19 @@
 import React from 'react';
-import { Flame, Activity, ShieldCheck, Database, Calendar, Award } from 'lucide-react';
+import { Flame, Activity, ShieldCheck, Database, Award } from 'lucide-react';
 import { getDbConnectionStatus } from '../lib/firebase';
 import { RegisteredRace } from '../types';
-import { calculateDDay } from '../lib/marathonData';
 
 interface HeaderProps {
   currentVDOT: number;
-  races: RegisteredRace[];
+  races?: RegisteredRace[];
   onOpenDbConfig: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentVDOT, races, onOpenDbConfig }) => {
+export const Header: React.FC<HeaderProps> = ({
+  currentVDOT,
+  onOpenDbConfig,
+}) => {
   const dbStatus = getDbConnectionStatus();
-
-  // Find nearest upcoming race
-  const targetRace = races.find((r) => r.isTarget) || races[0];
-  const dDayInfo = targetRace ? calculateDDay(targetRace.date) : null;
 
   return (
     <header className="w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-white/15 shadow-2xl">
@@ -47,21 +45,6 @@ export const Header: React.FC<HeaderProps> = ({ currentVDOT, races, onOpenDbConf
 
         {/* Quick Stat Highlights */}
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-          {/* Target Race D-Day Badge */}
-          {targetRace && dDayInfo && (
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 border border-emerald-500/30 shadow-sm">
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <div className="text-left">
-                <div className="text-[10px] text-slate-400 font-medium leading-none truncate max-w-[130px]">
-                  {targetRace.name}
-                </div>
-                <div className="text-xs font-bold text-emerald-400 font-athletic">
-                  {dDayInfo.text}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* VDOT Badge */}
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 border border-cyan-500/30 shadow-sm">
             <Award className="w-4 h-4 text-cyan-400" />

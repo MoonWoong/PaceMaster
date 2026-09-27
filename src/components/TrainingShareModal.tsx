@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Share2,
   Download,
@@ -27,17 +28,23 @@ interface TrainingShareModalProps {
   onClose: () => void;
 }
 
+export type ShareFormat = 'square' | 'portrait' | 'story';
+export type LapDisplayMode = 'all' | 'first5' | 'none';
+
 export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
   session,
   onClose,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [theme, setTheme] = useState<'cyber' | 'stealth' | 'sunset' | 'emerald'>('cyber');
-  const [format, setFormat] = useState<'square' | 'story'>('square'); // square (1080x1080) or story (1080x1920)
+  const [format, setFormat] = useState<ShareFormat>('square'); // square (1080x1080), portrait (1080x1350), or story (1080x1920)
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
   const [shareSupported, setShareSupported] = useState(false);
+
+  const hasLaps = !!(session.laps && session.laps.length > 0);
+  const [lapDisplayMode, setLapDisplayMode] = useState<LapDisplayMode>(hasLaps ? 'all' : 'none');
 
   // Clean training title by removing duplicate/redundant distance in parenthesis like (10.05km) or (10km)
   const cleanTitle = useMemo(() => {
@@ -53,14 +60,29 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
     pace: true, // 평균 페이스
     hr: true, // 평균 / 최고 심박수
     cadence: true, // 케이던스
+    shoe: !!session.shoeName, // 착용 러닝화
     calories: false, // 소모 칼로리
     date: true, // 날짜 표시
-    laps: !!(session.laps && session.laps.length > 0), // 랩 스플릿 차트
+    laps: hasLaps, // 랩 스플릿 차트
     notes: !!session.notes, // 훈련 메모
   });
 
   const toggleMetric = (key: keyof typeof selectedMetrics) => {
-    setSelectedMetrics((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSelectedMetrics((prev) => {
+      const nextVal = !prev[key];
+      if (key === 'laps') {
+        setLapDisplayMode(nextVal ? 'all' : 'none');
+      }
+      return { ...prev, [key]: nextVal };
+    });
+  };
+
+  const handleSetLapDisplayMode = (mode: LapDisplayMode) => {
+    setLapDisplayMode(mode);
+    setSelectedMetrics((prev) => ({
+      ...prev,
+      laps: mode !== 'none',
+    }));
   };
 
   useEffect(() => {
@@ -146,120 +168,9 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
     const currentTheme = THEMES[theme];
     const width = 1080;
-    const height = format === 'square' ? 1080 : 1920;
+    const baseHeight = format === 'square' ? 1080 : format === 'portrait' ? 1350 : 1920;
 
-    canvas.width = width;
-    canvas.height = height;
-
-    // 1. Background Gradient
-    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-    bgGradient.addColorStop(0, currentTheme.bgStart);
-    bgGradient.addColorStop(1, currentTheme.bgEnd);
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // Subtle background mesh or diagonal accent lines
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-    ctx.lineWidth = 1.5;
-    for (let i = -width; i < width * 2; i += 60) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + height, height);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // Top Radial Glow Accent
-    const glowGradient = ctx.createRadialGradient(width * 0.8, 150, 20, width * 0.8, 150, 450);
-    glowGradient.addColorStop(0, currentTheme.accent1 + '33');
-    glowGradient.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGradient;
-    ctx.fillRect(0, 0, width, height);
-
-    // 2. Header Branding: 'RunningMoon : Go FASTER'
-    const paddingX = format === 'square' ? 80 : 70;
-    const availableW = width - paddingX * 2;
-    let currentY = format === 'square' ? 95 : 155;
-
-    ctx.save();
-    ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = currentTheme.accent1;
-    ctx.letterSpacing = '2px';
-    ctx.fillText('RunningMoon : Go FASTER', paddingX, currentY);
-
-    if (format === 'story') {
-      const tagText = 'OFFICIAL WORKOUT REPORT';
-      ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillStyle = currentTheme.accent2;
-      const tagW = ctx.measureText(tagText).width;
-      ctx.fillText(tagText, width - paddingX - tagW, currentY);
-    }
-    ctx.restore();
-
-    // Date (if selected)
-    if (selectedMetrics.date) {
-      currentY += format === 'square' ? 45 : 55;
-      ctx.font = '600 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = currentTheme.textSecondary;
-      ctx.fillText(`📅 ${session.date}`, paddingX, currentY);
-    }
-
-    // Clean Session Title (no duplicate parenthesis with distance)
-    currentY += format === 'square' ? 55 : 65;
-    ctx.font = format === 'square' 
-      ? '900 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-      : '900 54px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = currentTheme.textPrimary;
-    const maxTitleLen = format === 'square' ? 24 : 28;
-    const titleText = cleanTitle.length > maxTitleLen ? cleanTitle.slice(0, maxTitleLen - 1) + '...' : cleanTitle;
-    ctx.fillText(titleText, paddingX, currentY);
-
-    // 3. Hero Metric: TOTAL WORKOUT DISTANCE
-    currentY += format === 'square' ? 65 : 85;
-
-    const distNum = session.totalDistanceKm.toFixed(2);
-    ctx.font = format === 'square'
-      ? '900 135px -apple-system, BlinkMacSystemFont, "Impact", sans-serif'
-      : '900 155px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
-
-    const distGrad = ctx.createLinearGradient(paddingX, currentY, paddingX + 500, currentY);
-    distGrad.addColorStop(0, '#ffffff');
-    distGrad.addColorStop(1, currentTheme.accent1);
-    ctx.fillStyle = distGrad;
-    ctx.fillText(distNum, paddingX, currentY + (format === 'square' ? 105 : 120));
-
-    // "KM" Unit label
-    const distWidth = ctx.measureText(distNum).width;
-    ctx.font = 'bold 46px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = currentTheme.accent1;
-    ctx.fillText('KM', paddingX + distWidth + 20, currentY + (format === 'square' ? 100 : 115));
-
-    // Label under hero
-    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillStyle = currentTheme.textSecondary;
-    ctx.fillText('TOTAL WORKOUT DISTANCE', paddingX + 5, currentY + (format === 'square' ? 145 : 170));
-
-    // Decorative line under hero in story mode
-    if (format === 'story') {
-      ctx.save();
-      const heroLineGrad = ctx.createLinearGradient(paddingX, 0, width - paddingX, 0);
-      heroLineGrad.addColorStop(0, currentTheme.accent1 + '99');
-      heroLineGrad.addColorStop(0.6, currentTheme.accent2 + '66');
-      heroLineGrad.addColorStop(1, 'transparent');
-      ctx.strokeStyle = heroLineGrad;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(paddingX, currentY + 190);
-      ctx.lineTo(width - paddingX, currentY + 190);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 4. Metrics Grid (Dynamic based on selected checkboxes)
-    currentY += format === 'square' ? 190 : 235;
-
-    // Collect active metrics
+    // 1. Gather active metrics
     interface MetricItem {
       icon: string;
       label: string;
@@ -319,17 +230,247 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
       });
     }
 
-    const gridY = currentY;
+    if (selectedMetrics.shoe && session.shoeName) {
+      activeCards.push({
+        icon: '👟',
+        label: '착용 러닝화',
+        val: session.shoeName,
+        sub: 'Running Shoes',
+        color: '#34d399',
+      });
+    }
 
-    if (activeCards.length > 0) {
-      let cols = 2;
-      if (activeCards.length === 3 && format === 'square') {
-        cols = 3;
+    // 2. Gather visible laps
+    const allLaps = session.laps || [];
+    let visibleLaps: typeof allLaps = [];
+    if (selectedMetrics.laps && allLaps.length > 0 && lapDisplayMode !== 'none') {
+      visibleLaps = lapDisplayMode === 'first5' ? allLaps.slice(0, 5) : allLaps;
+    }
+
+    // Find fastest lap if laps exist
+    let bestPace = session.avgPace;
+    let fastestLapIndex = -1;
+    let fastestLapSec = Infinity;
+    if (session.laps && session.laps.length > 0) {
+      session.laps.forEach((l, idx) => {
+        if (l.avgPace && l.avgPace.includes("'")) {
+          const parts = l.avgPace.split("'");
+          const m = parseInt(parts[0], 10) || 0;
+          const s = parseInt(parts[1]?.replace('"', '') || '0', 10) || 0;
+          const sec = m * 60 + s;
+          if (sec > 0 && sec < fastestLapSec) {
+            fastestLapSec = sec;
+            fastestLapIndex = idx;
+            bestPace = l.avgPace;
+          }
+        }
+      });
+    }
+
+    // 3. Layout Density & Dimension Calculation
+    const hasNotes = selectedMetrics.notes && !!session.notes;
+    const hasStoryBanner = format === 'story';
+    const isSquare = format === 'square';
+
+    // Auto-compact mode for square when multiple elements exist
+    const isCompact = isSquare && (
+      activeCards.length >= 4 ||
+      (activeCards.length >= 2 && (hasNotes || visibleLaps.length > 0))
+    );
+
+    const paddingX = isSquare ? (isCompact ? 60 : 75) : 70;
+    const availableW = width - paddingX * 2;
+
+    // Card columns & heights
+    let cols = 2;
+    if (isCompact && activeCards.length >= 5) {
+      cols = 3;
+    } else if (activeCards.length === 3 && isSquare) {
+      cols = 3;
+    }
+
+    const cardGap = isCompact ? 14 : 18;
+    const cardW = (availableW - cardGap * (cols - 1)) / cols;
+    const cardH = isCompact ? 92 : (isSquare ? 116 : (activeCards.length <= 4 ? 155 : 138));
+    const cardRows = activeCards.length > 0 ? Math.ceil(activeCards.length / cols) : 0;
+    const cardsTotalH = cardRows > 0 ? cardRows * cardH + (cardRows - 1) * cardGap : 0;
+
+    // Lap section calculation
+    let lapCols = 1;
+    let lapRows = 0;
+    let lapRowH = 40;
+    let lapSectionH = 0;
+
+    if (visibleLaps.length > 0) {
+      if (visibleLaps.length <= 5) {
+        lapCols = isSquare || format === 'portrait' ? visibleLaps.length : (visibleLaps.length > 3 ? 2 : 1);
+        lapRows = Math.ceil(visibleLaps.length / lapCols);
+        lapRowH = isCompact ? 52 : (format === 'story' ? 54 : 64);
+      } else if (visibleLaps.length <= 12) {
+        lapCols = 2;
+        lapRows = Math.ceil(visibleLaps.length / 2);
+        lapRowH = isCompact ? 36 : (format === 'story' ? 48 : 42);
+      } else if (visibleLaps.length <= 24) {
+        lapCols = 3;
+        lapRows = Math.ceil(visibleLaps.length / 3);
+        lapRowH = isCompact ? 32 : (format === 'story' ? 42 : 36);
+      } else {
+        lapCols = 4;
+        lapRows = Math.ceil(visibleLaps.length / 4);
+        lapRowH = isCompact ? 28 : 32;
       }
+      lapSectionH = (isCompact ? 40 : 46) + lapRows * lapRowH + (isCompact ? 12 : 16);
+    }
 
-      const cardGap = 20;
-      const cardW = (availableW - cardGap * (cols - 1)) / cols;
-      const cardH = format === 'square' ? 120 : (activeCards.length <= 4 ? 165 : 145);
+    // Notes section height
+    const noteH = isCompact ? 68 : (isSquare ? 80 : 100);
+    const storyBannerH = 110;
+    const sectionGap = isCompact ? 14 : (isSquare ? 18 : 24);
+
+    // Dynamic Height Calculation: ensures canvas NEVER clips or overflows
+    const topStartY = isCompact ? 55 : (isSquare ? 80 : 135);
+    const brandH = 26;
+    const dateH = selectedMetrics.date ? (isCompact ? 32 : 40) : 0;
+    const titleH = isCompact ? 42 : (isSquare ? 52 : 62);
+    const heroH = isCompact ? 115 : (isSquare ? 150 : 180);
+    const footerH = isSquare ? (isCompact ? 50 : 60) : 80;
+
+    const estimatedTotalH =
+      topStartY +
+      brandH +
+      dateH +
+      titleH +
+      heroH +
+      (activeCards.length > 0 ? sectionGap + cardsTotalH : 0) +
+      (hasStoryBanner ? sectionGap + storyBannerH : 0) +
+      (hasNotes ? sectionGap + noteH : 0) +
+      (visibleLaps.length > 0 ? sectionGap + lapSectionH : 0) +
+      footerH +
+      30;
+
+    const height = Math.max(baseHeight, Math.ceil(estimatedTotalH));
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // 4. Background Gradient
+    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+    bgGradient.addColorStop(0, currentTheme.bgStart);
+    bgGradient.addColorStop(1, currentTheme.bgEnd);
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Subtle background diagonal accent lines
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 1.5;
+    for (let i = -width; i < width * 2; i += 60) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + height, height);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Radial Glow Accent at top
+    const glowGradient = ctx.createRadialGradient(width * 0.8, 140, 20, width * 0.8, 140, 450);
+    glowGradient.addColorStop(0, currentTheme.accent1 + '2d');
+    glowGradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowGradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // 5. Header Branding: 'RunningMoon : Go FASTER'
+    let currentY = topStartY;
+
+    ctx.save();
+    ctx.font = '900 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = currentTheme.accent1;
+    ctx.letterSpacing = '2px';
+    ctx.fillText('RunningMoon : Go FASTER', paddingX, currentY);
+
+    if (format === 'story' || format === 'portrait') {
+      const tagText = 'OFFICIAL WORKOUT REPORT';
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = currentTheme.accent2;
+      const tagW = ctx.measureText(tagText).width;
+      ctx.fillText(tagText, width - paddingX - tagW, currentY);
+    }
+    ctx.restore();
+
+    // Date (if selected)
+    if (selectedMetrics.date) {
+      currentY += isCompact ? 32 : 40;
+      ctx.font = isCompact
+        ? '600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        : '600 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = currentTheme.textSecondary;
+      ctx.fillText(`📅 ${session.date}`, paddingX, currentY);
+    }
+
+    // Clean Session Title (with auto-shrink to prevent overflow)
+    currentY += isCompact ? 40 : 48;
+    let titleFontSize = isCompact ? 36 : (isSquare ? 44 : 50);
+    ctx.font = `900 ${titleFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    while (ctx.measureText(cleanTitle).width > availableW && titleFontSize > 22) {
+      titleFontSize -= 2;
+      ctx.font = `900 ${titleFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    }
+    ctx.fillStyle = currentTheme.textPrimary;
+    ctx.fillText(cleanTitle, paddingX, currentY);
+
+    // 6. Hero Metric: TOTAL WORKOUT DISTANCE
+    currentY += isCompact ? 50 : 60;
+    const distNum = session.totalDistanceKm.toFixed(2);
+    let heroFontSize = isCompact ? 100 : (isSquare ? 125 : 145);
+    ctx.font = `900 ${heroFontSize}px -apple-system, BlinkMacSystemFont, "Impact", sans-serif`;
+
+    ctx.font = 'bold 40px -apple-system, BlinkMacSystemFont, sans-serif';
+    const kmW = ctx.measureText('KM').width;
+    ctx.font = `900 ${heroFontSize}px -apple-system, BlinkMacSystemFont, "Impact", sans-serif`;
+    while (ctx.measureText(distNum).width + kmW + 25 > availableW && heroFontSize > 65) {
+      heroFontSize -= 5;
+      ctx.font = `900 ${heroFontSize}px -apple-system, BlinkMacSystemFont, "Impact", sans-serif`;
+    }
+
+    const distGrad = ctx.createLinearGradient(paddingX, currentY, paddingX + 450, currentY);
+    distGrad.addColorStop(0, '#ffffff');
+    distGrad.addColorStop(1, currentTheme.accent1);
+    ctx.fillStyle = distGrad;
+    const heroNumOffset = isCompact ? 85 : 100;
+    ctx.fillText(distNum, paddingX, currentY + heroNumOffset);
+
+    // "KM" Unit label
+    const distWidth = ctx.measureText(distNum).width;
+    ctx.font = isCompact ? 'bold 36px -apple-system, sans-serif' : 'bold 42px -apple-system, sans-serif';
+    ctx.fillStyle = currentTheme.accent1;
+    ctx.fillText('KM', paddingX + distWidth + 18, currentY + heroNumOffset - 5);
+
+    // Label under hero
+    ctx.font = isCompact ? 'bold 16px -apple-system, sans-serif' : 'bold 18px -apple-system, sans-serif';
+    ctx.fillStyle = currentTheme.textSecondary;
+    ctx.fillText('TOTAL WORKOUT DISTANCE', paddingX + 4, currentY + heroNumOffset + (isCompact ? 28 : 34));
+
+    // Decorative line in portrait/story mode
+    if (format !== 'square') {
+      ctx.save();
+      const heroLineGrad = ctx.createLinearGradient(paddingX, 0, width - paddingX, 0);
+      heroLineGrad.addColorStop(0, currentTheme.accent1 + '99');
+      heroLineGrad.addColorStop(0.6, currentTheme.accent2 + '66');
+      heroLineGrad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = heroLineGrad;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(paddingX, currentY + heroNumOffset + 50);
+      ctx.lineTo(width - paddingX, currentY + heroNumOffset + 50);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    currentY += heroNumOffset + (isCompact ? 48 : (format === 'square' ? 62 : 80));
+
+    // 7. Metrics Grid (Dynamic & Non-overflowing)
+    if (activeCards.length > 0) {
+      const gridY = currentY;
 
       activeCards.forEach((m, idx) => {
         const col = idx % cols;
@@ -342,270 +483,233 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
         ctx.strokeStyle = currentTheme.cardBorder;
         ctx.lineWidth = 1.5;
 
-        roundRect(ctx, cX, cY, cardW, cardH, 20);
+        roundRect(ctx, cX, cY, cardW, cardH, isCompact ? 16 : 18);
         ctx.fill();
         ctx.stroke();
 
-        ctx.font = '500 18px -apple-system, BlinkMacSystemFont, sans-serif';
+        // Card Label
+        ctx.font = isCompact ? '500 15px -apple-system, sans-serif' : '500 17px -apple-system, sans-serif';
         ctx.fillStyle = currentTheme.textSecondary;
-        ctx.fillText(`${m.icon} ${m.label}`, cX + 24, cY + 36);
+        ctx.fillText(`${m.icon} ${m.label}`, cX + (isCompact ? 16 : 20), cY + (isCompact ? 26 : 32));
 
-        ctx.font = format === 'square'
-          ? '900 32px -apple-system, BlinkMacSystemFont, "Impact", sans-serif'
-          : '900 38px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
+        // Card Value with dynamic auto-shrink to NEVER overflow card width
+        let valFontSize = isCompact ? 24 : (isSquare ? 30 : 34);
+        ctx.font = `900 ${valFontSize}px -apple-system, BlinkMacSystemFont, "Impact", sans-serif`;
+        const maxValW = cardW - (isCompact ? 32 : 40);
+        while (ctx.measureText(m.val).width > maxValW && valFontSize > 13) {
+          valFontSize -= 1;
+          ctx.font = `900 ${valFontSize}px -apple-system, BlinkMacSystemFont, "Impact", sans-serif`;
+        }
         ctx.fillStyle = m.color;
-        ctx.fillText(m.val, cX + 24, cY + (format === 'square' ? 78 : 88));
+        ctx.fillText(m.val, cX + (isCompact ? 16 : 20), cY + (isCompact ? 56 : (isSquare ? 72 : 80)));
 
-        ctx.font = '400 15px -apple-system, BlinkMacSystemFont, sans-serif';
+        // Subtitle
+        ctx.font = isCompact ? '400 12px -apple-system, sans-serif' : '400 13px -apple-system, sans-serif';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.fillText(m.sub, cX + 24, cY + (format === 'square' ? 104 : 124));
+        ctx.fillText(m.sub, cX + (isCompact ? 16 : 20), cY + (isCompact ? 76 : (isSquare ? 96 : 110)));
 
-        // Bottom accent bar in story mode
-        if (format === 'story') {
+        // Bottom accent bar in story / portrait mode
+        if (format !== 'square') {
           ctx.fillStyle = m.color;
-          ctx.fillRect(cX + 24, cY + cardH - 12, 45, 3.5);
+          ctx.fillRect(cX + 20, cY + cardH - 10, 40, 3);
         }
 
         ctx.restore();
       });
 
-      const totalRows = Math.ceil(activeCards.length / cols);
-      currentY = gridY + totalRows * (cardH + cardGap) + (format === 'square' ? 15 : 25);
+      currentY = gridY + cardsTotalH + sectionGap;
     }
 
-    // 5. In Story mode: Performance Highlights Banner (Best Split, Intensity, Effort)
+    // 8. Performance Highlights Banner (Story mode)
     if (format === 'story') {
-      const bannerH = 110;
       ctx.save();
       ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 1.5;
-      roundRect(ctx, paddingX, currentY, availableW, bannerH, 18);
+      roundRect(ctx, paddingX, currentY, availableW, storyBannerH, 18);
       ctx.fill();
       ctx.stroke();
-
-      // Find fastest lap pace if laps exist
-      let bestPace = session.avgPace;
-      if (session.laps && session.laps.length > 0) {
-        const sortedPaces = [...session.laps]
-          .filter((l) => l.avgPace && l.avgPace.includes("'"))
-          .sort((a, b) => a.avgPace.localeCompare(b.avgPace));
-        if (sortedPaces.length > 0) bestPace = sortedPaces[0].avgPace;
-      }
 
       const colW = availableW / 3;
 
       // Col 1: Best Lap Pace
-      ctx.font = '500 16px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '500 15px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.textSecondary;
-      ctx.fillText('🏆 최고 랩 페이스', paddingX + 25, currentY + 36);
-      ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
+      ctx.fillText('🏆 최고 랩 페이스', paddingX + 22, currentY + 34);
+      ctx.font = '900 26px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
       ctx.fillStyle = currentTheme.accent1;
-      ctx.fillText(bestPace ? `${bestPace} /km` : session.avgPace, paddingX + 25, currentY + 78);
+      ctx.fillText(bestPace ? `${bestPace} /km` : session.avgPace, paddingX + 22, currentY + 74);
 
       // Col 2: Max Heart Rate
-      ctx.font = '500 16px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '500 15px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.textSecondary;
-      ctx.fillText('⚡ 심박 피크 (Peak)', paddingX + colW + 20, currentY + 36);
-      ctx.font = '900 28px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
+      ctx.fillText('⚡ 심박 피크', paddingX + colW + 18, currentY + 34);
+      ctx.font = '900 26px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
       ctx.fillStyle = '#f43f5e';
-      ctx.fillText(`${session.maxHr} bpm`, paddingX + colW + 20, currentY + 78);
+      ctx.fillText(`${session.maxHr} bpm`, paddingX + colW + 18, currentY + 74);
 
       // Col 3: Workout Status
-      ctx.font = '500 16px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = '500 15px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.textSecondary;
-      ctx.fillText('🎯 훈련 완성도', paddingX + colW * 2 + 15, currentY + 36);
-      ctx.font = '900 26px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
+      ctx.fillText('🎯 훈련 완성도', paddingX + colW * 2 + 15, currentY + 34);
+      ctx.font = '900 24px -apple-system, BlinkMacSystemFont, "Impact", sans-serif';
       ctx.fillStyle = currentTheme.accent2;
-      ctx.fillText('100% COMPLETED', paddingX + colW * 2 + 15, currentY + 78);
+      ctx.fillText('100% COMPLETED', paddingX + colW * 2 + 15, currentY + 74);
 
       ctx.restore();
-      currentY += bannerH + 25;
+      currentY += storyBannerH + sectionGap;
     }
 
-    // 6. Notes Card (if selected and notes exist)
+    // 9. Notes Card (with clean auto-wrap)
     if (selectedMetrics.notes && session.notes) {
-      const noteH = format === 'square' ? 85 : 120;
       ctx.save();
       ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 1.5;
-      roundRect(ctx, paddingX, currentY, availableW, noteH, 18);
+      roundRect(ctx, paddingX, currentY, availableW, noteH, 16);
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = '600 17px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = isCompact ? '600 14px -apple-system, sans-serif' : '600 16px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.accent1;
-      ctx.fillText('📝 러너 코멘트 / 훈련 메모', paddingX + 24, currentY + 32);
+      ctx.fillText('📝 러너 코멘트 / 훈련 메모', paddingX + 20, currentY + (isCompact ? 24 : 28));
 
-      ctx.font = '500 20px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.font = isCompact ? '500 16px -apple-system, sans-serif' : '500 18px -apple-system, sans-serif';
       ctx.fillStyle = '#ffffff';
-      const maxNoteLen = format === 'square' ? 42 : 55;
-      const noteText =
-        session.notes.length > maxNoteLen
-          ? session.notes.slice(0, maxNoteLen - 1) + '...'
-          : session.notes;
-      ctx.fillText(`“${noteText}”`, paddingX + 24, currentY + 72);
-      ctx.restore();
 
-      currentY += noteH + (format === 'square' ? 15 : 25);
-    }
-
-    // 7. Lap Breakdown Chart / 2-Column Split Grid
-    if (selectedMetrics.laps && session.laps && session.laps.length > 0) {
-      if (format === 'story') {
-        // Vertical Story Mode: 2-Column Full Height Lap Breakdown
-        const availableHeight = height - currentY - 110;
-        const sectionH = Math.max(340, Math.min(480, availableHeight));
-
-        ctx.save();
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = 1.5;
-        roundRect(ctx, paddingX, currentY, availableW, sectionH, 20);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.fillStyle = currentTheme.accent1;
-        ctx.fillText(
-          `📊 LAP SPLIT BREAKDOWN (총 ${session.laps.length}개 랩 구간 분석)`,
-          paddingX + 26,
-          currentY + 38
-        );
-
-        // Render up to 8 laps in a 2-column clean grid (or single column if <= 4 laps)
-        const visibleLaps = session.laps.slice(0, 8);
-        const lapCols = visibleLaps.length > 4 ? 2 : 1;
-        const colWidth = (availableW - 52 - (lapCols - 1) * 20) / lapCols;
-        const rowHeight = 65;
-        const startLapY = currentY + 60;
-
-        visibleLaps.forEach((lap, idx) => {
-          const c = idx % lapCols;
-          const r = Math.floor(idx / lapCols);
-          const lx = paddingX + 26 + c * (colWidth + 20);
-          const ly = startLapY + r * rowHeight;
-
-          // Lap Card pill
-          ctx.save();
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-          ctx.lineWidth = 1;
-          roundRect(ctx, lx, ly, colWidth, 54, 12);
-          ctx.fill();
-          ctx.stroke();
-
-          // Left Lap number badge
-          ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = currentTheme.accent1;
-          ctx.fillText(`Lap ${lap.lap}`, lx + 16, ly + 33);
-
-          // Split Pace in center
-          ctx.font = '900 20px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = '#ffffff';
-          ctx.fillText(lap.avgPace || '-', lx + 90, ly + 34);
-
-          // Heart rate on right
-          ctx.font = '500 15px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = '#fda4af';
-          const hrText = `${lap.avgHr || '-'} bpm`;
-          const hrW = ctx.measureText(hrText).width;
-          ctx.fillText(hrText, lx + colWidth - 16 - hrW, ly + 33);
-
-          ctx.restore();
-        });
-
-        ctx.restore();
-        currentY += sectionH + 25;
+      // Auto-wrap note to fit availableW - 40
+      const maxNoteW = availableW - 40;
+      let noteText = session.notes.trim();
+      if (ctx.measureText(`“${noteText}”`).width > maxNoteW) {
+        // Multi-line wrap up to 2 lines
+        let line1 = '';
+        let line2 = '';
+        const chars = noteText.split('');
+        for (let i = 0; i < chars.length; i++) {
+          if (ctx.measureText(`“${line1 + chars[i]}`).width < maxNoteW) {
+            line1 += chars[i];
+          } else {
+            line2 = noteText.substring(i);
+            break;
+          }
+        }
+        if (ctx.measureText(`${line2}”`).width > maxNoteW) {
+          while (ctx.measureText(`${line2}...”`).width > maxNoteW && line2.length > 5) {
+            line2 = line2.slice(0, -1);
+          }
+          line2 += '...';
+        }
+        ctx.fillText(`“${line1}`, paddingX + 20, currentY + (isCompact ? 44 : 52));
+        if (line2) {
+          ctx.fillText(`${line2}”`, paddingX + 20, currentY + (isCompact ? 60 : 74));
+        }
       } else {
-        // Square Mode: Compact single row 5-lap strip
-        const sectionH = 140;
-        ctx.save();
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1.5;
-        roundRect(ctx, paddingX, currentY, availableW, sectionH, 18);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.font = 'bold 19px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.fillStyle = currentTheme.accent1;
-        ctx.fillText(
-          `📊 LAP SPLIT ANALYSIS (총 ${session.laps.length} Laps)`,
-          paddingX + 24,
-          currentY + 36
-        );
-
-        const visibleLaps = session.laps.slice(0, 5);
-        const lapColW = (availableW - 48) / visibleLaps.length;
-
-        visibleLaps.forEach((lap, lIdx) => {
-          const lx = paddingX + 24 + lIdx * lapColW;
-          const ly = currentY + 68;
-
-          ctx.font = '600 15px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = currentTheme.textSecondary;
-          ctx.fillText(`Lap ${lap.lap}`, lx, ly);
-
-          ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = '#ffffff';
-          ctx.fillText(lap.avgPace || '-', lx, ly + 26);
-
-          ctx.font = '400 13px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = 'rgba(244, 63, 94, 0.8)';
-          ctx.fillText(`${lap.avgHr || '-'} bpm`, lx, ly + 46);
-        });
-
-        ctx.restore();
-        currentY += sectionH + 20;
+        ctx.fillText(`“${noteText}”`, paddingX + 20, currentY + (isCompact ? 48 : 56));
       }
-    } else if (format === 'story') {
-      // In Story mode if no laps: Add an athletic motivation & runner motto card to keep layout full and balanced
-      const quoteH = 220;
+
+      ctx.restore();
+      currentY += noteH + sectionGap;
+    }
+
+    // 10. Lap Breakdown Chart (Displays ALL LAPS or 5 LAPS based on lapDisplayMode)
+    if (visibleLaps.length > 0) {
       ctx.save();
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 1.5;
-      roundRect(ctx, paddingX, currentY, availableW, quoteH, 20);
+      roundRect(ctx, paddingX, currentY, availableW, lapSectionH, 18);
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
+      // Section Header
+      ctx.font = isCompact ? 'bold 16px -apple-system, sans-serif' : 'bold 18px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.accent1;
-      ctx.fillText('🔥 ATHLETIC MINDSET & MOTTO', paddingX + 26, currentY + 45);
+      const headerTitle = lapDisplayMode === 'all'
+        ? `📊 LAP SPLIT ANALYSIS (총 ${visibleLaps.length}개 랩 구간 전체 분석)`
+        : `📊 LAP SPLIT ANALYSIS (주요 5개 랩 요약 / 전체 ${allLaps.length} Laps)`;
+      ctx.fillText(headerTitle, paddingX + 20, currentY + (isCompact ? 26 : 30));
 
-      ctx.font = '500 22px -apple-system, BlinkMacSystemFont, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('“오늘 완주한 한 걸음 한 걸음이 당신의 한계를 뛰어넘는 힘이 됩니다.”', paddingX + 26, currentY + 105);
-
-      ctx.font = '400 16px -apple-system, BlinkMacSystemFont, sans-serif';
+      // Right avg pace pill
+      ctx.font = '500 13px -apple-system, sans-serif';
       ctx.fillStyle = currentTheme.textSecondary;
-      ctx.fillText('PaceMaster AI Running Engine • Verified Performance Record', paddingX + 26, currentY + 160);
+      const avgPaceText = `평균 페이스: ${session.avgPace} /km`;
+      const avgW = ctx.measureText(avgPaceText).width;
+      ctx.fillText(avgPaceText, width - paddingX - 20 - avgW, currentY + (isCompact ? 26 : 30));
+
+      // Render Laps in multi-column clean grid
+      const colGap = lapCols > 1 ? 12 : 0;
+      const rowGap = isCompact ? 6 : 8;
+      const cellW = (availableW - 40 - (lapCols - 1) * colGap) / lapCols;
+      const cellH = lapRowH - rowGap;
+      const startLapY = currentY + (isCompact ? 36 : 42);
+
+      visibleLaps.forEach((lap, idx) => {
+        const c = idx % lapCols;
+        const r = Math.floor(idx / lapCols);
+        const lx = paddingX + 20 + c * (cellW + colGap);
+        const ly = startLapY + r * lapRowH;
+
+        const isFastest = idx === fastestLapIndex;
+
+        ctx.save();
+        ctx.fillStyle = isFastest ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)';
+        ctx.strokeStyle = isFastest ? 'rgba(52, 211, 153, 0.6)' : 'rgba(255, 255, 255, 0.08)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, lx, ly, cellW, cellH, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Left Lap number badge
+        ctx.font = isCompact ? 'bold 13px -apple-system, sans-serif' : 'bold 14px -apple-system, sans-serif';
+        ctx.fillStyle = isFastest ? currentTheme.accent1 : currentTheme.textSecondary;
+        ctx.fillText(`L${lap.lap}`, lx + (isCompact ? 8 : 12), ly + cellH / 2 + 5);
+
+        // Center Split Pace
+        ctx.font = isCompact ? '900 15px -apple-system, sans-serif' : '900 17px -apple-system, sans-serif';
+        ctx.fillStyle = isFastest ? '#34d399' : '#ffffff';
+        const paceOffset = cellW > 180 ? (isCompact ? 48 : 55) : 38;
+        ctx.fillText(lap.avgPace || '-', lx + paceOffset, ly + cellH / 2 + 5);
+
+        // Right Heart rate or Fastest badge
+        ctx.font = '500 12px -apple-system, sans-serif';
+        if (isFastest && cellW > 150) {
+          ctx.fillStyle = '#34d399';
+          const badge = '⚡최고';
+          const bw = ctx.measureText(badge).width;
+          ctx.fillText(badge, lx + cellW - (isCompact ? 8 : 12) - bw, ly + cellH / 2 + 4);
+        } else if (lap.avgHr && cellW > 130) {
+          ctx.fillStyle = '#fda4af';
+          const hrText = `${lap.avgHr}bpm`;
+          const hrW = ctx.measureText(hrText).width;
+          ctx.fillText(hrText, lx + cellW - (isCompact ? 8 : 12) - hrW, ly + cellH / 2 + 4);
+        }
+
+        ctx.restore();
+      });
 
       ctx.restore();
-      currentY += quoteH + 25;
+      currentY += lapSectionH + sectionGap;
     }
 
-    // 8. Footer Branding: 'PaceMaster Club'
-    const footerY = height - (format === 'square' ? 45 : 75);
+    // 11. Footer Branding: Always pinned cleanly at the bottom
+    const footerY = height - (isSquare ? 40 : 60);
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(paddingX, footerY - 25);
-    ctx.lineTo(width - paddingX, footerY - 25);
+    ctx.moveTo(paddingX, footerY - 20);
+    ctx.lineTo(width - paddingX, footerY - 20);
     ctx.stroke();
 
-    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = currentTheme.textPrimary;
-    ctx.fillText('PaceMaster Club', paddingX, footerY + 5);
+    ctx.fillText('PaceMaster Club', paddingX, footerY + 8);
 
     const rightText = 'RUNNINGMOON ATHLETIC SUITE';
-    ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, sans-serif';
     ctx.fillStyle = currentTheme.accent2;
     const rightW = ctx.measureText(rightText).width;
-    ctx.fillText(rightText, width - paddingX - rightW, footerY + 5);
+    ctx.fillText(rightText, width - paddingX - rightW, footerY + 8);
     ctx.restore();
 
     // Export to preview data URL
@@ -637,7 +741,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
   // Render on mount and state changes
   useEffect(() => {
     renderCard();
-  }, [theme, format, session, selectedMetrics, cleanTitle]);
+  }, [theme, format, session, selectedMetrics, lapDisplayMode, cleanTitle]);
 
   // Handle Download PNG
   const handleDownload = () => {
@@ -719,6 +823,14 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
   // Copy Summary Text to Clipboard
   const handleCopyText = async () => {
+    const lapsSummary =
+      selectedMetrics.laps && lapDisplayMode !== 'none' && session.laps && session.laps.length > 0
+        ? `📊 랩 스플릿(${lapDisplayMode === 'all' ? `총 ${session.laps.length}개 전체` : '5개 요약'}):\n` +
+          (lapDisplayMode === 'all' ? session.laps : session.laps.slice(0, 5))
+            .map((l) => `  · L${l.lap}: ${l.avgPace}/km (${l.avgHr || '-'}bpm)`)
+            .join('\n')
+        : '';
+
     const parts = [
       `🏃‍♂️ [RunningMoon : Go FASTER]`,
       `🏷️ 훈련: ${cleanTitle}`,
@@ -728,9 +840,11 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
       selectedMetrics.pace ? `⚡ 평균 페이스: ${session.avgPace} /km` : '',
       selectedMetrics.hr ? `❤️ 평균/최고 심박: ${session.avgHr} / ${session.maxHr} bpm` : '',
       selectedMetrics.cadence ? `🦶 케이던스: ${getCadence()}` : '',
+      selectedMetrics.shoe && session.shoeName ? `👟 착용 러닝화: ${session.shoeName}` : '',
       selectedMetrics.calories
         ? `🔥 소모 열량: ${Math.round(session.totalDistanceKm * 64)} kcal`
         : '',
+      lapsSummary,
       selectedMetrics.notes && session.notes ? `📝 메모: ${session.notes}` : '',
       `PaceMaster Club`,
       `#RunningMoon #GoFASTER #PaceMaster #러닝 #마라톤`,
@@ -747,8 +861,32 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
+  // Lock body scroll and handle ESC key
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = origOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       {/* Hidden high-res canvas for drawing */}
       <canvas ref={canvasRef} className="hidden" />
 
@@ -787,19 +925,19 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
             <div className="text-[11px] text-slate-400 mb-2 flex items-center justify-between w-full px-2">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>미리보기 ({format === 'square' ? '1:1 피드 규격 1080x1080' : '9:16 스토리 규격 1080x1920'})</span>
+                <span>
+                  미리보기 ({format === 'square' ? '1:1 피드 1080x1080' : format === 'portrait' ? '4:5 인스타 피드 1080x1350' : '9:16 스토리 1080x1920'})
+                </span>
               </span>
               <span className="text-emerald-400 font-mono font-semibold">Live Canvas Render</span>
             </div>
 
-            <div className="relative max-h-[460px] overflow-hidden rounded-xl border border-white/15 shadow-2xl flex items-center justify-center bg-slate-900">
+            <div className="relative max-h-[480px] w-full overflow-hidden rounded-xl border border-white/15 shadow-2xl flex items-center justify-center bg-slate-900 p-2">
               {previewDataUrl ? (
                 <img
                   src={previewDataUrl}
                   alt="Training Share Preview"
-                  className={`object-contain transition-all ${
-                    format === 'square' ? 'max-h-[380px] sm:max-h-[420px]' : 'max-h-[420px] sm:max-h-[460px]'
-                  }`}
+                  className="object-contain max-h-[440px] w-auto max-w-full rounded-lg shadow-lg"
                 />
               ) : (
                 <div className="p-12 text-center text-slate-500 text-xs">
@@ -811,34 +949,48 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
           {/* Right Column: Controls & Share Options */}
           <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-[440px] overflow-y-auto pr-1">
               {/* 1. Format Select */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                   1️⃣ 카드 규격 (비율 선택)
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setFormat('square')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       format === 'square'
                         ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-md shadow-cyan-500/10'
                         : 'bg-slate-900 text-slate-400 border-white/10 hover:border-white/20'
                     }`}
                   >
-                    <span>1:1 피드 (정사각형)</span>
+                    <span>1:1 피드</span>
+                    <span className="text-[10px] font-normal opacity-80">(정사각형)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat('portrait')}
+                    className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                      format === 'portrait'
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-md shadow-cyan-500/10'
+                        : 'bg-slate-900 text-slate-400 border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <span>4:5 세로</span>
+                    <span className="text-[10px] font-normal opacity-80">(인스타 피드)</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormat('story')}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       format === 'story'
                         ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-md shadow-cyan-500/10'
                         : 'bg-slate-900 text-slate-400 border-white/10 hover:border-white/20'
                     }`}
                   >
-                    <span>9:16 스토리 (세로형)</span>
+                    <span>9:16 스토리</span>
+                    <span className="text-[10px] font-normal opacity-80">(세로형)</span>
                   </button>
                 </div>
               </div>
@@ -880,11 +1032,71 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. Included Metrics Toggle Selection */}
+              {/* 3. Laps Options (전체 랩 다 보기 / 5개만 보기 / 안넣기) */}
+              {hasLaps && (
+                <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30">
+                  <label className="block text-xs font-bold text-purple-200 mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5 text-purple-400" />
+                      <span>3️⃣ 랩 스플릿 구간 표시 ({session.laps.length}개 랩)</span>
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {lapDisplayMode === 'all'
+                        ? '전체 표시'
+                        : lapDisplayMode === 'first5'
+                        ? '5개 요약'
+                        : '미포함(안넣기)'}
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    모든 랩을 빠짐없이 다 넣거나, 5개만 요약하거나, 아예 안 넣을 수 있습니다.
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSetLapDisplayMode('all')}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
+                        lapDisplayMode === 'all'
+                          ? 'bg-purple-500/25 text-purple-200 border-purple-400 shadow-sm shadow-purple-500/20'
+                          : 'bg-slate-950/60 text-slate-400 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span>전체 랩 표시</span>
+                      <span className="text-[10px] font-normal opacity-80">({session.laps.length}개 모두)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetLapDisplayMode('first5')}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
+                        lapDisplayMode === 'first5'
+                          ? 'bg-purple-500/25 text-purple-200 border-purple-400 shadow-sm shadow-purple-500/20'
+                          : 'bg-slate-950/60 text-slate-400 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span>주요 5개 랩</span>
+                      <span className="text-[10px] font-normal opacity-80">(5개 요약)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetLapDisplayMode('none')}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
+                        lapDisplayMode === 'none'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-400 shadow-sm shadow-rose-500/20'
+                          : 'bg-slate-950/60 text-slate-400 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span>안넣기</span>
+                      <span className="text-[10px] font-normal opacity-80">(구간 제외)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Included Metrics Toggle Selection */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>3️⃣ 카드에 포함할 훈련 데이터 선택</span>
+                  <span>4️⃣ 카드에 포함할 훈련 데이터 선택</span>
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {/* Time Toggle */}
@@ -992,6 +1204,29 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     )}
                   </button>
 
+                  {/* Shoe Toggle (visible if shoeName exists) */}
+                  {session.shoeName && (
+                    <button
+                      type="button"
+                      onClick={() => toggleMetric('shoe')}
+                      className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
+                        selectedMetrics.shoe
+                          ? 'bg-cyan-950/40 text-cyan-200 border-cyan-500/40'
+                          : 'bg-slate-900/40 text-slate-400 border-white/5 hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-xs">👟</span>
+                        <span className="truncate">러닝화 ({session.shoeName})</span>
+                      </div>
+                      {selectedMetrics.shoe ? (
+                        <CheckSquare className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                      ) : (
+                        <Square className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+                      )}
+                    </button>
+                  )}
+
                   {/* Date Toggle */}
                   <button
                     type="button"
@@ -1012,29 +1247,6 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       <Square className="w-3.5 h-3.5 text-slate-600" />
                     )}
                   </button>
-
-                  {/* Laps Toggle (if laps available) */}
-                  {session.laps && session.laps.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => toggleMetric('laps')}
-                      className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
-                        selectedMetrics.laps
-                          ? 'bg-cyan-950/40 text-cyan-200 border-cyan-500/40'
-                          : 'bg-slate-900/40 text-slate-400 border-white/5 hover:border-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <BarChart2 className="w-3.5 h-3.5 text-purple-400" />
-                        <span>랩 스플릿 차트</span>
-                      </div>
-                      {selectedMetrics.laps ? (
-                        <CheckSquare className="w-3.5 h-3.5 text-cyan-400" />
-                      ) : (
-                        <Square className="w-3.5 h-3.5 text-slate-600" />
-                      )}
-                    </button>
-                  )}
 
                   {/* Notes Toggle (if notes available) */}
                   {session.notes && (
@@ -1121,4 +1333,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

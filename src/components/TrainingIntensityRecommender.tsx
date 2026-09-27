@@ -17,7 +17,7 @@ import {
   Check,
   RotateCcw,
 } from 'lucide-react';
-import { TrainingSession, WeeklyPlanDay, WeeklyPlanSettings } from '../types';
+import { TrainingSession, WeeklyPlanDay, WeeklyPlanSettings, RunningShoe } from '../types';
 import {
   analyzeAndRecommendTrainingIntensity,
   IntensityLevel,
@@ -29,6 +29,7 @@ interface TrainingIntensityRecommenderProps {
   sessions: TrainingSession[];
   vdot: number;
   targetRaceCourse?: string;
+  shoes?: RunningShoe[];
   onApplyRoutine: (routineDays: WeeklyPlanDay[], settings?: WeeklyPlanSettings) => Promise<void>;
 }
 
@@ -36,12 +37,13 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
   sessions,
   vdot,
   targetRaceCourse = '풀코스',
+  shoes = [],
   onApplyRoutine,
 }) => {
-  // Analysis from sports science engine
+  // Analysis from sports science engine with shoe rotation
   const analysis = useMemo(() => {
-    return analyzeAndRecommendTrainingIntensity(sessions, vdot, targetRaceCourse);
-  }, [sessions, vdot, targetRaceCourse]);
+    return analyzeAndRecommendTrainingIntensity(sessions, vdot, targetRaceCourse, shoes);
+  }, [sessions, vdot, targetRaceCourse, shoes]);
 
   // Selected level state (defaults to AI recommended level)
   const [selectedLevel, setSelectedLevel] = useState<IntensityLevel>(analysis.recommendedLevel);
@@ -342,10 +344,13 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
 
       {/* 7-Day Proposed Routine Schedule Table/Cards */}
       <div className="space-y-2.5">
-        <div className="flex items-center justify-between text-xs text-slate-300 font-semibold px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-slate-300 font-semibold px-1">
           <span className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-cyan-400" />
             <span>다음 주 7일(월~일) 맞춤 일별 훈련 일정표</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+              👟 보유 러닝화 로테이션 추천 포함
+            </span>
           </span>
           <span className="text-[11px] text-slate-400">
             총 주행: <strong className="text-white font-athletic">{activePackage.targetWeeklyKm}km</strong> (장거리 {activePackage.longRunKm}km)
@@ -422,6 +427,28 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   <p className="text-[11px] text-slate-400 line-clamp-3 leading-relaxed mt-1">
                     {dayPlan.description}
                   </p>
+
+                  {/* Recommended Shoe Pill & Rotation Insight */}
+                  {dayPlan.recommendedShoe && (
+                    <div className="mt-2.5 p-2 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-[10px] space-y-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1 text-emerald-300 font-bold truncate">
+                          <span>👟</span>
+                          <span className="truncate">{dayPlan.recommendedShoe.shoeName}</span>
+                        </div>
+                        {dayPlan.recommendedShoe.category && (
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex-shrink-0">
+                            {dayPlan.recommendedShoe.category}
+                          </span>
+                        )}
+                      </div>
+                      {dayPlan.recommendedShoe.reason && (
+                        <p className="text-[9px] text-slate-300 leading-tight line-clamp-2">
+                          💡 {dayPlan.recommendedShoe.reason}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom intensity tag */}

@@ -6,6 +6,13 @@ import { TabRunningRecords } from './components/TabRunningRecords';
 import { TabMarathonRaces } from './components/TabMarathonRaces';
 import { SecurityPromptModal } from './components/SecurityPromptModal';
 import { FirebaseConfigModal } from './components/FirebaseConfigModal';
+import { PaceCalculatorModal } from './components/PaceCalculatorModal';
+import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
+import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
+import { DailyInsightCard } from './components/DailyInsightCard';
+import { GoalProgressBarSection } from './components/GoalProgressBarSection';
+import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
+import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
 
 import {
   PhysicalInfo,
@@ -27,6 +34,7 @@ import {
   resetShoesToDefault,
   getRaces,
   addRace,
+  updateRace,
   deleteRace,
   getRunningRecords,
   saveRunningRecords,
@@ -34,6 +42,7 @@ import {
   saveRunningGoals,
   getTrainingSessions,
   addTrainingSession,
+  updateTrainingSession,
   deleteTrainingSession,
   clearAllTrainingSessions,
   getWeeklyPlan,
@@ -47,6 +56,8 @@ import { estimateBestVDOT } from './lib/vdot';
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('my_info');
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [isPaceCalcOpen, setIsPaceCalcOpen] = useState(false);
+  const [isTodayWorkoutModalOpen, setIsTodayWorkoutModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // App State synced with DB
@@ -161,6 +172,38 @@ export default function App() {
     setRaces((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const handleUpdateRace = async (updatedRace: RegisteredRace) => {
+    await updateRace(updatedRace);
+    setRaces((prev) =>
+      prev.map((r) => (r.id === updatedRace.id ? updatedRace : r))
+    );
+  };
+
+  // Focus Navigation Handlers
+  const handleNavigateToRaces = () => {
+    setActiveTab('marathon_races');
+    setTimeout(() => {
+      const el = document.getElementById('marathon-races-tab');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.focus();
+      }
+    }, 100);
+  };
+
+  const handleNavigateToGoals = () => {
+    setActiveTab('running_records');
+    setTimeout(() => {
+      const el = document.getElementById('running-goals-card');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        el.classList.add('ring-2', 'ring-purple-400');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400'), 2500);
+      }
+    }, 100);
+  };
+
   // Handlers for Running Records
   const handleSaveRecords = async (rec: RunningRecords) => {
     await saveRunningRecords(rec);
@@ -173,12 +216,36 @@ export default function App() {
     setRunningGoals(gls);
   };
 
-  // Handlers for Training Sessions (CSV)
+  // Handlers for Training Sessions (CSV & Quick Log)
   const handleAddTrainingSession = async (
     sessionData: Omit<TrainingSession, 'id' | 'createdAt'>
   ) => {
     const created = await addTrainingSession(sessionData);
     setTrainingSessions((prev) => [created, ...prev]);
+
+    // Automatically accumulate shoe mileage if shoe is linked
+    if (sessionData.shoeId) {
+      const targetShoe = shoes.find((s) => s.id === sessionData.shoeId);
+      if (targetShoe) {
+        const updatedShoe: RunningShoe = {
+          ...targetShoe,
+          mileage: Math.round(((targetShoe.mileage || 0) + (sessionData.totalDistanceKm || 0)) * 100) / 100,
+        };
+        await handleUpdateShoe(updatedShoe);
+      }
+    }
+  };
+
+  const handleUpdateTrainingSession = async (
+    sessionId: string,
+    updates: Partial<TrainingSession>
+  ) => {
+    const updated = await updateTrainingSession(sessionId, updates);
+    if (updated) {
+      setTrainingSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? updated : s))
+      );
+    }
   };
 
   const handleDeleteTrainingSession = async (id: string) => {
@@ -213,16 +280,16 @@ export default function App() {
         고해상도 스포츠 경기장 트랙 & 잔디 필드 이미지 (인물 없음)
       */}
       <div
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-700 pointer-events-none"
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=2400&q=80')`,
         }}
       />
-      {/* 어두운 그라데이션 오버레이 (텍스트 가독성 최우선 확보) */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-slate-950/85 via-slate-950/80 to-slate-950/92 backdrop-blur-[2px] pointer-events-none" />
+      {/* 어두운 그라데이션 오버레이 (텍스트 가독성 최우선 확보 - 스크롤 깜빡임 방지) */}
+      <div className="fixed inset-0 z-0 bg-gradient-to-b from-slate-950/90 via-slate-950/85 to-slate-950/95 pointer-events-none" />
 
       {/* Main Glassmorphism Container */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col">
+      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col smooth-scroll-surface">
         {/* Header */}
         <Header
           currentVDOT={currentVDOT}
@@ -230,11 +297,49 @@ export default function App() {
           onOpenDbConfig={() => setIsDbModalOpen(true)}
         />
 
-        {/* 3 Main Tabs Nav (내 정보, 러닝기록, 마라톤 대회) */}
-        <TabsNav activeTab={activeTab} onChangeTab={setActiveTab} />
+        {/* 1. Nearest Marathon Target Race D-Day Hero Widget */}
+        <MarathonDDayHeroWidget
+          races={races}
+          goals={runningGoals}
+          records={runningRecords}
+          onNavigateToRaces={handleNavigateToRaces}
+          onNavigateToGoals={handleNavigateToGoals}
+          onUpdateRace={handleUpdateRace}
+        />
 
-        {/* Tab Content Area */}
-        <main className="w-full pb-16">
+        {/* 2. Today's AI Running Insight & Condition Diagnosis */}
+        <DailyInsightCard
+          sessions={trainingSessions}
+          races={races}
+          records={runningRecords}
+          goals={runningGoals}
+          onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
+        />
+
+        {/* 3. Running Goals Achievement Progress Bars */}
+        <GoalProgressBarSection
+          goals={runningGoals}
+          records={runningRecords}
+          onNavigateToGoals={handleNavigateToGoals}
+        />
+
+        {/* 4. Dashboard 7-Day Distance Bar Chart */}
+        <WeeklyDistanceBarChart
+          sessions={trainingSessions}
+          onNavigateToRecords={() => setActiveTab('running_records')}
+        />
+
+        {/* 3 Main Tabs Nav (내 정보, 러닝기록, 마라톤 대회) */}
+        <TabsNav
+          activeTab={activeTab}
+          onChangeTab={setActiveTab}
+          shoesCount={shoes.length}
+          sessionsCount={trainingSessions.length}
+          racesCount={races.length}
+        />
+
+        {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
+        <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-slate-900/95 border-b-2 border-x-2 border-emerald-500/30 shadow-2xl mb-8">
           {isLoading ? (
             <div className="glass-panel rounded-2xl p-12 text-center border border-white/10">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400 mb-3" />
@@ -254,6 +359,7 @@ export default function App() {
                   onResetShoes={handleResetShoes}
                   onAddRace={handleAddRace}
                   onDeleteRace={handleDeleteRace}
+                  onUpdateRace={handleUpdateRace}
                 />
               )}
 
@@ -264,12 +370,16 @@ export default function App() {
                   trainingSessions={trainingSessions}
                   weeklyPlan={weeklyPlan}
                   weeklyPlanSettings={weeklyPlanSettings}
+                  shoes={shoes}
                   onSaveRecords={handleSaveRecords}
                   onSaveGoals={handleSaveGoals}
                   onAddTrainingSession={handleAddTrainingSession}
+                  onUpdateTrainingSession={handleUpdateTrainingSession}
                   onDeleteTrainingSession={handleDeleteTrainingSession}
                   onClearAllTrainingSessions={handleClearAllTrainingSessions}
                   onSaveWeeklyPlan={handleSaveWeeklyPlan}
+                  onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
+                  onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
                 />
               )}
 
@@ -283,6 +393,9 @@ export default function App() {
             </>
           )}
         </main>
+
+        {/* Annual Running Activity Heatmap (GitHub Grass Contribution Graph) */}
+        <AnnualRunningHeatmap sessions={trainingSessions} />
 
         {/* Footer */}
         <footer className="w-full text-center py-6 text-xs text-slate-400 border-t border-white/5">
@@ -298,11 +411,33 @@ export default function App() {
       {/* Security Verification Modal */}
       <SecurityPromptModal />
 
+      {/* Target Pace Calculator Modal */}
+      {isPaceCalcOpen && (
+        <PaceCalculatorModal
+          isOpen={isPaceCalcOpen}
+          onClose={() => setIsPaceCalcOpen(false)}
+          currentVDOT={currentVDOT}
+        />
+      )}
+
       {/* Firebase Database Config Modal */}
       <FirebaseConfigModal
         isOpen={isDbModalOpen}
         onClose={() => setIsDbModalOpen(false)}
       />
+
+      {/* Today's Workout Session Logger & Integrated Analytics Modal */}
+      {isTodayWorkoutModalOpen && (
+        <TodayWorkoutLoggerModal
+          isOpen={isTodayWorkoutModalOpen}
+          onClose={() => setIsTodayWorkoutModalOpen(false)}
+          onSaveSession={handleAddTrainingSession}
+          existingSessions={trainingSessions}
+          records={runningRecords}
+          goals={runningGoals}
+          shoes={shoes}
+        />
+      )}
     </div>
   );
 }

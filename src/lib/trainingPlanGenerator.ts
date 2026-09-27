@@ -1,5 +1,6 @@
-import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis } from '../types';
+import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe } from '../types';
 import { getTrainingPaces, formatPace } from './vdot';
+import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
@@ -11,6 +12,7 @@ export interface PlanCustomOptions {
   targetRaceCourse?: string; // 풀코스, 하프, 10K, 5K
   weeklyMileageGoal?: number; // Target weekly volume in km
   trainingSessions?: TrainingSession[]; // User's actual logged sessions for in-depth workload & trend analysis
+  shoes?: RunningShoe[]; // User's owned running shoes for rotation recommendation
 }
 
 const DAY_ORDER: DayOfWeek[] = [
@@ -305,7 +307,7 @@ export function generateWeeklyTrainingPlan(
   const standardJogDist = otherDaysCount > 0 ? Math.round((remainingKm / otherDaysCount) * 10) / 10 : 8.0;
   const recoveryDist = Math.max(Math.round(standardJogDist * 0.65 * 10) / 10, 4.0);
 
-  return DAY_ORDER.map((dayName) => {
+  const rawPlan: WeeklyPlanDay[] = DAY_ORDER.map((dayName) => {
     const dayShort = DAY_SHORT_MAP[dayName];
     const isRunningDay = trainingDays.includes(dayName);
 
@@ -660,5 +662,11 @@ export function generateWeeklyTrainingPlan(
       intensity: '보통',
     };
   });
+
+  if (options && options.shoes && options.shoes.length > 0) {
+    return attachShoeRecommendationsToPlan(rawPlan, options.shoes, options.trainingSessions || []);
+  }
+
+  return rawPlan;
 }
 
