@@ -628,17 +628,16 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
                   </div>
                 </div>
 
-                {/* Footer details: Review & Recent Session Link & Action */}
+                {/* Footer details: Recent Session Link & Action */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-white/5 text-xs">
                   <div className="text-slate-400 text-[11px] truncate flex items-center gap-2">
-                    {shoe.review && (
-                      <span className="italic truncate max-w-[280px] sm:max-w-md">
-                        &ldquo;{shoe.review}&rdquo;
-                      </span>
-                    )}
-                    {shoe.lastWornDate && (
+                    {shoe.lastWornDate ? (
                       <span className="text-cyan-400/80 font-mono text-[10px] bg-slate-950 px-2 py-0.5 rounded border border-white/5 flex-shrink-0">
-                        최근 착용: {shoe.lastWornDate}
+                        최근 착용: {shoe.lastWornDate} {shoe.lastSessionTitle ? `(${shoe.lastSessionTitle})` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 text-[10px]">
+                        아직 훈련 기록 연동 없음
                       </span>
                     )}
                   </div>

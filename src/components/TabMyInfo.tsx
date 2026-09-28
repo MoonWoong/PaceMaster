@@ -25,7 +25,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { PhysicalInfo, RunningShoe, RegisteredRace, ShoeCategory, TrainingSession } from '../types';
-import { calculateDDay } from '../lib/marathonData';
+import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
 
 interface TabMyInfoProps {
@@ -76,7 +76,6 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [newShoeCategory, setNewShoeCategory] = useState<ShoeCategory>('데일리');
   const [newShoeMileage, setNewShoeMileage] = useState('0');
   const [newShoeMaxMileage, setNewShoeMaxMileage] = useState('600');
-  const [newShoeReview, setNewShoeReview] = useState('');
 
   // Editing Shoe Full Details State
   const [editingShoe, setEditingShoe] = useState<RunningShoe | null>(null);
@@ -85,12 +84,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [editShoeCategory, setEditShoeCategory] = useState<ShoeCategory>('데일리');
   const [editMileage, setEditMileage] = useState<string>('0');
   const [editMaxMileage, setEditMaxMileage] = useState<string>('600');
-  const [editReview, setEditReview] = useState<string>('');
 
   // Races State
   const [isRaceModalOpen, setIsRaceModalOpen] = useState(false);
   const [newRaceName, setNewRaceName] = useState('');
-  const [newRaceDate, setNewRaceDate] = useState('2026-11-01');
+  const [newRaceDate, setNewRaceDate] = useState(() => getTodayDateStr());
   const [newRaceCourse, setNewRaceCourse] = useState('풀 (42.195km)');
   const [newRaceLocation, setNewRaceLocation] = useState('서울');
   const [newRaceTargetTime, setNewRaceTargetTime] = useState('');
@@ -141,12 +139,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       category: newShoeCategory,
       mileage: Math.round((parseFloat(newShoeMileage) || 0) * 100) / 100,
       maxMileage: newShoeCategory === '레이싱' ? 300 : (Math.round((parseFloat(newShoeMaxMileage) || 600) * 100) / 100),
-      review: newShoeReview.trim() || '탄탄한 착화감과 접지력.',
+      review: '',
       createdAt: new Date().toISOString().split('T')[0],
     });
 
     setNewShoeName('');
-    setNewShoeReview('');
     setNewShoeMileage('0');
     setNewShoeMaxMileage('600');
     setIsShoeModalOpen(false);
@@ -160,7 +157,6 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setEditShoeCategory(shoe.category);
     setEditMileage(shoe.mileage.toString());
     setEditMaxMileage((shoe.maxMileage || (shoe.category === '레이싱' ? 300 : 600)).toString());
-    setEditReview(shoe.review || '');
   };
 
   // Handle Save Edited Shoe
@@ -182,7 +178,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       category: editShoeCategory,
       mileage: Math.round((parseFloat(editMileage) || 0) * 100) / 100,
       maxMileage: Math.round((parseFloat(editMaxMileage) || (editShoeCategory === '레이싱' ? 300 : 600)) * 100) / 100,
-      review: editReview.trim() || '탄탄한 착화감과 접지력.',
+      review: '',
     });
 
     setEditingShoe(null);
@@ -1240,9 +1236,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-300 mb-1">목표 권장 수명 (km)</label>
+                  <label className="block text-xs text-slate-300 mb-1">목표 교체 수명 (km)</label>
                   <input
                     type="number"
+                    min="100"
+                    step="50"
                     value={newShoeMaxMileage}
                     onChange={(e) => setNewShoeMaxMileage(e.target.value)}
                     className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono"
@@ -1250,15 +1248,57 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-slate-300 mb-1">한줄평 (착용감, 쿠셔닝 등)</label>
-                <input
-                  type="text"
-                  value={newShoeReview}
-                  onChange={(e) => setNewShoeReview(e.target.value)}
-                  placeholder="예: 4분대 페이스에서 밀어주는 카본 탄성이 일품임"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs"
-                />
+              {/* Quick Lifespan Mileage Presets */}
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-white/5 space-y-2">
+                <span className="text-[11px] font-semibold text-slate-300 block">
+                  카테고리별 권장 수명 프리셋 선택:
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setNewShoeMaxMileage('300')}
+                    className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
+                      newShoeMaxMileage === '300'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    300km (카본 레이싱)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewShoeMaxMileage('450')}
+                    className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
+                      newShoeMaxMileage === '450'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    450km (스피드/템포)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewShoeMaxMileage('600')}
+                    className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
+                      newShoeMaxMileage === '600'
+                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    600km (데일리 쿠션)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewShoeMaxMileage('700')}
+                    className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
+                      newShoeMaxMileage === '700'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                        : 'bg-slate-900 text-slate-400 border-white/5 hover:text-white'
+                    }`}
+                  >
+                    700km (장거리 맥스쿠션)
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1305,7 +1345,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-300 mb-1">대회 일자 (날짜)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-slate-300">대회 일자 (날짜)</label>
+                    {newRaceDate && (
+                      <span className="text-[11px] font-bold text-amber-400 font-athletic">
+                        {calculateDDay(newRaceDate).text}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="date"
                     required
@@ -1475,7 +1522,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     onChange={(e) => setEditMaxMileage(e.target.value)}
                     className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono text-slate-200"
                   />
-                  <div className="flex gap-1 mt-1.5">
+                  <div className="flex gap-1 mt-1.5 flex-wrap">
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('300')}
@@ -1485,26 +1532,76 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     </button>
                     <button
                       type="button"
+                      onClick={() => setEditMaxMileage('450')}
+                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer transition-colors"
+                    >
+                      450km (스피드)
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setEditMaxMileage('600')}
                       className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer transition-colors"
                     >
-                      600km (일반)
+                      600km (데일리)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditMaxMileage('700')}
+                      className="px-2 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded cursor-pointer transition-colors"
+                    >
+                      700km (LSD)
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* 4. 한줄평 / 착용 후기 */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">한줄평 / 러닝 피드백</label>
-                <input
-                  type="text"
-                  value={editReview}
-                  onChange={(e) => setEditReview(e.target.value)}
-                  placeholder="착용감, 쿠셔닝 탄성, 접지력 등..."
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs text-white"
-                />
-              </div>
+              {/* 4. 실시간 수명 소진율 & 마모 상태 프리뷰 */}
+              {(() => {
+                const currentKm = parseFloat(editMileage) || 0;
+                const maxKm = parseFloat(editMaxMileage) || 600;
+                const wearPct = maxKm > 0 ? Math.round((currentKm / maxKm) * 100) : 0;
+                const remaining = Math.round((maxKm - currentKm) * 10) / 10;
+                const isOverdue = wearPct >= 100;
+                const isNearLimit = wearPct >= 90 && wearPct < 100;
+
+                return (
+                  <div className="p-3.5 rounded-xl bg-slate-950/70 border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-medium">수명 소진율 및 상태 프리뷰</span>
+                      <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
+                        isOverdue
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : isNearLimit
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}>
+                        {wearPct}% {isOverdue ? '(수명 종료 / 즉시 교체)' : isNearLimit ? '(교체 임박)' : '(양호)'}
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isOverdue ? 'bg-rose-500' : isNearLimit ? 'bg-amber-400' : 'bg-emerald-400'
+                        }`}
+                        style={{ width: `${Math.min(wearPct, 100)}%` }}
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-400">
+                      {remaining <= 0 ? (
+                        <span className="text-rose-400 font-semibold">
+                          ⚠️ 권장 수명을 {Math.abs(remaining)}km 초과했습니다. 쿠션 꺼짐으로 인한 무릎·발목 충격 주의!
+                        </span>
+                      ) : (
+                        <span>
+                          수명 한계까지 약 <strong className="text-emerald-400 font-mono">{remaining}km</strong> 남았습니다.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
                 <button

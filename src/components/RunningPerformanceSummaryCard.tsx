@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { TrainingSession, RunningRecords, RunningGoals, RegisteredRace } from '../types';
 import { estimateBestVDOT } from '../lib/vdot';
+import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import {
   RunnerPerformanceSummaryData,
   generateHeuristicPerformanceSummary,
@@ -33,7 +34,59 @@ interface RunningPerformanceSummaryCardProps {
   onNavigateToRecords?: () => void;
 }
 
-const CACHE_KEY = 'pacemaster_running_performance_summary_v1';
+const CACHE_KEY = 'pacemaster_running_performance_summary_v2';
+
+// Helper to calculate scientifically accurate weekly mileage from training sessions
+export const calculateWeeklyMileageStats = (sessionsList: TrainingSession[]) => {
+  if (!sessionsList || sessionsList.length === 0) {
+    return { avgWeeklyKm: 0, lastWeekKm: 0, activeWeeksCount: 0 };
+  }
+
+  // Filter valid sessions with distance > 0 and valid date
+  const valid = sessionsList
+    .filter((s) => s.date && !isNaN(new Date(s.date).getTime()) && (s.totalDistanceKm || 0) > 0)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (valid.length === 0) {
+    return { avgWeeklyKm: 0, lastWeekKm: 0, activeWeeksCount: 0 };
+  }
+
+  // Group sessions by Monday-Sunday calendar weeks
+  const weekMap: Record<string, { monday: Date; distance: number; sessionsCount: number }> = {};
+  for (const s of valid) {
+    const d = new Date(s.date);
+    const day = d.getDay(); // 0 is Sunday, 1 is Monday
+    const diffToMon = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMon);
+    monday.setHours(0, 0, 0, 0);
+    const key = monday.toISOString().slice(0, 10);
+
+    if (!weekMap[key]) {
+      weekMap[key] = { monday, distance: 0, sessionsCount: 0 };
+    }
+    weekMap[key].distance += s.totalDistanceKm || 0;
+    weekMap[key].sessionsCount += 1;
+  }
+
+  const sortedWeeks = Object.values(weekMap).sort(
+    (a, b) => a.monday.getTime() - b.monday.getTime()
+  );
+
+  const lastWeekKm =
+    sortedWeeks.length > 0 ? Math.round(sortedWeeks[sortedWeeks.length - 1].distance * 10) / 10 : 0;
+
+  // Recent up to 4 calendar weeks recorded
+  const recentWeeks = sortedWeeks.slice(-4);
+  const recentSum = recentWeeks.reduce((acc, w) => acc + w.distance, 0);
+  const avgWeeklyKm = Math.round((recentSum / Math.max(recentWeeks.length, 1)) * 10) / 10;
+
+  return {
+    avgWeeklyKm,
+    lastWeekKm,
+    activeWeeksCount: sortedWeeks.length,
+  };
+};
 
 const formatGeneratedAt = () => {
   const now = new Date();
@@ -66,21 +119,20 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
   // Nearest upcoming marathon race with calculated dDay
   const upcomingRace = useMemo(() => {
     if (!races || races.length === 0) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateStr();
     const valid = races
       .filter((r) => r.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date));
     const target = valid.find((r) => r.isTarget) || valid[0];
     if (!target) return null;
 
-    const targetDate = new Date(target.date);
-    const currentDate = new Date(today);
-    const diffDays = Math.ceil((targetDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    const dDayInfo = calculateDDay(target.date);
 
     return {
       name: target.name,
       date: target.date,
-      dDay: diffDays,
+      dDay: dDayInfo.daysDiff,
+      dDayText: dDayInfo.text,
     };
   }, [races]);
 
@@ -109,10 +161,19 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
   // Initial state with cached or heuristic data
   const [summaryData, setSummaryData] = useState<RunnerPerformanceSummaryData>(() => {
     try {
+      // Purge old cache that might have contained the erroneous 270km calculation
+      localStorage.removeItem('pacemaster_running_performance_summary_v1');
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
-        if (parsed.data && parsed.sessionsCount === sessions.length) {
+        const cachedStr = JSON.stringify(parsed);
+        // If cached analysis text contains erroneous 270km references, discard it immediately
+        if (
+          !cachedStr.includes('270km') &&
+          !cachedStr.includes('270 km') &&
+          parsed.data &&
+          parsed.sessionsCount === sessions.length
+        ) {
           return parsed.data;
         }
       }
@@ -143,6 +204,9 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
         const totalDistanceKm =
           Math.round(sessions.reduce((acc, s) => acc + (s.totalDistanceKm || 0), 0) * 100) / 100;
         const longestRunKm = Math.max(...sessions.map((s) => s.totalDistanceKm || 0), 0);
+
+        // Accurate Weekly Mileage Calculation
+        const weeklyMetrics = calculateWeeklyMileageStats(sessions);
 
         // Valid HR
         const validHrs = sessions.filter((s) => s.avgHr && s.avgHr > 60 && s.avgHr < 220);
@@ -183,7 +247,8 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
             longestRunKm,
             overallAvgPace,
             overallAvgHr,
-            avgWeeklyKm: Math.round(totalDistanceKm / 4),
+            avgWeeklyKm: weeklyMetrics.avgWeeklyKm,
+            lastWeekKm: weeklyMetrics.lastWeekKm,
             vdot: currentVDOT,
             upcomingRace,
             sampleRecentSessions,
@@ -271,10 +336,12 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
     const totalDist =
       Math.round(sessions.reduce((acc, s) => acc + (s.totalDistanceKm || 0), 0) * 100) / 100;
     const longest = Math.max(...sessions.map((s) => s.totalDistanceKm || 0), 0);
+    const weeklyMetrics = calculateWeeklyMileageStats(sessions);
     return {
       count: sessions.length,
       distanceKm: totalDist,
       longestRunKm: longest,
+      avgWeeklyKm: weeklyMetrics.avgWeeklyKm,
     };
   }, [sessions]);
 
@@ -310,8 +377,9 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              현재까지 기록된 <span className="text-emerald-400 font-semibold font-mono">{totalStats.count}개</span> 세션(총{' '}
-              <span className="text-cyan-400 font-semibold font-mono">{totalStats.distanceKm}km</span>)을 바탕으로 러너의 강점과 보완점을 진단합니다.
+              현재까지 기록된 <span className="text-emerald-400 font-semibold font-mono">{totalStats.count}개</span> 세션(누적 총{' '}
+              <span className="text-cyan-400 font-semibold font-mono">{totalStats.distanceKm}km</span>, 최근 주간 평균{' '}
+              <span className="text-amber-400 font-semibold font-mono">{totalStats.avgWeeklyKm}km</span>)을 바탕으로 러너의 강점과 보완점을 진단합니다.
             </p>
           </div>
         </div>
@@ -353,7 +421,7 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
 
               {upcomingRace && (
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  🎯 {upcomingRace.name} D-{upcomingRace.dDay}
+                  🎯 {upcomingRace.name} {upcomingRace.dDayText}
                 </span>
               )}
             </div>
@@ -386,22 +454,26 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
         </div>
 
         {/* Quick Stats Strip */}
-        <div className="mt-4 pt-3.5 border-t border-white/5 grid grid-cols-2 xs:grid-cols-4 gap-2 text-center text-xs">
+        <div className="mt-4 pt-3.5 border-t border-white/5 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
           <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
             <span className="block text-[10px] text-slate-400">총 훈련 세션</span>
             <span className="font-mono font-bold text-white text-sm">{totalStats.count}회</span>
           </div>
           <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400">누적 주행 마일리지</span>
+            <span className="block text-[10px] text-slate-400">누적 총 마일리지</span>
             <span className="font-mono font-bold text-emerald-400 text-sm">{totalStats.distanceKm} km</span>
           </div>
           <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400">최장 1회 주행 거리</span>
-            <span className="font-mono font-bold text-cyan-400 text-sm">{totalStats.longestRunKm} km</span>
+            <span className="block text-[10px] text-slate-400">최근 주간 평균</span>
+            <span className="font-mono font-bold text-amber-300 text-sm">{totalStats.avgWeeklyKm} km/주</span>
           </div>
           <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
+            <span className="block text-[10px] text-slate-400">최장 1회 거리</span>
+            <span className="font-mono font-bold text-cyan-400 text-sm">{totalStats.longestRunKm} km</span>
+          </div>
+          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5 col-span-2 sm:col-span-1">
             <span className="block text-[10px] text-slate-400">VDOT 러닝 지수</span>
-            <span className="font-mono font-bold text-amber-400 text-sm">{currentVDOT || '-'}</span>
+            <span className="font-mono font-bold text-emerald-300 text-sm">{currentVDOT || '-'}</span>
           </div>
         </div>
       </div>

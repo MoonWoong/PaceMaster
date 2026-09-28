@@ -206,6 +206,18 @@ export default function App() {
     }, 100);
   };
 
+  const handleNavigateToShoes = () => {
+    setActiveTab('my_info');
+    setTimeout(() => {
+      const el = document.getElementById('shoe-closet-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.add('ring-2', 'ring-cyan-400');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-cyan-400'), 2500);
+      }
+    }, 100);
+  };
+
   // Handlers for Running Records
   const handleSaveRecords = async (rec: RunningRecords) => {
     await saveRunningRecords(rec);
@@ -429,6 +441,7 @@ export default function App() {
                   onSaveWeeklyPlan={handleSaveWeeklyPlan}
                   onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
                   onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
+                  onNavigateToShoes={handleNavigateToShoes}
                 />
               )}
 

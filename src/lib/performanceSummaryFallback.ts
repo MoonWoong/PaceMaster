@@ -234,8 +234,15 @@ export function generateHeuristicPerformanceSummary({
   }
 
   // Key Advice & Routine
+  const dDayLabel = upcomingRace
+    ? upcomingRace.dDay === 0
+      ? 'D-Day'
+      : upcomingRace.dDay > 0
+      ? `D-${upcomingRace.dDay}`
+      : `D+${Math.abs(upcomingRace.dDay)}`
+    : '';
   const keyAdvice = upcomingRace
-    ? `${upcomingRace.name} D-${upcomingRace.dDay}를 앞두고 있습니다. 무리한 고강도 질주보다 '부상 방지'와 '목표 페이스의 몸 기억화'가 최고의 기록 단축 전략입니다.`
+    ? `${upcomingRace.name} ${dDayLabel}를 앞두고 있습니다. 무리한 고강도 질주보다 '부상 방지'와 '목표 페이스의 몸 기억화'가 최고의 기록 단축 전략입니다.`
     : '마라톤 성장의 90%는 무리하지 않는 꾸준한 유산소 마일리지와 충분한 수면 및 회복에서 결정됩니다.';
 
   const recommendedRoutine =

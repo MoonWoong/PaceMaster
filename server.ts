@@ -163,6 +163,7 @@ app.post('/api/performance-summary', async (req, res) => {
       overallAvgPace = "5'30\"",
       overallAvgHr = 150,
       avgWeeklyKm = 0,
+      lastWeekKm = 0,
       vdot,
       upcomingRace,
       sampleRecentSessions = [],
@@ -174,8 +175,22 @@ app.post('/api/performance-summary', async (req, res) => {
     const numAvgHr = Number(overallAvgHr) || 150;
     const now = Date.now();
 
+    // Sanity check: Ensure avgWeeklyKm is accurate and does NOT confuse lifetime cumulative distance with weekly mileage
+    let safeAvgWeeklyKm = Number(avgWeeklyKm) || 0;
+    if (safeAvgWeeklyKm > 140 || (numDist > 0 && safeAvgWeeklyKm > numDist)) {
+      if (sampleRecentSessions && sampleRecentSessions.length > 0) {
+        const recentSum = sampleRecentSessions.reduce(
+          (acc: number, s: any) => acc + (Number(s.totalDistanceKm) || 0),
+          0
+        );
+        safeAvgWeeklyKm = Math.min(80, Math.round((recentSum / Math.max(1, sampleRecentSessions.length / 3)) * 10) / 10);
+      } else {
+        safeAvgWeeklyKm = Math.min(50, Math.round((numDist / Math.max(1, numSessions / 3)) * 10) / 10);
+      }
+    }
+
     // Cache key for performance summary based on cumulative session count & distance (TTL: 1 hour)
-    const perfCacheKey = `${numSessions}_${numDist.toFixed(1)}_${numLongest.toFixed(1)}_${vdot || ''}`;
+    const perfCacheKey = `v2_${numSessions}_${numDist.toFixed(1)}_${numLongest.toFixed(1)}_${safeAvgWeeklyKm.toFixed(1)}_${vdot || ''}`;
     if (
       globalPerformanceSummaryCache &&
       globalPerformanceSummaryCache.key === perfCacheKey &&
@@ -187,9 +202,16 @@ app.post('/api/performance-summary', async (req, res) => {
     const ai = getAiClient();
     if (ai) {
       const systemPrompt = `당신은 마스터즈 마라토너 및 엘리트 러너를 지도하는 국가대표 수석 러닝 코치 'PaceMaster AI'입니다.
-러너가 지금까지 기록한 전체 러닝 훈련 세션 데이터(총 세션 수, 누적 거리, 최장거리, 평균 페이스, 평균 심박수, 최근 세션 양상 등)를 면밀히 분석하여
+러너가 지금까지 기록한 전체 러닝 훈련 세션 데이터(총 세션 수, 누적 총거리, 최장거리, 평균 페이스, 평균 심박수, 최근 4주 주간 평균 거리, 최근 세션 양상 등)를 면밀히 분석하여
 러너의 '핵심 강점(Strengths)' 2~3가지와 '보완점 및 맞춤 트레이닝 처방(Areas for Improvement)' 2~3가지를 도출하고,
 러너 유형 칭호(runnerType), 종합 러닝 완성도 점수(overallScore, 100점 만점), AI 총평 요약(aiSummary)을 반드시 유효한 JSON 형식으로 출력하세요.
+
+[필수 데이터 해석 원칙 - 매우 중요]
+1. [누적 총 훈련 거리]와 [주간 평균 훈련량(마일리지)]를 절대 혼동하지 마십시오.
+   - 누적 총 훈련 거리(예: 수백~수천 km)는 수개월 혹은 수년에 걸쳐 축적된 전체 합계입니다.
+   - 최근 4주 주간 평균 거리(avgWeeklyKm)는 1주일(7일) 동안 소화하는 평균 훈련 볼륨입니다(일반적인 아마추어/마스터즈 러너는 주 20~60km, 상급 마스터즈는 60~100km 수준).
+   - 누적 총 거리를 주간 거리로 잘못 지칭하거나, "주간 평균 200km 이상", "주간 270km" 같은 왜곡되거나 터무니없는 수치를 절대 언급하지 마십시오.
+2. 분석 텍스트(aiSummary, strengths, improvements)에서 언급하는 모든 수치(거리, 페이스, 심박수, 주간 볼륨)는 제공된 입력 데이터와 100% 일치해야 합니다.
 
 반드시 다음 JSON 스키마를 만족해야 합니다:
 {
@@ -226,18 +248,19 @@ app.post('/api/performance-summary', async (req, res) => {
 
       const userPrompt = `[러너의 전체 누적 러닝 데이터]
 - 총 기록된 세션 수: ${totalSessions}회
-- 누적 총 훈련 거리: ${numDist.toFixed(2)} km
+- 누적 총 훈련 거리: ${numDist.toFixed(2)} km (전체 기간 누적 합계)
 - 최장 1회 주행 거리: ${numLongest.toFixed(2)} km
 - 전체 평균 페이스: ${overallAvgPace}
 - 전체 평균 심박수: ${numAvgHr} bpm
-- 최근 4주 주간 평균 거리: ${Number(avgWeeklyKm).toFixed(1)} km
+- 최근 4주 주간 평균 거리: ${safeAvgWeeklyKm.toFixed(1)} km/주 (7일 평균 마일리지)
+- 직전 주간 훈련 거리: ${Number(lastWeekKm || 0).toFixed(1)} km
 - VDOT: ${vdot || '측정중'}
 - 가장 가까운 목표 대회: ${upcomingRace ? `${upcomingRace.name} (${upcomingRace.date}, D-${upcomingRace.dDay})` : '등록된 목표 대회 없음'}
 
 [최근 주요 세션 기록]
 ${recentRunsText || '최근 세션 없음'}
 
-위 누적 훈련 기록 데이터를 바탕으로 러너의 강점과 보완점을 과학적으로 분석하여 한국어 JSON으로 제공해주세요.`;
+위 누적 훈련 기록 데이터를 바탕으로 러너의 강점과 보완점을 과학적이고 사실에 기반하여 분석하고 한국어 JSON으로 제공해주세요.`;
 
       // Try gemini-3.8-flash first, then fallback to gemini-3.1-flash-lite on 429
       const candidateModels = ['gemini-3.8-flash', 'gemini-3.1-flash-lite'];
@@ -273,7 +296,7 @@ ${recentRunsText || '최근 세션 없음'}
       runnerType,
       overallScore: Math.min(94, 75 + Math.floor(numSessions / 3) + (numLongest >= 15 ? 5 : 0)),
       summaryTitle: `누적 ${numDist.toFixed(1)}km를 기록 중인 안정적 유산소 베이스의 러너`,
-      aiSummary: `총 ${numSessions}회 세션 동안 ${numDist.toFixed(1)}km를 달리며 평균 페이스 ${overallAvgPace}, 심박 ${numAvgHr}bpm을 기록했습니다. 꾸준한 유산소 베이스가 축적되어 있으며 심폐 대사 효율이 안정적인 상태입니다.`,
+      aiSummary: `총 ${numSessions}회 세션 동안 ${numDist.toFixed(1)}km를 달리며 평균 페이스 ${overallAvgPace}, 심박 ${numAvgHr}bpm을 기록했습니다. 최근 주간 평균 ${safeAvgWeeklyKm > 0 ? `${safeAvgWeeklyKm.toFixed(1)}km` : '안정적인'} 마일리지를 소화하며 유산소 베이스가 꾸준히 축적되어 있습니다.`,
       strengths: [
         {
           title: '안정적인 훈련 지속성과 유산소 베이스 구축',

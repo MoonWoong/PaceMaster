@@ -84,6 +84,7 @@ interface TabRunningRecordsProps {
   onSaveWeeklyPlan: (plan: WeeklyPlanDay[], settings?: WeeklyPlanSettings) => Promise<void>;
   onOpenPaceCalculator?: () => void;
   onOpenTodayWorkoutModal?: () => void;
+  onNavigateToShoes?: () => void;
 }
 
 export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
@@ -103,6 +104,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   onSaveWeeklyPlan,
   onOpenPaceCalculator,
   onOpenTodayWorkoutModal,
+  onNavigateToShoes,
 }) => {
   // Session Shoe Modal State
   const [shoeModalSession, setShoeModalSession] = useState<TrainingSession | null>(null);
@@ -1819,11 +1821,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => setShowShoeAnalytics((prev) => !prev)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
+              onClick={() => {
+                if (onNavigateToShoes) {
+                  onNavigateToShoes();
+                } else {
+                  setShowShoeAnalytics((prev) => !prev);
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-cyan-500/10"
+              title="내 정보의 보유 러닝화 로테이션 & 마일리지 수명 관리 섹션으로 이동"
             >
               <Footprints className="w-3.5 h-3.5" />
-              <span>{showShoeAnalytics ? '신발 분석 닫기' : '신발 마일리지·수명 분석'}</span>
+              <span>러닝화 로테이션·수명 관리 바로가기</span>
             </button>
           </div>
         </div>

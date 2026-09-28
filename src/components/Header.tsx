@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
                 PACEMASTER
               </h1>
               <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30 uppercase tracking-wider">
-                PRO RUNNER
+                Runner MOON
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-300 font-medium">

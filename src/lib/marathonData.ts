@@ -129,11 +129,22 @@ function normalizeTitle(title: string): string {
 }
 
 /**
+ * Get today's local date string formatted as YYYY-MM-DD
+ */
+export function getTodayDateStr(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Combined and deduplicated list of upcoming marathon races
- * Filtered to exclude past events (>= 2026-09-24)
+ * Filtered to exclude past events (>= today)
  */
 function buildCombinedRaces(): MarathonEvent[] {
-  const todayStr = '2026-09-24';
+  const todayStr = getTodayDateStr();
   const seenTitles = new Set<string>();
   const combined: MarathonEvent[] = [];
 
@@ -177,13 +188,16 @@ export function getFilteredMarathons(
   },
   referenceDateStr?: string
 ): MarathonEvent[] {
-  const refDate = referenceDateStr ? new Date(referenceDateStr) : new Date('2026-09-24');
-  refDate.setHours(0, 0, 0, 0);
+  const todayDefault = getTodayDateStr();
+  const refClean = (referenceDateStr || todayDefault).split('T')[0];
+  const [ry, rm, rd] = refClean.split('-').map(Number);
+  const refDate = new Date(ry, (rm || 1) - 1, rd || 1, 0, 0, 0, 0);
 
   return races.filter((race) => {
     // 1. Exclude past dates
-    const raceDate = new Date(race.date);
-    raceDate.setHours(0, 0, 0, 0);
+    const raceClean = race.date.split('T')[0];
+    const [ry2, rm2, rd2] = raceClean.split('-').map(Number);
+    const raceDate = new Date(ry2, (rm2 || 1) - 1, rd2 || 1, 0, 0, 0, 0);
     if (raceDate < refDate) {
       return false;
     }
@@ -225,17 +239,31 @@ export function getFilteredMarathons(
 }
 
 /**
- * Calculate D-day string and numeric value
+ * Calculate D-day string and numeric value based dynamically on today's local date
  */
 export function calculateDDay(
   targetDateStr: string,
-  currentDateStr = '2026-09-24'
+  currentDateStr?: string
 ): { text: string; daysDiff: number; isPassed: boolean; isToday: boolean } {
-  const target = new Date(targetDateStr);
-  target.setHours(0, 0, 0, 0);
+  if (!targetDateStr) {
+    return { text: '-', daysDiff: 0, isPassed: false, isToday: false };
+  }
 
-  const current = new Date(currentDateStr);
-  current.setHours(0, 0, 0, 0);
+  // Parse target date YYYY-MM-DD
+  const targetClean = targetDateStr.split('T')[0];
+  const [tYear, tMonth, tDay] = targetClean.split('-').map(Number);
+  const target = new Date(tYear, (tMonth || 1) - 1, tDay || 1, 0, 0, 0, 0);
+
+  // Current date (today by default in local time)
+  let current: Date;
+  if (currentDateStr) {
+    const currentClean = currentDateStr.split('T')[0];
+    const [cYear, cMonth, cDay] = currentClean.split('-').map(Number);
+    current = new Date(cYear, (cMonth || 1) - 1, cDay || 1, 0, 0, 0, 0);
+  } else {
+    const now = new Date();
+    current = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  }
 
   const diffMs = target.getTime() - current.getTime();
   const daysDiff = Math.round(diffMs / (1000 * 60 * 60 * 24));

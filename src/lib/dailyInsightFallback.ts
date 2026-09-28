@@ -1,5 +1,6 @@
 import { TrainingSession, RegisteredRace, RunningRecords, RunningGoals } from '../types';
 import { analyzeRunnerState } from './trainingPlanGenerator';
+import { calculateDDay, getTodayDateStr } from './marathonData';
 
 export interface DailyInsightData {
   readinessScore: number; // 0 ~ 100
@@ -27,17 +28,18 @@ export function generateHeuristicDailyInsight(params: {
   const now = new Date();
 
   // Find nearest race
+  const todayStr = getTodayDateStr();
   const upcomingRaces = races
-    .filter((r) => new Date(r.date).getTime() >= new Date(now.toISOString().split('T')[0]).getTime())
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .filter((r) => r.date >= todayStr)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const targetRace = upcomingRaces.find((r) => r.isTarget) || upcomingRaces[0];
 
   let dDayText = '';
   let daysLeft = 999;
   if (targetRace) {
-    const raceDate = new Date(targetRace.date);
-    daysLeft = Math.ceil((raceDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    dDayText = daysLeft === 0 ? 'D-DAY' : `D-${daysLeft}`;
+    const dDayInfo = calculateDDay(targetRace.date);
+    daysLeft = dDayInfo.daysDiff;
+    dDayText = dDayInfo.text;
   }
 
   // Days since last run

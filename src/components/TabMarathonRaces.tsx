@@ -19,6 +19,7 @@ import {
   MOCK_MARATHON_RACES,
   getFilteredMarathons,
   calculateDDay,
+  getTodayDateStr,
 } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
 
@@ -102,7 +103,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
         selectedDays,
         searchQuery,
       },
-      '2026-09-24'
+      getTodayDateStr()
     );
   }, [races, selectedRegions, selectedCourses, selectedDays, searchQuery]);
 

@@ -15,7 +15,7 @@ import {
   Save,
 } from 'lucide-react';
 import { RegisteredRace, RunningGoals, RunningRecords } from '../types';
-import { calculateDDay } from '../lib/marathonData';
+import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import { parseTimeToSeconds, formatPace } from '../lib/vdot';
 
 interface MarathonDDayHeroWidgetProps {
@@ -41,7 +41,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
   const targetRaceData = useMemo(() => {
     if (!races || races.length === 0) return null;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateStr();
 
     // Filter upcoming races (today or future)
     const upcoming = races
@@ -348,7 +348,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
             <span>대회 대비 준비 주기 진행률 (16주 사이클 기준)</span>
           </span>
           <span className="text-emerald-300 font-athletic font-bold">
-            {progressPct}% 경과 {isPast ? '(대회 종료)' : `(D-${daysLeft})`}
+            {progressPct}% 경과 {isPast ? '(대회 종료)' : daysLeft === 0 ? '(오늘 대회!)' : `(D-${daysLeft})`}
           </span>
         </div>
 
