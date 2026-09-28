@@ -11,7 +11,6 @@ import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { DailyInsightCard } from './components/DailyInsightCard';
 import { RunningPerformanceSummaryCard } from './components/RunningPerformanceSummaryCard';
-import { GoalProgressBarSection } from './components/GoalProgressBarSection';
 import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
 import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
 
@@ -373,13 +372,6 @@ export default function App() {
           goals={runningGoals}
           isAppLoading={isLoading}
           onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
-        />
-
-        {/* 3. Running Goals Achievement Progress Bars */}
-        <GoalProgressBarSection
-          goals={runningGoals}
-          records={runningRecords}
-          onNavigateToGoals={handleNavigateToGoals}
         />
 
         {/* 4. Dashboard 7-Day Distance Bar Chart */}

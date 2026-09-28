@@ -62,6 +62,7 @@ import { TrainingShoeModal } from './TrainingShoeModal';
 import { TrainingCalendarView } from './TrainingCalendarView';
 import { CsvWorkoutUploadModal, ParsedCsvUploadItem } from './CsvWorkoutUploadModal';
 import { ShoeMileageAnalyticsCard } from './ShoeMileageAnalyticsCard';
+import { GoalProgressBarSection } from './GoalProgressBarSection';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -212,6 +213,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const goalEvaluation = useMemo(() => {
     return evaluateRunningGoal(currentVDOT, evalSelectedDistance, targetTimeForEval);
   }, [currentVDOT, evalSelectedDistance, targetTimeForEval]);
+
+  // Live goals synced with inputs or saved goals for real-time progress bar calculation
+  const liveGoals = useMemo(
+    () => ({
+      target10k: target10k || goals.target10k,
+      targetHalf: targetHalf || goals.targetHalf,
+      targetFull: targetFull || goals.targetFull,
+    }),
+    [target10k, targetHalf, targetFull, goals]
+  );
 
   // 3. In-depth Runner Workload & Training State Analysis
   const runnerStateAnalysis = useMemo(() => {
@@ -1276,8 +1287,15 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         </form>
 
+        {/* 러닝 목표 달성도 프로그레스 바 영역 */}
+        <GoalProgressBarSection
+          goals={liveGoals}
+          records={records}
+          isNested={true}
+        />
+
         {/* Distance Selector for AI Analysis */}
-        <div className="flex items-center gap-2 mb-3 pt-3 border-t border-white/5">
+        <div className="flex items-center gap-2 mb-3 pt-4 border-t border-white/10">
           <span className="text-xs text-slate-400 font-medium">검증 코스:</span>
           {(['10K', '하프', '풀코스'] as const).map((dist) => (
             <button

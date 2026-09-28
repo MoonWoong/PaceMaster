@@ -33,7 +33,7 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
   onOpenAddShoe,
   onNavigateToShoeList,
 }) => {
-  const [filter, setFilter] = useState<FilterOption>('all');
+  const [filter, setFilter] = useState<FilterOption>('데일리');
   const [sortBy, setSortBy] = useState<SortOption>('urgent_first');
   const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
 

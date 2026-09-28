@@ -7,6 +7,7 @@ interface GoalProgressBarSectionProps {
   goals: RunningGoals;
   records: RunningRecords;
   onNavigateToGoals?: () => void;
+  isNested?: boolean;
 }
 
 interface GoalProgressItem {
@@ -30,6 +31,7 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
   goals,
   records,
   onNavigateToGoals,
+  isNested = false,
 }) => {
   const goalItems: GoalProgressItem[] = useMemo(() => {
     const list: {
@@ -131,42 +133,44 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
     return Math.round((sum / valid.length) * 10) / 10;
   }, [goalItems]);
 
-  return (
-    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-purple-500/25 bg-gradient-to-br from-slate-900/90 via-purple-950/20 to-slate-900/90 shadow-xl relative overflow-hidden">
+  const content = (
+    <>
       {/* Background Glow */}
-      <div className="absolute top-0 right-1/4 w-80 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      {!isNested && (
+        <div className="absolute top-0 right-1/4 w-80 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-white/10 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-md">
-            <Target className="w-5 h-5" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10 relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-md">
+            <Target className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-1.5">
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
                 <span>러닝 목표 달성도</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-semibold border border-purple-500/30">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-semibold border border-purple-500/30">
                   Goal Progress
                 </span>
               </h3>
             </div>
-            <p className="text-xs text-slate-300 mt-0.5">
+            <p className="text-[11px] text-slate-400 mt-0.5">
               설정한 거리별 목표 완주 시간 대비 현재 최고 기록(PB)의 달성률을 정밀 계산합니다.
             </p>
           </div>
         </div>
 
         {/* Overall Average Progress Badge & Edit Link */}
-        <div className="flex items-center gap-3 self-start sm:self-auto">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/70 border border-purple-500/30">
-            <span className="text-[11px] text-slate-400 font-medium">평균 달성도:</span>
-            <span className="text-sm font-black text-purple-300 font-athletic">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-950/70 border border-purple-500/30">
+            <span className="text-[10px] text-slate-400 font-medium">평균 달성도:</span>
+            <span className="text-xs sm:text-sm font-black text-purple-300 font-athletic">
               {avgProgress}%
             </span>
           </div>
 
-          {onNavigateToGoals && (
+          {!isNested && onNavigateToGoals && (
             <button
               type="button"
               onClick={onNavigateToGoals}
@@ -280,6 +284,20 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (isNested) {
+    return (
+      <div className="w-full pt-4 mt-4 border-t border-white/10 relative">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-purple-500/25 bg-gradient-to-br from-slate-900/90 via-purple-950/20 to-slate-900/90 shadow-xl relative overflow-hidden">
+      {content}
     </section>
   );
 };

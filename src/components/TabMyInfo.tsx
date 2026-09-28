@@ -65,7 +65,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [physicalSavedAlert, setPhysicalSavedAlert] = useState(false);
 
   // Shoes State
-  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('전체');
+  const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('데일리');
   const [shoeStatusFilter, setShoeStatusFilter] = useState<'all' | 'needs_replacement' | 'safe'>('all');
   const [shoeSortBy, setShoeSortBy] = useState<'urgent_first' | 'mileage_desc' | 'wear_pct_desc' | 'recent_worn' | 'name_asc'>('urgent_first');
   const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
@@ -217,22 +217,6 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     });
 
     setEditingRaceForTarget(null);
-  };
-
-  // Sports science category-specific lifespan guidance tips
-  const getCategoryTip = (category: ShoeCategory) => {
-    switch (category) {
-      case '레이싱':
-        return '카본 플레이트·초임계 폼 최고 반발탄성은 250~350km 구간 최적 발휘';
-      case '스피드':
-        return '인터벌·템포런 고강도 지면 충격 흡수와 가속 지탱 (400~500km 권장)';
-      case '데일리':
-        return '매일의 조깅·회복주 무릎/발목 관절 보호 미드솔 완충 (600~800km 권장)';
-      case '장거리':
-        return '20~35km LSD 지속주 시 체중 3배의 누적 하중 분산 (600~750km 권장)';
-      case '트레일':
-        return '비포장 트레일 접지력 및 바위 충격 보호 (500~700km 권장)';
-    }
   };
 
   // Map session history to shoes (last worn date, sessions count, total session km)
@@ -808,22 +792,40 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <div className="h-4 w-px bg-white/10 mx-1 flex-shrink-0" />
 
             {/* Category tabs */}
+            <button
+              type="button"
+              onClick={() => setSelectedShoeCategory('전체')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedShoeCategory === '전체'
+                  ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <span>전체 분류</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                selectedShoeCategory === '전체' ? 'bg-cyan-500/30 text-cyan-200' : 'bg-slate-800 text-slate-400'
+              }`}>
+                {shoes.length}
+              </span>
+            </button>
+
             {shoeCategories.filter((c) => c !== '전체').map((cat) => {
               const count = shoes.filter((s) => s.category === cat).length;
               if (count === 0) return null;
+              const isSelected = selectedShoeCategory === cat;
               return (
                 <button
                   key={cat}
-                  onClick={() => setSelectedShoeCategory(selectedShoeCategory === cat ? '전체' : cat)}
+                  onClick={() => setSelectedShoeCategory(isSelected ? '전체' : cat)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                    selectedShoeCategory === cat
-                      ? 'bg-white/20 text-white font-bold border border-white/30'
+                    isSelected
+                      ? 'bg-blue-500/25 text-blue-200 font-bold border border-blue-400/40 shadow-sm'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <span>{cat}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    selectedShoeCategory === cat ? 'bg-white/30 text-white' : 'bg-slate-800 text-slate-400'
+                    isSelected ? 'bg-blue-400/30 text-blue-100' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {count}
                   </span>
@@ -966,7 +968,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         <span className="text-rose-400/80">{shoe.effectiveMaxMileage}km (수명 한계)</span>
                       </div>
 
-                      {/* Wear Status & Remaining Distance Callout */}
+                      {/* Wear Status Callout: 교체 필요 시에만 직관적으로 경고 알림 */}
                       {shoe.status === 'overdue' ? (
                         <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-1.5 font-bold">
                           <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
@@ -977,23 +979,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
                           <span>⏱️ 잔여 {shoe.remainingKm}km 후 수명 도달 (새 신발 교체 준비 권장)</span>
                         </div>
-                      ) : shoe.status === 'warning' ? (
-                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 text-xs flex items-center justify-between">
-                          <span className="text-slate-400">마모 진행:</span>
-                          <span>잔여 <strong className="text-amber-300 font-mono">{shoe.remainingKm}km</strong> 사용 가능</span>
-                        </div>
-                      ) : (
-                        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-slate-300 text-xs flex items-center justify-between">
-                          <span className="text-slate-400">미드솔 쿠션:</span>
-                          <span>잔여 <strong className="text-emerald-400 font-mono">{shoe.remainingKm}km</strong> (최적 완충 컨디션)</span>
-                        </div>
-                      )}
-
-                      {/* Category Lifespan Tip */}
-                      <div className="text-[11px] text-slate-400 bg-slate-950/40 p-2.5 rounded-xl border border-white/5 flex items-start gap-1.5">
-                        <span className="text-cyan-400 flex-shrink-0">💡</span>
-                        <span className="leading-relaxed">{getCategoryTip(shoe.category)}</span>
-                      </div>
+                      ) : null}
 
                       {/* Recent Workout Note if linked in sessions */}
                       {shoe.lastWornDate && (
