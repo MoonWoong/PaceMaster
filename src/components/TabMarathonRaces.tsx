@@ -361,18 +361,18 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                 >
                   <div>
                     {/* Top row: Date, D-day badge, Status */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs px-2.5 py-1 rounded-lg font-bold font-athletic bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        <span className="text-xs px-2.5 py-1 rounded-lg font-bold font-athletic bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">
                           {dDay.text}
                         </span>
-                        <div className="text-xs text-slate-300 font-mono">
+                        <div className="text-xs text-slate-300 font-mono whitespace-nowrap">
                           {race.date} ({race.dayOfWeek})
                         </div>
                       </div>
 
                       <span
-                        className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border ${
+                        className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border whitespace-nowrap ${
                           statusBadgeColors[race.status]
                         }`}
                       >
@@ -381,7 +381,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">
+                    <h3 className="text-base sm:text-lg font-bold text-white mb-2 group-hover:text-amber-300 transition-colors keep-all">
                       {race.title}
                     </h3>
 
@@ -389,7 +389,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     <div className="flex items-center gap-1.5 text-xs text-slate-300 mb-3">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       <span className="truncate">{race.location}</span>
-                      <span className="text-slate-500">({race.region})</span>
+                      <span className="text-slate-500 whitespace-nowrap">({race.region})</span>
                     </div>
 
                     {/* Courses */}
@@ -397,7 +397,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                       {race.courses.map((crs) => (
                         <span
                           key={crs}
-                          className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-white/5 font-medium"
+                          className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-white/5 font-medium whitespace-nowrap"
                         >
                           {crs}
                         </span>
@@ -410,10 +410,10 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     {/* Add to My Races button */}
                     <button
                       onClick={() => handleRegisterToMyInfo(race, race.courses[0])}
-                      className="px-3 py-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap flex-shrink-0"
                       title="내 정보의 참가 대회 및 D-day 트래커로 등록"
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
+                      <PlusCircle className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>내 대회로 등록</span>
                     </button>
 
@@ -422,10 +422,10 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                       href={race.websiteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-3.5 py-1.5 text-xs font-semibold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 text-xs font-semibold text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition-all shadow-sm cursor-pointer flex items-center gap-1.5 whitespace-nowrap flex-shrink-0"
                     >
                       <span>대회 사이트 이동</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     </a>
                   </div>
                 </div>

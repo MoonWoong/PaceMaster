@@ -70,13 +70,13 @@ export const TabsNav: React.FC<TabsNavProps> = ({
               상세 관리 탭
             </span>
             <span className="text-slate-600">/</span>
-            <span className="text-emerald-400 font-semibold">
+            <span className="text-emerald-400 font-semibold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
               {activeTab === 'my_info' && '내 신체 스펙 & 러닝화 보관함'}
               {activeTab === 'running_records' && '러닝 기록 분석 & 맞춤 훈련 계획'}
               {activeTab === 'marathon_races' && '2026 전국 마라톤 대회 일정'}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 hidden sm:inline font-mono">
+          <span className="text-[10px] text-slate-400 hidden sm:inline font-mono whitespace-nowrap">
             클릭하여 탭 전환
           </span>
         </div>

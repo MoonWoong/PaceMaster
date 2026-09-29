@@ -630,7 +630,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       🚨 총 {shoeMetrics.urgentCount}켤레 대상
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-slate-300 leading-relaxed keep-all">
                     미드솔 완충 폼의 수명이 한계에 도달했습니다. 쿠션 반발력 저하는 
                     <strong className="text-rose-300"> 족저근막염, 정강이 통증(신스프린트), 무릎 관절 부상</strong>의 주된 원인이 됩니다.
                   </p>
@@ -640,7 +640,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       .map((s) => (
                         <span
                           key={s.id}
-                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 ${
+                          className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 whitespace-nowrap ${
                             s.status === 'overdue'
                               ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 font-bold'
                               : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
@@ -962,21 +962,23 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
                       {/* Milestone Tick Labels */}
                       <div className="flex justify-between text-[10px] text-slate-500 font-mono px-0.5">
-                        <span>0km (새 신발)</span>
-                        <span>50%</span>
-                        <span className="text-amber-400/80">90%</span>
-                        <span className="text-rose-400/80">{shoe.effectiveMaxMileage}km (수명 한계)</span>
+                        <span className="whitespace-nowrap">0km<span className="hidden xs:inline"> (새 신발)</span></span>
+                        <span className="whitespace-nowrap">50%</span>
+                        <span className="text-amber-400/80 whitespace-nowrap">90%</span>
+                        <span className="text-rose-400/80 whitespace-nowrap text-right">
+                          {shoe.effectiveMaxMileage}km<span className="hidden xs:inline"> (수명)</span>
+                        </span>
                       </div>
 
                       {/* Wear Status Callout: 교체 필요 시에만 직관적으로 경고 알림 */}
                       {shoe.status === 'overdue' ? (
-                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-1.5 font-bold">
-                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2 font-bold keep-all leading-relaxed">
+                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                           <span>⚠️ {Math.abs(shoe.remainingKm)}km 초과 주행 — 완충 한계 도달 (관절 부상 방지를 위해 즉시 교체 요망)</span>
                         </div>
                       ) : shoe.status === 'near_limit' ? (
-                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-1.5 font-semibold">
-                          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2 font-semibold keep-all leading-relaxed">
+                          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <span>⏱️ 잔여 {shoe.remainingKm}km 후 수명 도달 (새 신발 교체 준비 권장)</span>
                         </div>
                       ) : null}

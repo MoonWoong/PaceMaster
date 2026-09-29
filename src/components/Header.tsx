@@ -35,29 +35,29 @@ export const Header: React.FC<HeaderProps> = ({
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-athletic">
                   PACEMASTER
                 </h1>
-                <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30 uppercase tracking-wider">
+                <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30 uppercase tracking-wider whitespace-nowrap">
                   Runner MOON
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-300 font-medium">
+              <p className="text-xs sm:text-sm text-slate-300 font-medium keep-all">
                 개인용 맞춤형 러닝 대시보드 & 스포츠 사이언스 훈련 분석
               </p>
             </div>
           </div>
 
           {/* Quick Stat Highlights */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Real-time Weather & Temperature Widget */}
             <WeatherWidget />
 
             {/* VDOT Badge */}
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800/80 border border-cyan-500/30 shadow-sm">
-              <Award className="w-4 h-4 text-cyan-400" />
-              <div className="text-left">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-cyan-500/30 shadow-sm flex-shrink-0">
+              <Award className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <div className="text-left whitespace-nowrap">
                 <div className="text-[10px] text-slate-400 font-medium leading-none">
                   현재 러닝 엔진
                 </div>
-                <div className="text-xs font-bold text-cyan-300 font-athletic">
+                <div className="text-xs font-bold text-cyan-300 font-athletic mt-0.5">
                   {currentVDOT > 0 ? `VDOT ${currentVDOT}` : '기록 측정중'}
                 </div>
               </div>
@@ -66,14 +66,14 @@ export const Header: React.FC<HeaderProps> = ({
             {/* DB Status Button */}
             <button
               onClick={onOpenDbConfig}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all flex-shrink-0 whitespace-nowrap cursor-pointer ${
                 dbStatus.isCloud
                   ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60'
                   : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700/80 hover:text-white'
               }`}
               title="클라우드 Firestore DB 설정 열기"
             >
-              <Database className="w-3.5 h-3.5 text-emerald-400" />
+              <Database className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span className="hidden sm:inline">
                 {dbStatus.isCloud ? 'Firestore 연동됨' : 'DB 연동 설정'}
               </span>
@@ -81,10 +81,10 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Security Badge */}
             <div
-              className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-slate-400 text-xs"
+              className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 text-slate-400 text-xs flex-shrink-0 whitespace-nowrap"
               title="데이터 변경 시 보안 키 확인"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span className="text-[11px] hidden sm:inline">보안 모드 ON</span>
             </div>
           </div>

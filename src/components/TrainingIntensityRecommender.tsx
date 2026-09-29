@@ -138,20 +138,20 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
       {/* Scientific Analysis Diagnostic Callout */}
       <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-950 border border-white/10 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
-            <Zap className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300 whitespace-nowrap">
+            <Zap className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span>스포츠 사이언스 직전 주간 훈련 부하 진단:</span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <span className="text-slate-400">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-mono">
+            <span className="text-slate-400 whitespace-nowrap">
               직전 주간({analysis.lastWeekLabel || '지난주 월~일'}):{' '}
               <strong className="text-cyan-300 font-athletic font-bold">{analysis.lastWeekDistance ?? analysis.acuteLoadKm}km</strong>
             </span>
-            <span className="text-slate-400">
+            <span className="text-slate-400 whitespace-nowrap">
               4주 평균: <strong className="text-white font-athletic">{analysis.chronicLoadKm}km</strong>
             </span>
-            <span className="text-slate-400">
+            <span className="text-slate-400 whitespace-nowrap">
               ACWR 지수:{' '}
               <strong
                 className={
@@ -168,13 +168,13 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
           </div>
         </div>
 
-        <p className="text-xs text-slate-200 leading-relaxed">
+        <p className="text-xs text-slate-200 leading-relaxed keep-all">
           {analysis.recommendationReason}
         </p>
 
         <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1 border-t border-white/5">
-          <Activity className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{analysis.vdotInsight}</span>
+          <Activity className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+          <span className="keep-all">{analysis.vdotInsight}</span>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
             }`}
           >
             {analysis.recommendedLevel === '회복' && (
-              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
                 ⭐ AI 강력 추천
               </span>
             )}
@@ -206,12 +206,12 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   회복 (Recovery)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 line-clamp-2 mb-2">
+              <p className="text-[11px] text-slate-300 line-clamp-3 mb-2 keep-all leading-relaxed">
                 {analysis.routines.회복.summary}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs whitespace-nowrap">
               <span className="text-slate-400">주간 목표 거리:</span>
               <span className="font-extrabold text-emerald-400 font-athletic text-sm">
                 {analysis.routines.회복.targetWeeklyKm} km
@@ -230,7 +230,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
             }`}
           >
             {analysis.recommendedLevel === '유지' && (
-              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 whitespace-nowrap">
                 ⭐ AI 강력 추천
               </span>
             )}
@@ -241,12 +241,12 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   유지 (Maintenance)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 line-clamp-2 mb-2">
+              <p className="text-[11px] text-slate-300 line-clamp-3 mb-2 keep-all leading-relaxed">
                 {analysis.routines.유지.summary}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs whitespace-nowrap">
               <span className="text-slate-400">주간 목표 거리:</span>
               <span className="font-extrabold text-cyan-400 font-athletic text-sm">
                 {analysis.routines.유지.targetWeeklyKm} km
@@ -265,7 +265,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
             }`}
           >
             {analysis.recommendedLevel === '강화' && (
-              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap">
                 ⭐ AI 강력 추천
               </span>
             )}
@@ -276,12 +276,12 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   강화 (Build Overload)
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 line-clamp-2 mb-2">
+              <p className="text-[11px] text-slate-300 line-clamp-3 mb-2 keep-all leading-relaxed">
                 {analysis.routines.강화.summary}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs whitespace-nowrap">
               <span className="text-slate-400">주간 목표 거리:</span>
               <span className="font-extrabold text-rose-400 font-athletic text-sm">
                 {analysis.routines.강화.targetWeeklyKm} km
@@ -345,15 +345,15 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
 
       {/* 7-Day Proposed Routine Schedule Table/Cards */}
       <div className="space-y-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-slate-300 font-semibold px-1">
-          <span className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-cyan-400" />
-            <span>다음 주 7일(월~일) 맞춤 일별 훈련 일정표</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-300 font-semibold px-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Calendar className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+            <span className="whitespace-nowrap">다음 주 7일(월~일) 맞춤 일별 훈련 일정표</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium whitespace-nowrap">
               👟 보유 러닝화 로테이션 추천 포함
             </span>
-          </span>
-          <span className="text-[11px] text-slate-400">
+          </div>
+          <span className="text-[11px] text-slate-400 whitespace-nowrap">
             총 주행: <strong className="text-white font-athletic">{activePackage.targetWeeklyKm}km</strong> (장거리 {activePackage.longRunKm}km)
           </span>
         </div>
@@ -380,14 +380,14 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                 <div>
                   {/* Top Day Badge */}
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-white">
+                    <span className="text-xs font-bold text-white whitespace-nowrap">
                       {dayPlan.day.replace('요일', '')}
                       <span className="text-[10px] text-slate-400 font-normal ml-1">
                         ({dayPlan.dayShort})
                       </span>
                     </span>
                     <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${
                         isRest
                           ? 'bg-slate-800 text-slate-400'
                           : isSpeed
@@ -402,20 +402,20 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   </div>
 
                   {/* Workout Title */}
-                  <h4 className="text-xs font-bold text-white line-clamp-1 mb-1" title={dayPlan.title}>
+                  <h4 className="text-xs font-bold text-white line-clamp-2 mb-1 keep-all leading-snug" title={dayPlan.title}>
                     {dayPlan.title}
                   </h4>
 
                   {/* Distance & Pace */}
                   {!isRest && (
                     <div className="my-1.5 p-1.5 rounded-lg bg-black/30 border border-white/5 space-y-0.5">
-                      <div className="flex justify-between items-baseline text-xs">
+                      <div className="flex justify-between items-baseline text-xs whitespace-nowrap">
                         <span className="text-[10px] text-slate-400">목표 거리:</span>
                         <strong className="text-white font-athletic font-bold">
                           {dayPlan.distanceKm} km
                         </strong>
                       </div>
-                      <div className="flex justify-between items-baseline text-xs">
+                      <div className="flex justify-between items-baseline text-xs whitespace-nowrap">
                         <span className="text-[10px] text-slate-400">목표 페이스:</span>
                         <strong className="text-cyan-300 font-athletic text-[11px]">
                           {dayPlan.targetPace}
@@ -425,7 +425,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   )}
 
                   {/* Description */}
-                  <p className="text-[11px] text-slate-400 line-clamp-3 leading-relaxed mt-1">
+                  <p className="text-[11px] text-slate-400 line-clamp-3 leading-relaxed mt-1 keep-all">
                     {dayPlan.description}
                   </p>
 
@@ -438,13 +438,13 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                           <span className="truncate">{dayPlan.recommendedShoe.shoeName}</span>
                         </div>
                         {dayPlan.recommendedShoe.category && (
-                          <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex-shrink-0">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex-shrink-0 whitespace-nowrap">
                             {dayPlan.recommendedShoe.category}
                           </span>
                         )}
                       </div>
                       {dayPlan.recommendedShoe.reason && (
-                        <p className="text-[9px] text-slate-300 leading-tight line-clamp-2">
+                        <p className="text-[9px] text-slate-300 leading-snug keep-all">
                           💡 {dayPlan.recommendedShoe.reason}
                         </p>
                       )}
@@ -453,7 +453,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                 </div>
 
                 {/* Bottom intensity tag */}
-                <div className="pt-2 mt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                <div className="pt-2 mt-2 border-t border-white/5 flex items-center justify-between text-[10px] whitespace-nowrap">
                   <span className="text-slate-500">강도:</span>
                   <span
                     className={`font-semibold ${

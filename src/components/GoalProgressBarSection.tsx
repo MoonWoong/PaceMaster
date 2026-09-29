@@ -196,11 +196,11 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
           >
             {/* Card Header: Course Name & Status Badge */}
             <div className="flex items-center justify-between gap-2 mb-2.5">
-              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${item.badgeColor}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border whitespace-nowrap ${item.badgeColor}`}>
                 {item.distanceLabel}
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
                   item.isAchieved
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                     : item.progressPct >= 90
@@ -268,9 +268,9 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
               </div>
 
               {/* Time Gap Footer */}
-              <div className="pt-1 flex items-center justify-between text-[11px]">
+              <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
                 <span
-                  className={`font-medium truncate ${
+                  className={`font-medium keep-all ${
                     item.isAchieved ? 'text-emerald-300' : 'text-slate-300'
                   }`}
                 >

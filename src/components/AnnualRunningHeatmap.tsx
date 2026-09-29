@@ -386,13 +386,13 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             </span>
             <span className="text-xs font-bold text-emerald-400">km</span>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">총 {stats.totalRuns}회 세션</div>
+          <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">총 {stats.totalRuns}회 세션</div>
         </div>
 
         <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20">
           <div className="text-[11px] text-slate-400 flex items-center justify-between mb-1">
-            <span>달린 날 (활동 빈도)</span>
-            <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="whitespace-nowrap">달린 날 (활동 빈도)</span>
+            <Calendar className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-xl sm:text-2xl font-black text-cyan-300 font-athletic">
@@ -400,7 +400,7 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             </span>
             <span className="text-xs font-bold text-slate-400">일</span>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
             {selectedYear}년 {((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365}일 중{' '}
             {Math.round((stats.activeDays / (((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365)) * 100)}% 실천
           </div>
@@ -408,8 +408,8 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
 
         <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20">
           <div className="text-[11px] text-slate-400 flex items-center justify-between mb-1">
-            <span>현재 연속 러닝</span>
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span className="whitespace-nowrap">현재 연속 러닝</span>
+            <Flame className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-xl sm:text-2xl font-black text-amber-300 font-athletic">
@@ -417,15 +417,15 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             </span>
             <span className="text-xs font-bold text-amber-400">일 연속</span>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
+          <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
             최장 연속 기록: {stats.longestStreak}일
           </div>
         </div>
 
         <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20">
           <div className="text-[11px] text-slate-400 flex items-center justify-between mb-1">
-            <span>단일 최장 훈련</span>
-            <Award className="w-3.5 h-3.5 text-purple-400" />
+            <span className="whitespace-nowrap">단일 최장 훈련</span>
+            <Award className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-xl sm:text-2xl font-black text-purple-300 font-athletic">
@@ -433,7 +433,7 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             </span>
             <span className="text-xs font-bold text-purple-400">km</span>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+          <div className="text-[10px] text-slate-500 mt-0.5 truncate whitespace-nowrap">
             {stats.maxDistanceDay.date || '기록 없음'}
           </div>
         </div>

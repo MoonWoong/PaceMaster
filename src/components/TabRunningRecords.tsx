@@ -1649,16 +1649,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                 ) : (
                                   <ChevronRight className="w-4 h-4 text-slate-400" />
                                 )}
-                                <div>
-                                  <span className="text-sm sm:text-base font-bold text-white">{monthGroup.monthTitle}</span>
-                                  <span className="text-xs text-slate-400 ml-2">
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                  <span className="text-sm sm:text-base font-bold text-white whitespace-nowrap">{monthGroup.monthTitle}</span>
+                                  <span className="text-xs text-slate-400 whitespace-nowrap">
                                     ({monthGroup.totalSessionsCount}회 훈련 · 총 {monthGroup.totalDistance}km)
                                   </span>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-2">
-                                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-athletic font-bold">
+                                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-athletic font-bold whitespace-nowrap">
                                   월간 {monthGroup.totalDistance} km
                                 </span>
                               </div>
@@ -1726,27 +1726,27 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                           </span>
                                         </button>
                                       </div>
-                                      <h4 className="text-sm font-bold text-white">
+                                      <h4 className="text-sm font-bold text-white keep-all">
                                         {session.title}
                                       </h4>
                                       {session.notes && (
-                                        <p className="text-xs text-slate-400 mt-0.5">{session.notes}</p>
+                                        <p className="text-xs text-slate-400 mt-0.5 keep-all">{session.notes}</p>
                                       )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 self-end sm:self-center">
+                                    <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
                                       <button
                                         onClick={() => setSharingSession(session)}
-                                        className="px-2.5 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm shadow-cyan-500/10"
+                                        className="px-2.5 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm shadow-cyan-500/10 whitespace-nowrap"
                                         title="기록 요약 이미지 저장 및 SNS 공유"
                                       >
-                                        <Share2 className="w-3.5 h-3.5" />
+                                        <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
                                         <span>공유/이미지 저장</span>
                                       </button>
 
                                       <button
                                         onClick={() => toggleSessionDetail(session.id)}
-                                        className="px-3 py-1.5 text-xs font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                                        className="px-3 py-1.5 text-xs font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
                                       >
                                         <span>{isDetailOpen ? '상세 접기' : '상세 (랩 분석)'}</span>
                                         {isDetailOpen ? (
@@ -2218,29 +2218,29 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             {/* 4 Stat Metric Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-                <div className="text-[10px] text-slate-400">최근 4주 평균 마일리지</div>
+                <div className="text-[10px] text-slate-400 keep-all">최근 4주 평균 마일리지</div>
                 <div className="text-base sm:text-lg font-black text-white font-athletic mt-0.5">
                   {runnerStateAnalysis.avgWeeklyMileage4Weeks}{' '}
                   <span className="text-xs font-normal text-slate-400">km/주</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
                   피크 주간: <span className="text-slate-300 font-semibold">{runnerStateAnalysis.peakWeeklyDistance}km</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-                <div className="text-[10px] text-slate-400">직전 주간 마일리지 (Acute)</div>
+                <div className="text-[10px] text-slate-400 keep-all">직전 주간 마일리지 (Acute)</div>
                 <div className="text-base sm:text-lg font-black text-cyan-300 font-athletic mt-0.5">
                   {runnerStateAnalysis.lastWeekDistance}{' '}
                   <span className="text-xs font-normal text-slate-400">km</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
                   월~일: <span className="text-cyan-300 font-mono font-semibold">{runnerStateAnalysis.lastWeekLabel || '지난주'}</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-                <div className="text-[10px] text-slate-400">ACWR (운동 부하 비율)</div>
+                <div className="text-[10px] text-slate-400 keep-all">ACWR (운동 부하 비율)</div>
                 <div
                   className={`text-base sm:text-lg font-black font-athletic mt-0.5 ${
                     runnerStateAnalysis.acwr > 1.35
@@ -2255,18 +2255,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     (적정: 0.8~1.3)
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1">
+                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
                   부상 안전도: <span className="text-emerald-300 font-semibold">{runnerStateAnalysis.fatigueRisk}</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30 bg-emerald-950/20">
-                <div className="text-[10px] text-emerald-400 font-semibold">AI 권장 주간 총 볼륨</div>
+                <div className="text-[10px] text-emerald-400 font-semibold keep-all">AI 권장 주간 총 볼륨</div>
                 <div className="text-base sm:text-lg font-black text-emerald-300 font-athletic mt-0.5">
                   {runnerStateAnalysis.recommendedWeeklyKm}{' '}
                   <span className="text-xs font-normal text-slate-400">km</span>
                 </div>
-                <div className="text-[10px] text-slate-300 mt-1">
+                <div className="text-[10px] text-slate-300 mt-1 whitespace-nowrap">
                   LSD: <span className="text-purple-300 font-semibold">{runnerStateAnalysis.longRunRecommendedKm}km</span> / 스피드: <span className="text-rose-300 font-semibold">{runnerStateAnalysis.speedVolumeRecommendedKm}km</span>
                 </div>
               </div>
@@ -2411,10 +2411,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       )}
                     </div>
 
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2 flex-wrap keep-all">
                       <span>{dayPlan.title}</span>
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed keep-all">
                       {dayPlan.description}
                     </p>
 
@@ -2427,16 +2427,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                             className="p-2.5 rounded-lg bg-slate-950/70 border border-emerald-500/20 text-xs flex flex-col justify-between gap-1 shadow-sm"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white text-[11px]">{stg.step}</span>
-                              <span className="text-[10px] text-emerald-400 font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                              <span className="font-bold text-white text-[11px] whitespace-nowrap">{stg.step}</span>
+                              <span className="text-[10px] text-emerald-400 font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap">
                                 {stg.pace}/km
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-[10px] text-cyan-300">
-                              <span>{stg.zone}</span>
-                              <span className="text-slate-400">{stg.distanceKm}km</span>
+                              <span className="whitespace-nowrap">{stg.zone}</span>
+                              <span className="text-slate-400 whitespace-nowrap">{stg.distanceKm}km</span>
                             </div>
-                            <div className="text-[10px] text-slate-400 leading-tight border-t border-white/5 pt-1 mt-0.5">
+                            <div className="text-[10px] text-slate-400 leading-tight border-t border-white/5 pt-1 mt-0.5 keep-all">
                               {stg.focus}
                             </div>
                           </div>
@@ -2447,19 +2447,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     {/* Recommended Running Shoe & Rotation Rationale (기록된 훈련은 추천 신발 박스 제외) */}
                     {dayPlan.type !== '휴식' && !dayPlan.isCompleted && (
                       <div className="mt-3 p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-sm">
-                        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                        <div className="flex items-start gap-2.5 min-w-0">
                           <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
                             <span className="text-base">👟</span>
                           </div>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-[10px] text-slate-400 font-semibold">추천 러닝화:</span>
+                              <span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap">추천 러닝화:</span>
                               <strong className="text-emerald-300 font-bold truncate">
                                 {dayPlan.recommendedShoe?.shoeName || (shoes.length > 0 ? shoes[0].name : '보유 러닝화 미등록')}
                               </strong>
                               {dayPlan.recommendedShoe?.category && (
                                 <span
-                                  className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                                  className={`text-[9px] px-1.5 py-0.2 rounded font-semibold whitespace-nowrap ${
                                     dayPlan.recommendedShoe.category === '스피드' ||
                                     dayPlan.recommendedShoe.category === '레이싱'
                                       ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
@@ -2473,8 +2473,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                               )}
                             </div>
                             {dayPlan.recommendedShoe?.reason && (
-                              <div className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1">
-                                <span className="text-emerald-400 font-mono">💡</span>
+                              <div className="text-[11px] text-slate-300 mt-0.5 flex items-start gap-1.5 keep-all">
+                                <span className="text-emerald-400 font-mono flex-shrink-0 mt-0.5">💡</span>
                                 <span>{dayPlan.recommendedShoe.reason}</span>
                               </div>
                             )}
@@ -2524,8 +2524,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 </div>
 
                 {/* Metrics */}
-                <div className="flex items-center gap-4 self-end md:self-center border-t md:border-t-0 pt-2 md:pt-0 border-white/5 w-full md:w-auto justify-between md:justify-end">
-                  <div className="text-left md:text-right">
+                <div className="flex items-center gap-4 self-end md:self-center border-t md:border-t-0 pt-2 md:pt-0 border-white/5 w-full md:w-auto justify-between md:justify-end flex-shrink-0">
+                  <div className="text-left md:text-right whitespace-nowrap">
                     <div className="text-[10px] text-slate-400">
                       {dayPlan.isCompleted ? '실제 주행거리' : '목표 거리'}
                     </div>
@@ -2536,7 +2536,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-left md:text-right">
+                  <div className="text-left md:text-right whitespace-nowrap">
                     <div className="text-[10px] text-slate-400">
                       {dayPlan.isCompleted ? '실제 평균페이스' : '목표 페이스'}
                     </div>
@@ -2547,7 +2547,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-left md:text-right">
+                  <div className="text-left md:text-right whitespace-nowrap">
                     <div className="text-[10px] text-slate-400">
                       {dayPlan.isCompleted ? '실제 심박/상태' : '목표 심박존'}
                     </div>
@@ -2564,17 +2564,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         {/* Weekly Total Plan Summary Footer Bar */}
         <div className="mt-4 p-4 rounded-xl bg-slate-900/90 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-slate-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span className="keep-all">
               이번 주간 총 계획 거리:{' '}
-              <strong className="text-white text-sm font-bold font-athletic">
+              <strong className="text-white text-sm font-bold font-athletic whitespace-nowrap">
                 {Math.round(activePlan.reduce((acc, d) => acc + (d.distanceKm || 0), 0) * 10) / 10} km
               </strong>{' '}
-              (주 {activePlan.filter((d) => d.type !== '휴식').length}일 훈련 / {activePlan.filter((d) => d.type === '휴식').length}일 휴식)
+              <span className="text-slate-400 whitespace-nowrap">
+                (주 {activePlan.filter((d) => d.type !== '휴식').length}일 훈련 / {activePlan.filter((d) => d.type === '휴식').length}일 휴식)
+              </span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px] text-slate-400">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 whitespace-nowrap">
             <span>
               스피드: <strong className="text-rose-300">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
             </span>
