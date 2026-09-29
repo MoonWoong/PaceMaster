@@ -49,7 +49,55 @@ const MONTH_NAMES = [
 
 export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sessions }) => {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<number | 'rolling'>('rolling');
+
+  // Extract all distinct recorded years from sessions in ascending order
+  const availableYears = useMemo(() => {
+    const yearSet = new Set<number>();
+    for (const s of sessions) {
+      if (!s.date) continue;
+      const y = parseInt(s.date.slice(0, 4), 10);
+      if (!isNaN(y) && y >= 2000 && y <= 2100) {
+        yearSet.add(y);
+      }
+    }
+    // Always include currentYear if recorded or if no sessions exist
+    if (yearSet.size === 0 || yearSet.has(currentYear)) {
+      yearSet.add(currentYear);
+    }
+    return Array.from(yearSet).sort((a, b) => a - b);
+  }, [sessions, currentYear]);
+
+  // Default to currentYear if present in availableYears, otherwise latest recorded year
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    return currentYear;
+  });
+
+  // Keep selectedYear valid when availableYears changes
+  useEffect(() => {
+    if (!availableYears.includes(selectedYear)) {
+      const fallback = availableYears.includes(currentYear)
+        ? currentYear
+        : availableYears[availableYears.length - 1] ?? currentYear;
+      setSelectedYear(fallback);
+    }
+  }, [availableYears, currentYear, selectedYear]);
+
+  const currentYearIndex = availableYears.indexOf(selectedYear);
+  const hasPrevYear = currentYearIndex > 0;
+  const hasNextYear = currentYearIndex < availableYears.length - 1;
+
+  const handlePrevYear = () => {
+    if (hasPrevYear) {
+      setSelectedYear(availableYears[currentYearIndex - 1]);
+    }
+  };
+
+  const handleNextYear = () => {
+    if (hasNextYear) {
+      setSelectedYear(availableYears[currentYearIndex + 1]);
+    }
+  };
+
   const [hoveredCell, setHoveredCell] = useState<DayCell | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -66,40 +114,23 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
     return map;
   }, [sessions]);
 
-  // Compute heatmap grid (52-53 weeks x 7 days)
+  // Compute heatmap grid for the calendar year (Jan 1 to Dec 31)
   const { weeks, monthLabels, stats } = useMemo(() => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
 
-    let startDate: Date;
-    let endDate: Date;
+    const yr = selectedYear;
+    const startDate = new Date(yr, 0, 1);
+    // Align startDate back to previous Monday
+    const startDay = startDate.getDay();
+    const diffToMon = startDay === 0 ? -6 : 1 - startDay;
+    startDate.setDate(startDate.getDate() + diffToMon);
 
-    if (selectedYear === 'rolling') {
-      // Past 52 weeks up to today/end of this week
-      endDate = new Date(today);
-      const day = endDate.getDay();
-      // align end date to this Sunday
-      const diffToSunday = day === 0 ? 0 : 7 - day;
-      endDate.setDate(endDate.getDate() + diffToSunday);
-
-      // Start date is 52 weeks before this Monday
-      startDate = new Date(endDate);
-      startDate.setDate(startDate.getDate() - 52 * 7 + 1);
-    } else {
-      // Specific calendar year (Jan 1 to Dec 31)
-      const yr = selectedYear;
-      startDate = new Date(yr, 0, 1);
-      // Align startDate back to previous Monday
-      const startDay = startDate.getDay();
-      const diffToMon = startDay === 0 ? -6 : 1 - startDay;
-      startDate.setDate(startDate.getDate() + diffToMon);
-
-      endDate = new Date(yr, 11, 31);
-      // Align endDate forward to Sunday
-      const endDay = endDate.getDay();
-      const diffToSun = endDay === 0 ? 0 : 7 - endDay;
-      endDate.setDate(endDate.getDate() + diffToSun);
-    }
+    const endDate = new Date(yr, 11, 31);
+    // Align endDate forward to Sunday
+    const endDay = endDate.getDay();
+    const diffToSun = endDay === 0 ? 0 : 7 - endDay;
+    endDate.setDate(endDate.getDate() + diffToSun);
 
     const weeksList: DayCell[][] = [];
     let currentWeek: DayCell[] = [];
@@ -303,40 +334,41 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
           </div>
         </div>
 
-        {/* Year Filter Buttons */}
-        <div className="flex items-center p-1 bg-slate-900/90 rounded-xl border border-white/10 text-xs self-start sm:self-auto">
+        {/* Calendar-style Year Navigation with Arrow Buttons */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-white/10 text-xs self-start sm:self-auto shadow-sm">
           <button
             type="button"
-            onClick={() => setSelectedYear('rolling')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-              selectedYear === 'rolling'
-                ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                : 'text-slate-400 hover:text-white'
+            onClick={handlePrevYear}
+            disabled={!hasPrevYear}
+            className={`p-1.5 rounded-lg transition-all ${
+              hasPrevYear
+                ? 'text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer active:scale-95'
+                : 'text-slate-600 cursor-not-allowed opacity-30'
             }`}
+            title={hasPrevYear ? `이전 연도 (${availableYears[currentYearIndex - 1]}년)로 이동` : '이전 기록 연도 없음'}
+            aria-label="이전 연도"
           >
-            최근 365일
+            <ChevronLeft className="w-4 h-4" />
           </button>
+
+          <div className="px-3 py-1 flex items-center gap-1.5 font-bold font-athletic text-sm sm:text-base text-white tracking-wide">
+            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{selectedYear}년</span>
+          </div>
+
           <button
             type="button"
-            onClick={() => setSelectedYear(currentYear)}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-              selectedYear === currentYear
-                ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                : 'text-slate-400 hover:text-white'
+            onClick={handleNextYear}
+            disabled={!hasNextYear}
+            className={`p-1.5 rounded-lg transition-all ${
+              hasNextYear
+                ? 'text-slate-300 hover:text-white hover:bg-white/10 cursor-pointer active:scale-95'
+                : 'text-slate-600 cursor-not-allowed opacity-30'
             }`}
+            title={hasNextYear ? `다음 연도 (${availableYears[currentYearIndex + 1]}년)로 이동` : '다음 기록 연도 없음'}
+            aria-label="다음 연도"
           >
-            {currentYear}년
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedYear(currentYear - 1)}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-              selectedYear === currentYear - 1
-                ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            {currentYear - 1}년
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -345,7 +377,7 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-5 relative z-10">
         <div className="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20">
           <div className="text-[11px] text-slate-400 flex items-center justify-between mb-1">
-            <span>연간 누적 거리</span>
+            <span>{selectedYear}년 누적 거리</span>
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline gap-1">
@@ -369,7 +401,8 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             <span className="text-xs font-bold text-slate-400">일</span>
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
-            연간 365일 중 {Math.round((stats.activeDays / 365) * 100)}% 실천
+            {selectedYear}년 {((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365}일 중{' '}
+            {Math.round((stats.activeDays / (((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365)) * 100)}% 실천
           </div>
         </div>
 

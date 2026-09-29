@@ -134,7 +134,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     '풀코스'
   );
 
-  // Accordion expanded state for training sessions (기본으로 닫힌 상태)
+  // Accordion expanded state for training sessions (최신 연도 기본 열림)
+  const [expandedYears, setExpandedYears] = useState<Record<number, boolean>>({});
   const [expandedMonths, setExpandedMonths] = useState<Record<string, boolean>>({});
   const [expandedSessions, setExpandedSessions] = useState<Record<string, boolean>>({});
 
@@ -269,38 +270,58 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
   interface MonthlyGroup {
     monthKey: string;
+    monthTitle: string;
     monthDate: Date;
     totalDistance: number;
     totalSessionsCount: number;
     weeks: WeeklyGroup[];
   }
 
-  const groupedMonthlyTraining = useMemo(() => {
+  interface YearlyGroup {
+    year: number;
+    yearKey: string;
+    yearTitle: string;
+    totalDistance: number;
+    totalSessionsCount: number;
+    months: MonthlyGroup[];
+  }
+
+  const groupedYearlyTraining = useMemo(() => {
     // Sort all sessions descending by date first
     const sorted = [...trainingSessions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    const monthMap: Record<string, { monthDate: Date; weeksMap: Record<string, WeeklyGroup> }> = {};
+    // Map: year -> monthKey -> month data
+    const yearMonthMap: Record<
+      number,
+      Record<string, { monthDate: Date; monthTitle: string; weeksMap: Record<string, WeeklyGroup> }>
+    > = {};
 
     for (const session of sorted) {
       const d = new Date(session.date);
       const year = !isNaN(d.getTime()) ? d.getFullYear() : 2026;
       const month = !isNaN(d.getTime()) ? d.getMonth() + 1 : 1;
-      const monthKey = `${year}년 ${month}월`;
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+      const monthTitle = `${year}년 ${month}월`;
       const monthDate = new Date(year, month - 1, 1);
 
-      if (!monthMap[monthKey]) {
-        monthMap[monthKey] = {
+      if (!yearMonthMap[year]) {
+        yearMonthMap[year] = {};
+      }
+
+      if (!yearMonthMap[year][monthKey]) {
+        yearMonthMap[year][monthKey] = {
           monthDate,
+          monthTitle,
           weeksMap: {},
         };
       }
 
       const { weekKey, weekLabel, mondayDate } = getMondayToSundayWeekInfo(session.date);
 
-      if (!monthMap[monthKey].weeksMap[weekKey]) {
-        monthMap[monthKey].weeksMap[weekKey] = {
+      if (!yearMonthMap[year][monthKey].weeksMap[weekKey]) {
+        yearMonthMap[year][monthKey].weeksMap[weekKey] = {
           weekKey,
           weekLabel,
           mondayDate,
@@ -309,37 +330,59 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         };
       }
 
-      monthMap[monthKey].weeksMap[weekKey].sessions.push(session);
-      monthMap[monthKey].weeksMap[weekKey].weeklyDistance += session.totalDistanceKm;
+      yearMonthMap[year][monthKey].weeksMap[weekKey].sessions.push(session);
+      yearMonthMap[year][monthKey].weeksMap[weekKey].weeklyDistance += session.totalDistanceKm || 0;
     }
 
-    // Convert to sorted array
-    const monthResult: MonthlyGroup[] = Object.entries(monthMap).map(([monthKey, mData]) => {
-      // Sort weeks descending by Monday date
-      const weeks = Object.values(mData.weeksMap).sort(
-        (a, b) => b.mondayDate.getTime() - a.mondayDate.getTime()
-      );
+    // Convert to sorted YearlyGroup array descending by year
+    const sortedYears = Object.keys(yearMonthMap)
+      .map(Number)
+      .sort((a, b) => b - a);
 
-      // Within each week, sort sessions descending by date
-      weeks.forEach((w) => {
-        w.sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        w.weeklyDistance = Math.round(w.weeklyDistance * 100) / 100;
+    const yearlyResult: YearlyGroup[] = sortedYears.map((year) => {
+      const monthsObj = yearMonthMap[year];
+      const monthKeys = Object.keys(monthsObj).sort((a, b) => b.localeCompare(a)); // Descending months
+
+      const monthsResult: MonthlyGroup[] = monthKeys.map((mKey) => {
+        const mData = monthsObj[mKey];
+        // Sort weeks descending by Monday date
+        const weeks = Object.values(mData.weeksMap).sort(
+          (a, b) => b.mondayDate.getTime() - a.mondayDate.getTime()
+        );
+
+        // Within each week, sort sessions descending by date
+        weeks.forEach((w) => {
+          w.sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          w.weeklyDistance = Math.round(w.weeklyDistance * 100) / 100;
+        });
+
+        const totalDist = weeks.reduce((sum, w) => sum + w.weeklyDistance, 0);
+        const totalSessions = weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+
+        return {
+          monthKey: mKey,
+          monthTitle: mData.monthTitle,
+          monthDate: mData.monthDate,
+          totalDistance: Math.round(totalDist * 100) / 100,
+          totalSessionsCount: totalSessions,
+          weeks,
+        };
       });
 
-      const totalDistance = weeks.reduce((sum, w) => sum + w.weeklyDistance, 0);
-      const totalSessionsCount = weeks.reduce((sum, w) => sum + w.sessions.length, 0);
+      const yearDist = monthsResult.reduce((sum, m) => sum + m.totalDistance, 0);
+      const yearSessions = monthsResult.reduce((sum, m) => sum + m.totalSessionsCount, 0);
 
       return {
-        monthKey,
-        monthDate: mData.monthDate,
-        totalDistance: Math.round(totalDistance * 100) / 100,
-        totalSessionsCount,
-        weeks,
+        year,
+        yearKey: String(year),
+        yearTitle: `${year}년`,
+        totalDistance: Math.round(yearDist * 100) / 100,
+        totalSessionsCount: yearSessions,
+        months: monthsResult,
       };
     });
 
-    // Sort months descending by date
-    return monthResult.sort((a, b) => b.monthDate.getTime() - a.monthDate.getTime());
+    return yearlyResult;
   }, [trainingSessions]);
 
   // Handle Save Records
@@ -995,8 +1038,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     }
   };
 
-  const toggleMonth = (mKey: string) => {
-    setExpandedMonths((prev) => ({ ...prev, [mKey]: !prev[mKey] }));
+  const toggleYear = (year: number, defaultOpen: boolean = false) => {
+    setExpandedYears((prev) => ({
+      ...prev,
+      [year]: !(prev[year] ?? defaultOpen),
+    }));
+  };
+
+  const toggleMonth = (mKey: string, defaultOpen: boolean = false) => {
+    setExpandedMonths((prev) => ({
+      ...prev,
+      [mKey]: !(prev[mKey] ?? defaultOpen),
+    }));
   };
 
   const toggleSessionDetail = (sId: string) => {
@@ -1519,9 +1572,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           />
         )}
 
-        {/* List View: Monthly Accordion of Training Sessions */}
+        {/* List View: Yearly & Monthly Accordion of Training Sessions */}
         {sessionViewMode === 'list' && (
-          groupedMonthlyTraining.length === 0 ? (
+          groupedYearlyTraining.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-slate-900/40 border border-white/5">
             <Activity className="w-10 h-10 text-slate-600 mx-auto mb-2" />
             <p className="text-sm text-slate-400">등록된 훈련 기록이 없습니다.</p>
@@ -1531,43 +1584,89 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {groupedMonthlyTraining.map((monthGroup) => {
-              const isMonthExpanded = expandedMonths[monthGroup.monthKey] ?? false;
+            {groupedYearlyTraining.map((yearGroup, yearIndex) => {
+              const isYearExpanded = expandedYears[yearGroup.year] ?? (yearIndex === 0);
 
               return (
                 <div
-                  key={monthGroup.monthKey}
-                  className="rounded-2xl bg-slate-900/50 border border-white/10 overflow-hidden shadow-sm"
+                  key={yearGroup.yearKey}
+                  className="rounded-2xl bg-slate-900/60 border border-emerald-500/25 overflow-hidden shadow-md"
                 >
-                  {/* Month Accordion Header (기본 닫힘) */}
+                  {/* Year Accordion Header */}
                   <button
-                    onClick={() => toggleMonth(monthGroup.monthKey)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => toggleYear(yearGroup.year, yearIndex === 0)}
+                    className="w-full p-4 sm:p-4.5 flex items-center justify-between text-left hover:bg-emerald-500/5 transition-colors cursor-pointer bg-slate-900/90"
                   >
-                    <div className="flex items-center gap-2.5">
-                      {isMonthExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-blue-400" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-slate-400" />
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+                        {isYearExpanded ? (
+                          <ChevronDown className="w-5 h-5 text-emerald-400" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
                       <div>
-                        <span className="text-base font-bold text-white">{monthGroup.monthKey}</span>
-                        <span className="text-xs text-slate-400 ml-2">
-                          ({monthGroup.totalSessionsCount}회 훈련 · 총 {monthGroup.totalDistance}km)
+                        <div className="flex items-center gap-2">
+                          <span className="text-base sm:text-lg font-bold font-athletic text-white tracking-wide">
+                            {yearGroup.yearTitle}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-slate-300 font-semibold border border-white/10">
+                            {yearGroup.months.length}개 월
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          {yearGroup.totalSessionsCount}회 훈련 세션 완료
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-athletic font-bold">
-                        월간 {monthGroup.totalDistance} km
+                      <span className="text-xs sm:text-sm px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-athletic font-bold shadow-sm">
+                        연간 {yearGroup.totalDistance} km
                       </span>
                     </div>
                   </button>
 
-                  {/* Weeks in this Month */}
-                  {isMonthExpanded && (
-                    <div className="p-4 pt-1 space-y-5 border-t border-white/5 bg-slate-950/40">
+                  {/* Months in this Year */}
+                  {isYearExpanded && (
+                    <div className="p-3.5 sm:p-4 space-y-3.5 border-t border-white/5 bg-slate-950/50">
+                      {yearGroup.months.map((monthGroup, mIdx) => {
+                        const isMonthExpanded = expandedMonths[monthGroup.monthKey] ?? (yearIndex === 0 && mIdx === 0);
+
+                        return (
+                          <div
+                            key={monthGroup.monthKey}
+                            className="rounded-xl bg-slate-900/60 border border-white/10 overflow-hidden shadow-sm"
+                          >
+                            {/* Month Accordion Header */}
+                            <button
+                              onClick={() => toggleMonth(monthGroup.monthKey, yearIndex === 0 && mIdx === 0)}
+                              className="w-full p-3.5 sm:p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                {isMonthExpanded ? (
+                                  <ChevronDown className="w-4 h-4 text-cyan-400" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                                )}
+                                <div>
+                                  <span className="text-sm sm:text-base font-bold text-white">{monthGroup.monthTitle}</span>
+                                  <span className="text-xs text-slate-400 ml-2">
+                                    ({monthGroup.totalSessionsCount}회 훈련 · 총 {monthGroup.totalDistance}km)
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-athletic font-bold">
+                                  월간 {monthGroup.totalDistance} km
+                                </span>
+                              </div>
+                            </button>
+
+                            {/* Weeks in this Month */}
+                            {isMonthExpanded && (
+                              <div className="p-3 sm:p-4 pt-1 space-y-4 border-t border-white/5 bg-slate-950/40">
                       {monthGroup.weeks.map((weekGroup) => (
                         <div
                           key={weekGroup.weekKey}
@@ -1765,6 +1864,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                           </div>
                         </div>
                       ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
