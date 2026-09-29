@@ -111,7 +111,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              최근 주간 마일리지 추세와 급성·만성 부하(ACWR)를 심층 분석하여 최적의 훈련 단계를 진단합니다.
+              직전 주간(월요일~일요일) 마일리지와 최근 4주 누적 추세, 급성·만성 부하(ACWR)를 심층 분석하여 최적의 훈련 단계를 진단합니다.
             </p>
           </div>
         </div>
@@ -140,12 +140,13 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
             <Zap className="w-4 h-4 text-amber-400" />
-            <span>스포츠 사이언스 훈련 부하 진단 결과:</span>
+            <span>스포츠 사이언스 직전 주간 훈련 부하 진단:</span>
           </div>
 
           <div className="flex items-center gap-4 text-xs font-mono">
             <span className="text-slate-400">
-              최근 1주: <strong className="text-white font-athletic">{analysis.acuteLoadKm}km</strong>
+              직전 주간({analysis.lastWeekLabel || '지난주 월~일'}):{' '}
+              <strong className="text-cyan-300 font-athletic font-bold">{analysis.lastWeekDistance ?? analysis.acuteLoadKm}km</strong>
             </span>
             <span className="text-slate-400">
               4주 평균: <strong className="text-white font-athletic">{analysis.chronicLoadKm}km</strong>
@@ -429,7 +430,7 @@ export const TrainingIntensityRecommender: React.FC<TrainingIntensityRecommender
                   </p>
 
                   {/* Recommended Shoe Pill & Rotation Insight */}
-                  {dayPlan.recommendedShoe && (
+                  {dayPlan.recommendedShoe && !dayPlan.isCompleted && (
                     <div className="mt-2.5 p-2 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-[10px] space-y-1">
                       <div className="flex items-center justify-between gap-1">
                         <div className="flex items-center gap-1 text-emerald-300 font-bold truncate">

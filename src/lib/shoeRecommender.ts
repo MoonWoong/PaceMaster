@@ -248,7 +248,7 @@ export function attachShoeRecommendationsToPlan(
   const assignedShoeNames: string[] = [];
 
   return plan.map((day) => {
-    if (day.type === '휴식') {
+    if (day.type === '휴식' || day.isCompleted) {
       return {
         ...day,
         recommendedShoe: undefined,

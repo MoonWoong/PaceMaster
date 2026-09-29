@@ -28,6 +28,8 @@ export interface RecommendationAnalysis {
   acwr: number;
   acuteLoadKm: number;
   chronicLoadKm: number;
+  lastWeekDistance: number;
+  lastWeekLabel: string;
   mileageTrend: '증가세' | '안정유지' | '감소세' | '초기빌드';
   trendRatio: number;
   recentLongestRunKm: number;
@@ -43,26 +45,28 @@ export interface RecommendationAnalysis {
 }
 
 /**
- * Helper to get Monday Date of a given string date
+ * Helper to get Monday Date of a given string or Date
  */
-function getWeekMondayDate(dateStr: string): Date {
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const diffToMonday = d.getDate() - day + (day === 0 ? -6 : 1);
+function getWeekMondayDate(dateInput: Date | string): Date {
+  const d = new Date(dateInput);
+  const day = d.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+  const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(d);
-  monday.setDate(diffToMonday);
+  monday.setDate(d.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0);
   return monday;
 }
 
 /**
  * Analyzes weekly training data and VDOT to recommend training intensity and routines
+ * Strictly evaluates prior completed week (월요일~일요일) and 4-week completed baseline
  */
 export function analyzeAndRecommendTrainingIntensity(
   sessions: TrainingSession[] = [],
   vdot: number = 45,
   targetRaceCourse: string = '풀코스',
-  shoes?: RunningShoe[]
+  shoes?: RunningShoe[],
+  refDate: Date = new Date()
 ): RecommendationAnalysis {
   const effectiveVdot = Math.max(28, Math.min(85, vdot));
   const paces = getTrainingPaces(effectiveVdot);
@@ -80,31 +84,86 @@ export function analyzeAndRecommendTrainingIntensity(
   // Baseline standard volume by course
   const defaultBaseVolume = isFullCourse ? 46 : isHalfCourse ? 36 : 26;
 
-  // 1. Group sessions by calendar week (Monday to Sunday)
-  const weekMap: Record<string, { monday: Date; distance: number; sessions: TrainingSession[] }> = {};
-  for (const session of sessions) {
-    const monday = getWeekMondayDate(session.date);
-    const key = monday.toISOString().slice(0, 10);
-    if (!weekMap[key]) {
-      weekMap[key] = { monday, distance: 0, sessions: [] };
+  // Determine current active week Monday
+  let currentWeekMonday = getWeekMondayDate(refDate);
+
+  if (sessions && sessions.length > 0) {
+    const latestDate = sessions.reduce((max, s) => {
+      const d = new Date(s.date);
+      return !isNaN(d.getTime()) && d > max ? d : max;
+    }, new Date(0));
+
+    if (refDate.getTime() - latestDate.getTime() > 60 * 24 * 60 * 60 * 1000) {
+      currentWeekMonday = getWeekMondayDate(latestDate);
     }
-    weekMap[key].distance += session.totalDistanceKm || 0;
-    weekMap[key].sessions.push(session);
   }
 
-  const sortedWeeks = Object.values(weekMap).sort(
-    (a, b) => a.monday.getTime() - b.monday.getTime()
-  );
+  // Last Week (월요일 00:00:00 ~ 일요일 23:59:59.999 기준)
+  const lastWeekMonday = new Date(currentWeekMonday.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const lastWeekSunday = new Date(currentWeekMonday.getTime() - 1);
+  const lastWeekLabel = `${String(lastWeekMonday.getMonth() + 1).padStart(2, '0')}.${String(
+    lastWeekMonday.getDate()
+  ).padStart(2, '0')}(월) ~ ${String(lastWeekSunday.getMonth() + 1).padStart(2, '0')}.${String(
+    lastWeekSunday.getDate()
+  ).padStart(2, '0')}(일)`;
 
-  const recentWeeks = sortedWeeks.slice(-4);
-  const lastWeekData = recentWeeks[recentWeeks.length - 1];
-  const lastWeekDistance = lastWeekData ? Math.round(lastWeekData.distance * 10) / 10 : defaultBaseVolume;
+  // 1. Group sessions strictly by 4 completed weeks (Week -4, Week -3, Week -2, Week -1 [지난주])
+  const completed4Weeks: {
+    weekLabel: string;
+    monday: Date;
+    sunday: Date;
+    distanceKm: number;
+    sessions: TrainingSession[];
+  }[] = [];
 
-  const sum4Weeks = recentWeeks.reduce((acc, w) => acc + w.distance, 0);
+  for (let i = 4; i >= 1; i--) {
+    const wMonday = new Date(currentWeekMonday.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+    const wSunday = new Date(wMonday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+    const mMonth = String(wMonday.getMonth() + 1).padStart(2, '0');
+    const mDate = String(wMonday.getDate()).padStart(2, '0');
+    const isImmediateLastWeek = i === 1;
+
+    const wSessions = sessions.filter((s) => {
+      const sDate = new Date(s.date);
+      return !isNaN(sDate.getTime()) && sDate >= wMonday && sDate <= wSunday;
+    });
+
+    const wDist = Math.round(wSessions.reduce((sum, s) => sum + (s.totalDistanceKm || 0), 0) * 10) / 10;
+
+    completed4Weeks.push({
+      weekLabel: isImmediateLastWeek ? `${mMonth}/${mDate}주 (지난주)` : `${mMonth}/${mDate}주`,
+      monday: wMonday,
+      sunday: wSunday,
+      distanceKm: wDist,
+      sessions: wSessions,
+    });
+  }
+
+  // Last week's completed distance (월~일 기준 지난주 = Week -1)
+  const lastWeekData = completed4Weeks[3];
+  let lastWeekDistance = lastWeekData ? lastWeekData.distanceKm : defaultBaseVolume;
+
+  // Fallback if all 4 completed weeks are 0 but user has historical sessions
+  const totalCompletedDist = completed4Weeks.reduce((sum, w) => sum + w.distanceKm, 0);
+  if (totalCompletedDist === 0 && sessions.length > 0) {
+    const allDist = sessions.reduce((sum, s) => sum + (s.totalDistanceKm || 0), 0);
+    lastWeekDistance = Math.min(
+      Math.round((allDist / Math.max(1, sessions.length / 3)) * 10) / 10,
+      defaultBaseVolume
+    );
+  } else if (totalCompletedDist === 0) {
+    lastWeekDistance = defaultBaseVolume;
+  }
+
+  // 4-week average weekly distance based strictly on completed weeks
+  const nonZeroWeeks = completed4Weeks.filter((w) => w.distanceKm > 0);
   const chronicLoadKm =
-    recentWeeks.length > 0
-      ? Math.round((sum4Weeks / recentWeeks.length) * 10) / 10
+    nonZeroWeeks.length > 0
+      ? Math.round(
+          (nonZeroWeeks.reduce((sum, w) => sum + w.distanceKm, 0) / nonZeroWeeks.length) * 10
+        ) / 10
       : defaultBaseVolume;
+
   const acuteLoadKm = lastWeekDistance;
 
   // ACWR (Acute:Chronic Workload Ratio)
@@ -117,7 +176,7 @@ export function analyzeAndRecommendTrainingIntensity(
   }
 
   let mileageTrend: '증가세' | '안정유지' | '감소세' | '초기빌드' = '안정유지';
-  if (recentWeeks.length < 2) {
+  if (nonZeroWeeks.length < 2) {
     mileageTrend = '초기빌드';
   } else if (trendRatio >= 10) {
     mileageTrend = '증가세';
@@ -128,7 +187,7 @@ export function analyzeAndRecommendTrainingIntensity(
   }
 
   // Find recent longest run
-  const recentSessions = recentWeeks.flatMap((w) => w.sessions);
+  const recentSessions = completed4Weeks.flatMap((w) => w.sessions);
   const recentLongestRunKm =
     recentSessions.length > 0
       ? Math.round(Math.max(...recentSessions.map((s) => s.totalDistanceKm || 0)) * 10) / 10
@@ -140,24 +199,27 @@ export function analyzeAndRecommendTrainingIntensity(
 
   // Sports Science Decision Matrix (Gabbett ACWR + 3:1 Periodization Cycle):
   // Rule A: Overload / Danger Zone (ACWR > 1.25 or last week surged > 20%) -> 회복
-  if (acwr > 1.25 || (recentWeeks.length >= 2 && trendRatio >= 22)) {
+  if (acwr > 1.25 || (completed4Weeks.length >= 2 && trendRatio >= 22)) {
     recommendedLevel = '회복';
-    recommendationReason = `최근 훈련 부하가 급증하여 ACWR 지수가 ${acwr}(위험/과부하 경계)에 도달했습니다. 피로 누적으로 인한 건·인대 손상을 방지하고, 직전 훈련 효과를 온전히 흡수하는 '초회복(Supercompensation)'을 위해 다음 주는 훈련량을 약 25% 줄인 '회복' 단계를 강력히 추천합니다.`;
+    recommendationReason = `직전 주간(${lastWeekLabel}) 완료 마일리지(${lastWeekDistance}km)를 분석한 결과, 훈련 부하가 급증하여 ACWR 지수가 ${acwr}(위험/과부하 경계)에 도달했습니다. 피로 누적으로 인한 건·인대 손상을 방지하고 직전 훈련 효과를 온전히 흡수하는 '초회복(Supercompensation)'을 위해 다음 주는 훈련량을 약 25% 줄인 '회복' 단계를 강력히 추천합니다.`;
   }
   // Rule B: Consecutive build for 3+ weeks -> Periodized recovery week
-  else if (sortedWeeks.length >= 3 && sortedWeeks.slice(-3).every((w, i, arr) => i === 0 || w.distance >= arr[i - 1].distance * 0.95)) {
+  else if (
+    completed4Weeks.length >= 3 &&
+    completed4Weeks.slice(-3).every((w, i, arr) => i === 0 || w.distanceKm >= arr[i - 1].distanceKm * 0.95)
+  ) {
     recommendedLevel = '회복';
-    recommendationReason = `최근 3주 이상 마일리지를 꾸준히 증량하며 신체 부하를 축적해왔습니다. 잭 대니얼스 및 엘리트 주기화 훈련 원칙(3주 빌드 + 1주 디로드)에 따라, 피로를 털어내고 신체 능력을 한 단계 끌어올릴 '회복' 주간을 권장합니다.`;
+    recommendationReason = `최근 3주간 직전 주(${lastWeekDistance}km)까지 마일리지를 꾸준히 증량하며 신체 부하를 축적해왔습니다. 잭 대니얼스 및 엘리트 주기화 훈련 원칙(3주 빌드 + 1주 디로드)에 따라, 피로를 털어내고 신체 능력을 한 단계 끌어올릴 '회복' 주간을 권장합니다.`;
   }
   // Rule C: Sweet spot (0.85 <= ACWR <= 1.18) with stable base -> 강화
   else if (acwr >= 0.85 && acwr <= 1.18 && chronicLoadKm >= 20) {
     recommendedLevel = '강화';
-    recommendationReason = `최근 급성 부하와 만성 부하 비율(ACWR ${acwr})이 부상 위험이 가장 낮고 신체 적응력이 뛰어난 '스위트스팟(0.8~1.2)'에 머물고 있습니다. VDOT ${effectiveVdot} 엔진을 바탕으로 볼륨을 약 +8~10% 점진적으로 증량하여 스피드 지구력과 유산소 파워를 끌어올릴 최적의 타이밍입니다.`;
+    recommendationReason = `직전 주간(${lastWeekLabel} ${lastWeekDistance}km) 분석 결과, 급성 부하와 만성 부하 비율(ACWR ${acwr})이 부상 위험이 가장 낮고 신체 적응력이 뛰어난 '스위트스팟(0.8~1.2)'에 머물고 있습니다. VDOT ${effectiveVdot} 엔진을 바탕으로 볼륨을 약 +8~10% 점진적으로 증량하여 스피드 지구력과 유산소 파워를 끌어올릴 최적의 타이밍입니다.`;
   }
   // Rule D: Under-training (ACWR < 0.80) or other normal transitions -> 유지
   else {
     recommendedLevel = '유지';
-    recommendationReason = `현재 훈련 마일리지(ACWR ${acwr})는 안정적인 적응 상태입니다. 급격한 볼륨 변화 없이 현재 획득한 VDOT 페이스 감각과 주간 주행 거리를 공고히 다지는 '유지' 단계를 추천합니다.`;
+    recommendationReason = `직전 주간(${lastWeekLabel} ${lastWeekDistance}km) 마일리지(ACWR ${acwr})는 안정적인 적응 상태입니다. 급격한 볼륨 변화 없이 현재 획득한 VDOT 페이스 감각과 주간 주행 거리를 공고히 다지는 '유지' 단계를 추천합니다.`;
   }
 
   // 3. Target Volumes for each intensity
@@ -560,6 +622,8 @@ export function analyzeAndRecommendTrainingIntensity(
     acwr,
     acuteLoadKm,
     chronicLoadKm,
+    lastWeekDistance,
+    lastWeekLabel,
     mileageTrend,
     trendRatio,
     recentLongestRunKm,

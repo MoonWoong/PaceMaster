@@ -117,10 +117,14 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
         paceCount++;
       }
     }
-    const avgPaceStr =
-      paceCount > 0
-        ? `${Math.floor(totalPaceSec / paceCount / 60)}'${String(Math.round((totalPaceSec / paceCount) % 60)).padStart(2, '0')}"`
-        : '-';
+    let avgPaceStr = '-';
+    if (paceCount > 0) {
+      const avgPaceSec = totalPaceSec / paceCount;
+      const flooredPaceSec = Math.floor(avgPaceSec);
+      const pMin = Math.floor(flooredPaceSec / 60);
+      const pSec = Math.min(59, flooredPaceSec % 60);
+      avgPaceStr = `${pMin}'${String(pSec).padStart(2, '0')}"`;
+    }
 
     return {
       sessionCount,

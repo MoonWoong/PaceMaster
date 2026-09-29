@@ -226,8 +226,8 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
           }
         });
         const avgSec =
-          paceSecs.length > 0 ? Math.round(paceSecs.reduce((a, b) => a + b, 0) / paceSecs.length) : 330;
-        const overallAvgPace = `${Math.floor(avgSec / 60)}'${(avgSec % 60).toString().padStart(2, '0')}"`;
+          paceSecs.length > 0 ? Math.floor(paceSecs.reduce((a, b) => a + b, 0) / paceSecs.length) : 330;
+        const overallAvgPace = `${Math.floor(avgSec / 60)}'${Math.min(59, avgSec % 60).toString().padStart(2, '0')}"`;
 
         // Recent sample
         const sampleRecentSessions = sessions.slice(0, 8).map((s) => ({

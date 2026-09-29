@@ -525,7 +525,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                훈련 목적별 신발 로테이션(데일리/스피드/LSD/레이싱/트레일) 및 미드솔 마일리지 수명·교체 주기 관리
+                신발별 실시간 누적 주행거리와 목표 마일리지 수명 소진율을 모니터링하고 교체 주기를 관리합니다.
               </p>
             </div>
           </div>
@@ -999,18 +999,6 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             })}
           </div>
         )}
-
-        {/* Bottom Rotation Advice Tip */}
-        <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/20 flex items-start gap-3 text-xs text-slate-300">
-          <span className="text-lg mt-0.5">👟</span>
-          <div className="space-y-1">
-            <strong className="text-emerald-300">신발 수명을 20% 늘리는 스마트 로테이션 원칙:</strong>
-            <p className="text-slate-400 leading-relaxed text-[11px]">
-              러닝화 미드솔은 1회 주행 후 원래의 탄성 구조로 완전 복원되는 데 약 24~48시간이 필요합니다. 
-              스피드 인터벌에는 카본/경량화, 매일의 조깅/회복주에는 맥스쿠션 데일리화로 2~3켤레를 번갈아 착용하면 충격 흡수 성능을 오래 보존할 수 있습니다.
-            </p>
-          </div>
-        </div>
       </section>
 
       {/* 3. 참가 대회 & D-day 섹션 */}

@@ -34,10 +34,12 @@ export function formatSecondsToTime(totalSeconds: number, includeHours = false):
 }
 
 // Format seconds per kilometer into min'sec"/km e.g. "4'32\""
+// 내림(floor) 처리하여 5'60"와 같이 60초가 출력되는 오류를 방지하고 정확한 5'59" 페이스를 보장
 export function formatPace(secondsPerKm: number): string {
   if (isNaN(secondsPerKm) || secondsPerKm <= 0 || secondsPerKm > 1800) return "-'--\"";
-  const minutes = Math.floor(secondsPerKm / 60);
-  const seconds = Math.round(secondsPerKm % 60);
+  const totalSec = Math.floor(secondsPerKm);
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = Math.min(59, totalSec % 60);
   return `${minutes}'${seconds.toString().padStart(2, '0')}"`;
 }
 
@@ -348,6 +350,8 @@ export interface GoalEvaluationResult {
   aiFeedback: string;
   recommendedTrainingFocus: string;
   targetPaces: TrainingPaces | null;
+  requiredRacePace: string;
+  requiredRacePaceSeconds: number;
 }
 
 export function evaluateRunningGoal(
@@ -360,6 +364,11 @@ export function evaluateRunningGoal(
 
   const distMeters =
     targetDistance === '10K' ? 10000 : targetDistance === '하프' ? 21097.5 : 42195;
+  const distKm = distMeters / 1000;
+
+  // Exact required race pace for target distance & target time (목표 완주 시간에 정확히 부합하는 필수 대회 페이스)
+  const requiredPaceSec = targetSeconds / distKm;
+  const requiredRacePace = formatPace(requiredPaceSec);
 
   const targetVdot = calculateVDOT(distMeters, targetSeconds);
   const diffVdot = Math.round((targetVdot - currentVdot) * 10) / 10;
@@ -374,29 +383,27 @@ export function evaluateRunningGoal(
     feasibilityScore = 60;
     feasibilityLevel = '적정 목표 (도전 가능)';
     aiFeedback =
-      '현재 PB 기록이 등록되지 않아 목표 수치만 분석되었습니다. 목표 달성을 위해서는 VDOT ' +
-      targetVdot +
-      '에 맞춘 훈련 페이스 준수가 핵심입니다.';
-    recommendedTrainingFocus = '기초 Zone 2 조깅 70% + 주 1회 템포런 적응 훈련';
+      `현재 PB 기록이 등록되지 않아 목표 수치만 분석되었습니다. 목표 달성을 위해서는 필수 대회 페이스 ${requiredRacePace}/km 유지 및 VDOT ${targetVdot}에 맞춘 체계적인 훈련 준수가 핵심입니다.`;
+    recommendedTrainingFocus = '기초 Zone 2 조깅 70% + 주 1회 목표 페이스 템포런';
   } else if (diffVdot <= 0.5) {
     feasibilityScore = 92;
     feasibilityLevel = '매우 높음 (안정권)';
-    aiFeedback = `현재 러닝 엔진(VDOT ${currentVdot})으로 충분히 도달 가능한 안정권 기록입니다. 대회 당일 기상 조건과 초반 오버페이스 방지 페이스 전략(네거티브 스플릿)만 지킨다면 높은 확률로 PB 달성이 예상됩니다.`;
-    recommendedTrainingFocus = '컨디션 조절(테이퍼링) 및 대회 페이스 지속 훈련(M-Pace Run)';
+    aiFeedback = `현재 러닝 엔진(VDOT ${currentVdot})으로 충분히 도달 가능한 안정권 기록입니다. 목표 완주를 위한 필수 대회 페이스는 ${requiredRacePace}/km입니다. 대회 당일 초반 오버페이스 방지 페이스 전략(이븐 또는 네거티브 스플릿)만 지킨다면 높은 확률로 목표 달성이 예상됩니다.`;
+    recommendedTrainingFocus = '컨디션 조절(테이퍼링) 및 목표 레이스 페이스 지속 훈련(M-Pace Run)';
   } else if (diffVdot <= 3.5) {
     feasibilityScore = 78;
     feasibilityLevel = '적정 목표 (도전 가능)';
-    aiFeedback = `현 기량 대비 약 +${diffVdot}의 VDOT 향상이 필요한 매우 훌륭하고 도전적인 목표입니다. 8~12주간의 체계적인 빌드업을 통해 젖산 역치 페이스(T-Pace)를 끌어올리면 실현 가능성이 매우 높습니다.`;
+    aiFeedback = `현 기량 대비 약 +${diffVdot}의 VDOT 향상이 필요한 도전적인 목표입니다. 목표 완주를 위한 필수 대회 페이스는 ${requiredRacePace}/km입니다. 8~12주간의 체계적인 빌드업을 통해 젖산 역치 페이스를 끌어올리면 실현 가능성이 매우 높습니다.`;
     recommendedTrainingFocus = '주간 주행거리 점진적 10% 증량 + 주 1회 8~10km 역치 템포런';
   } else if (diffVdot <= 6.5) {
     feasibilityScore = 52;
     feasibilityLevel = '공격적 (치밀한 훈련 필요)';
-    aiFeedback = `현 기량 대비 +${diffVdot} 격차가 있는 공격적인 목표입니다. 단기간 무리한 스피드 훈련은 정강이/족저근막 부상을 유발할 수 있으므로, 최소 16주 이상의 훈련 주기화(Periodization)와 철저한 리커버리가 필수적입니다.`;
+    aiFeedback = `현 기량 대비 +${diffVdot} 격차가 있는 공격적인 목표입니다. 목표 완주를 위한 필수 대회 페이스는 ${requiredRacePace}/km입니다. 단기간 무리한 스피드 훈련보다는 최소 16주 이상의 주기화 훈련과 목표 페이스 적응이 필수적입니다.`;
     recommendedTrainingFocus = '주말 25~30km LSD 완주력 확보 + 인터벌(400m x 8~10회) 스피드 보강';
   } else {
     feasibilityScore = 28;
     feasibilityLevel = '과도한 목표 (부상 주의)';
-    aiFeedback = `현재 측정된 엔진(VDOT ${currentVdot})과의 격차(+${diffVdot})가 매우 큽니다. 단번에 이 기록을 노리기보다는 중간 디딤돌 목표(예: VDOT ${(currentVdot + 3).toFixed(1)})를 설정하여 단계별 성취감을 얻는 것을 강력히 권장합니다.`;
+    aiFeedback = `현재 엔진(VDOT ${currentVdot})과의 격차(+${diffVdot})가 큽니다. 목표 필수 대회 페이스(${requiredRacePace}/km)를 단번에 노리기보다는 중간 목표 페이스를 설정하여 단계별 성취감을 얻는 것을 강력히 권장합니다.`;
     recommendedTrainingFocus = '중간 목표 설정 후 체중 조절 및 Zone 2 유산소 기반 재정립';
   }
 
@@ -409,5 +416,7 @@ export function evaluateRunningGoal(
     aiFeedback,
     recommendedTrainingFocus,
     targetPaces,
+    requiredRacePace,
+    requiredRacePaceSeconds: requiredPaceSec,
   };
 }

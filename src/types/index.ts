@@ -132,11 +132,17 @@ export interface RunnerStateAnalysis {
   intensityAdjustmentNote: string;
   longRunRecommendedKm: number;
   speedVolumeRecommendedKm: number;
+  lastWeekLabel?: string; // e.g. "09/21~09/27 (월~일)"
+  thisWeekLoggedKm?: number; // e.g. 10.5 km run so far this week
+  thisWeekSessionsCount?: number;
+  thisWeekDaysDone?: string[]; // e.g. ['월요일']
+  remainingWeeklyPlanKm?: number; // e.g. 29.5 km
 }
 
 export interface WeeklyPlanDay {
   day: string; // 월요일, 화요일, ...
   dayShort: string; // Mon, Tue, ...
+  dateStr?: string; // YYYY-MM-DD
   type: '조깅' | '템포런' | '인터벌' | 'LSD' | '회복주' | '휴식';
   title: string;
   distanceKm: number;
@@ -146,6 +152,17 @@ export interface WeeklyPlanDay {
   intensity: '낮음' | '보통' | '높음' | '휴식';
   stages?: WorkoutStage[];
   recommendedShoe?: RecommendedShoeInfo;
+  isCompleted?: boolean;
+  actualSession?: {
+    id: string;
+    title: string;
+    totalDistanceKm: number;
+    avgPace: string;
+    avgHr?: number;
+    maxHr?: number;
+    shoeName?: string;
+    date: string;
+  };
 }
 
 export interface MarathonEvent {

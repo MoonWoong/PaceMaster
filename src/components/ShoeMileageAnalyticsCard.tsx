@@ -244,7 +244,7 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
               )}
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              신발별 누적 주행거리와 미드솔 쿠션 수명을 시각화하고, 부상 방지를 위한 은퇴 및 교체 주기를 분석합니다.
+              신발별 누적 주행거리와 목표 마일리지 수명을 시각화하고, 은퇴 및 교체 주기를 분석합니다.
             </p>
           </div>
         </div>
@@ -668,18 +668,6 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
             );
           })
         )}
-      </div>
-
-      {/* Rotation Synergy Tip */}
-      <div className="relative z-10 p-3.5 sm:p-4 rounded-xl bg-slate-950/70 border border-emerald-500/20 flex items-start gap-3 text-xs text-slate-300">
-        <span className="text-base sm:text-lg mt-0.5">👟</span>
-        <div className="space-y-1">
-          <strong className="text-emerald-300">신발 수명을 20% 늘리는 스마트 로테이션 원칙:</strong>
-          <p className="text-slate-400 leading-relaxed text-[11px]">
-            러닝화 미드솔은 1회 주행 후 원래의 탄성 구조로 완전 복원되는 데 약 24~48시간이 필요합니다. 
-            스피드 인터벌에는 카본/경량화, 매일의 조깅/회복주에는 맥스쿠션 데일리화로 2~3켤레를 번갈아 착용하면 충격 흡수 성능을 지속 보존할 수 있습니다.
-          </p>
-        </div>
       </div>
     </section>
   );

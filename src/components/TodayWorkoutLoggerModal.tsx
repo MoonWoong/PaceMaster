@@ -29,6 +29,7 @@ import {
   calculateIntegratedWorkoutAnalysis,
   IntegratedWorkoutAnalysis,
 } from '../lib/integratedSessionAnalytics';
+import { formatPace } from '../lib/vdot';
 
 interface TodayWorkoutLoggerModalProps {
   isOpen: boolean;
@@ -94,10 +95,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
     const totalSec = h * 3600 + m * 60 + s;
 
     if (!dist || dist <= 0 || totalSec <= 0) return "-'--\"";
-    const secPerKm = Math.round(totalSec / dist);
-    const paceMin = Math.floor(secPerKm / 60);
-    const paceSec = secPerKm % 60;
-    return `${paceMin}'${String(paceSec).padStart(2, '0')}"`;
+    return formatPace(totalSec / dist);
   }, [distanceKm, hours, minutes, seconds]);
 
   // HR Zone Preview

@@ -153,8 +153,9 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
   // Pace in seconds per km
   const paceSecondsPerKm = totalSeconds > 0 ? totalSeconds / effectiveDistanceKm : 0;
   const paceFormatted = totalSeconds > 0 ? formatPace(paceSecondsPerKm) : "-'--\"";
-  const paceMinutes = Math.floor(paceSecondsPerKm / 60);
-  const paceSecondsRemainder = Math.round(paceSecondsPerKm % 60);
+  const flooredPaceTotalSec = Math.floor(paceSecondsPerKm);
+  const paceMinutes = Math.floor(flooredPaceTotalSec / 60);
+  const paceSecondsRemainder = Math.min(59, flooredPaceTotalSec % 60);
 
   // Speed in km/h
   const speedKmh = totalSeconds > 0 ? (effectiveDistanceKm / (totalSeconds / 3600)).toFixed(2) : '0.00';
