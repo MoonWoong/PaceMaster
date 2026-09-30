@@ -206,36 +206,33 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
   // Color mappings for readiness score
   const readinessColor =
     insight.readinessScore >= 85
-      ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/15'
+      ? 'text-emerald-800 border-emerald-500 bg-emerald-50'
       : insight.readinessScore >= 70
-      ? 'text-cyan-300 border-cyan-500/40 bg-cyan-500/15'
+      ? 'text-emerald-700 border-emerald-400 bg-emerald-50/60'
       : insight.readinessScore >= 55
-      ? 'text-amber-300 border-amber-500/40 bg-amber-500/15'
-      : 'text-rose-400 border-rose-500/40 bg-rose-500/15';
+      ? 'text-amber-800 border-amber-400 bg-amber-50'
+      : 'text-rose-800 border-rose-400 bg-rose-50';
 
   return (
-    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-cyan-500/25 bg-gradient-to-br from-slate-900/95 via-cyan-950/20 to-slate-950/95 shadow-xl relative overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="absolute top-0 right-10 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-emerald-600/20 bg-white/95 shadow-md relative overflow-hidden text-stone-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10 relative z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-stone-200 relative z-10">
         <div className="flex items-center gap-2.5">
-          <div className="p-2.5 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 text-cyan-400 rounded-xl border border-cyan-500/30 shadow-md">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+          <div className="p-2.5 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl border border-rose-700/40 shadow-sm">
+            <Sparkles className="w-5 h-5 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
                 <span>오늘의 러닝 인사이트 & 컨디션 진단</span>
               </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold flex items-center gap-1.5">
-                {isLoading && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping inline-block" />}
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center gap-1.5">
+                {isLoading && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block" />}
                 <span>{isLoading ? '실시간 분석 갱신 중...' : 'AI Coach'}</span>
               </span>
             </div>
-            <p className="text-xs text-slate-300">
-              최근 훈련 기록, 누적 마일리지, ACWR 부하를 종합 분석하여 오늘의 컨디션과 맞춤 훈련을 제안합니다.
+            <p className="text-xs text-stone-600">
+              최근 훈련 기록, 잔디밭 트랙 마일리지, ACWR 부하를 종합 분석하여 오늘의 컨디션과 맞춤 훈련을 제안합니다.
             </p>
           </div>
         </div>
@@ -246,7 +243,7 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
             <button
               type="button"
               onClick={onOpenTodayWorkoutModal}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-xs font-bold text-slate-950 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-xs font-bold text-white shadow-sm transition-all cursor-pointer border border-emerald-500"
             >
               <Footprints className="w-3.5 h-3.5" />
               <span>오늘의 훈련 기록</span>
@@ -256,10 +253,10 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
             type="button"
             onClick={() => fetchGeminiInsight(true)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-stone-700 hover:text-stone-900 border border-stone-300 transition-all cursor-pointer disabled:opacity-50"
             title="최근 기록을 반영하여 AI 인사이트 새로고침"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isLoading ? 'animate-spin' : ''}`} />
             <span>{isLoading ? 'AI 분석 중...' : '인사이트 재분석'}</span>
           </button>
         </div>
@@ -267,17 +264,17 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
 
       {/* Today's Completed Session Banner (if recorded) */}
       {todaySession && (
-        <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs relative z-10 animate-fadeIn">
-          <div className="flex items-center gap-2.5 text-emerald-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs relative z-10 animate-fadeIn">
+          <div className="flex items-center gap-2.5 text-emerald-900">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
             <div>
-              <span className="font-bold text-white">오늘의 훈련 기록 완료!</span>{' '}
-              <span className="text-emerald-200">
+              <span className="font-bold text-emerald-950">오늘의 훈련 기록 완료!</span>{' '}
+              <span className="text-emerald-800">
                 {todaySession.title} ({todaySession.totalDistanceKm}km · {todaySession.avgPace}/km)
               </span>
             </div>
           </div>
-          <span className="text-[11px] text-emerald-300 font-semibold bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-700/50 self-start sm:self-auto">
+          <span className="text-[11px] text-emerald-900 font-semibold bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 self-start sm:self-auto">
             대시보드 & 잔디밭 실시간 통합 반영됨
           </span>
         </div>
@@ -286,25 +283,25 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start relative z-10">
         {/* Left: Readiness Score Gauge Box (3 cols) */}
-        <div className="lg:col-span-3 flex sm:flex-row lg:flex-col items-center justify-between sm:justify-start lg:justify-center gap-3 p-4 rounded-xl bg-slate-950/70 border border-white/5 text-center">
+        <div className="lg:col-span-3 flex sm:flex-row lg:flex-col items-center justify-between sm:justify-start lg:justify-center gap-3 p-4 rounded-xl bg-stone-50/90 border border-stone-200 text-center">
           <div className="relative flex items-center justify-center">
             {/* Circular Readiness Indicator */}
             <div
-              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-lg ${readinessColor}`}
+              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 flex flex-col items-center justify-center shadow-xs ${readinessColor}`}
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                 훈련 준비도
               </span>
-              <span className="text-2xl sm:text-3xl font-black font-athletic tracking-tight text-white">
+              <span className="text-2xl sm:text-3xl font-black font-athletic tracking-tight text-stone-900">
                 {insight.readinessScore}
               </span>
-              <span className="text-[9px] text-slate-400">/ 100점</span>
+              <span className="text-[9px] text-stone-400">/ 100점</span>
             </div>
           </div>
 
           <div className="text-left sm:text-left lg:text-center">
-            <div className="text-[10px] text-slate-400">오늘의 컨디션 평가</div>
-            <div className="text-xs sm:text-sm font-bold text-white mt-0.5">
+            <div className="text-[10px] text-stone-500 font-medium">오늘의 컨디션 평가</div>
+            <div className="text-xs sm:text-sm font-bold text-stone-900 mt-0.5">
               {insight.conditionLevel}
             </div>
           </div>
@@ -313,15 +310,15 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
         {/* Right: AI Title, Analysis, Recommended Workout & Cheer Message (9 cols) */}
         <div className="lg:col-span-9 space-y-3">
           {/* AI Headline Title */}
-          <div className="p-3 sm:p-3.5 rounded-xl bg-slate-950/60 border border-cyan-500/20">
-            <div className="text-xs text-cyan-400 font-semibold flex items-center gap-1.5 mb-1">
-              <Zap className="w-3.5 h-3.5" />
+          <div className="p-3 sm:p-3.5 rounded-xl bg-stone-50/90 border border-stone-200">
+            <div className="text-xs text-emerald-800 font-bold flex items-center gap-1.5 mb-1">
+              <Zap className="w-3.5 h-3.5 text-emerald-700" />
               <span>핵심 진단</span>
             </div>
-            <h4 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
+            <h4 className="text-sm sm:text-base font-bold text-stone-900 tracking-tight leading-snug">
               {insight.title}
             </h4>
-            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+            <p className="text-xs text-stone-600 mt-1.5 leading-relaxed">
               {insight.analysis}
             </p>
           </div>
@@ -329,32 +326,32 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
           {/* Today's Recommended Action & Cheering Message Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Recommended Workout */}
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-white/5 space-y-1">
-              <div className="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80 space-y-1">
+              <div className="text-[11px] font-bold text-emerald-900 flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-emerald-700" />
                 <span>오늘 추천 훈련 & 리커버리</span>
               </div>
-              <p className="text-xs text-slate-200 leading-relaxed font-medium">
+              <p className="text-xs text-stone-700 leading-relaxed font-medium">
                 {insight.recommendedToday}
               </p>
             </div>
 
-            {/* Motivational Cheer Message */}
-            <div className="p-3 rounded-xl bg-gradient-to-br from-slate-900/90 to-purple-950/30 border border-purple-500/20 space-y-1">
-              <div className="text-[11px] font-bold text-purple-300 flex items-center gap-1.5">
-                <Heart className="w-3.5 h-3.5 text-rose-400" />
-                <span>러너를 위한 오늘의 한마디</span>
+            {/* Motivational Cheer Message with Burgundy accent */}
+            <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200/80 space-y-1">
+              <div className="text-[11px] font-bold text-rose-900 flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-rose-700" />
+                <span>2027 목표를 향한 러너의 한마디</span>
               </div>
-              <p className="text-xs text-slate-200 italic leading-relaxed">
+              <p className="text-xs text-rose-950 italic leading-relaxed">
                 {insight.cheerMessage}
               </p>
             </div>
           </div>
 
           {/* Footer Badge & Timestamp */}
-          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+          <div className="flex items-center justify-between text-[10px] text-stone-500 pt-1">
             <span className="flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
               <span>
                 {isLoading
                   ? '최신 훈련 데이터 기반으로 AI 인사이트 실시간 분석 중...'
@@ -363,7 +360,7 @@ export const DailyInsightCard: React.FC<DailyInsightCardProps> = ({
                   : '스포츠 사이언스 분석 엔진 기반'}
               </span>
             </span>
-            <span className="text-slate-500">{insight.generatedAt} 기준</span>
+            <span className="text-stone-400">{insight.generatedAt} 기준</span>
           </div>
         </div>
       </div>

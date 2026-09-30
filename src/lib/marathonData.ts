@@ -6,6 +6,28 @@ import SCRAPED_RACES_DATA from '../data/scrapedMarathons.json';
  */
 const PREMIER_MARATHON_RACES: MarathonEvent[] = [
   {
+    id: 'race-gyeongju-cherry-2027',
+    title: '2027 제34회 경주 벚꽃 마라톤대회 (Gyeongju Cherry Blossom Marathon)',
+    date: '2027-04-10',
+    dayOfWeek: '토요일',
+    region: '경상/대구/부산',
+    courses: ['풀', '하프', '10K', '5K'],
+    location: '경북 경주시 보문관광단지 헬기장 ~ 첨성대 벚꽃 코스',
+    websiteUrl: 'https://cherrymarathon.com',
+    status: '접수예정',
+  },
+  {
+    id: 'race-gyeongju-intl-2027',
+    title: '2027 동아일보 경주국제마라톤대회 (Gyeongju International Marathon)',
+    date: '2027-10-17',
+    dayOfWeek: '일요일',
+    region: '경상/대구/부산',
+    courses: ['풀', '하프', '10K', '5K'],
+    location: '경북 경주시 시민운동장 및 시내 일원',
+    websiteUrl: 'https://gyeongju-marathon.com',
+    status: '접수예정',
+  },
+  {
     id: 'race-jtbc-2026',
     title: '2026 JTBC 서울 마라톤 (JTBC Seoul Marathon)',
     date: '2026-11-01',

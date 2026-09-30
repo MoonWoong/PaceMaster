@@ -102,8 +102,8 @@ export function getWeatherConfig(code: number): WeatherConfig {
     return {
       label: code >= 80 ? '소나기' : '비',
       icon: CloudRain,
-      iconColor: 'text-cyan-400',
-      badgeBg: 'bg-cyan-500/15 border-cyan-500/30',
+      iconColor: 'text-blue-600',
+      badgeBg: 'bg-blue-50 border-blue-200 text-blue-800',
     };
   }
   if ((code >= 71 && code <= 77) || code === 85 || code === 86) {
@@ -202,13 +202,13 @@ export function getDailyForecastRunnerAdvice(
   if (maxTemp < 6) {
     return {
       tag: '❄️ 체온 보온 & 부상 주의',
-      badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+      badgeColor: 'bg-blue-50 text-blue-900 border-blue-200',
       tip: '기온이 쌀쌀하여 근육이 굳기 쉽습니다. 10분 이상 동적 웜업 후 안전하게 달려주세요.',
     };
   }
   return {
     tag: '👟 안정적인 로드 러닝',
-    badgeColor: 'bg-teal-500/20 text-teal-300 border-teal-500/40',
+    badgeColor: 'bg-emerald-50 text-emerald-900 border-emerald-200',
     tip: '무난하고 안정적인 기상 조건입니다. 기본 마일리지 적립 조깅 및 빌드업주에 적합합니다.',
   };
 }
@@ -361,8 +361,8 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
             maxTemp: 22.5,
             rainProb: 65,
             icon: CloudRain,
-            iconColor: 'text-cyan-400',
-            badgeBg: 'bg-cyan-500/15 border-cyan-500/30',
+            iconColor: 'text-blue-600',
+            badgeBg: 'bg-blue-50 border-blue-200 text-blue-800',
             runnerAdvice: {
               tag: '🌧️ 우중런 또는 실내 트레드밀',
               badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
@@ -470,7 +470,7 @@ export const WeatherWidget: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsPopoverOpen((prev) => !prev)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/10 hover:border-amber-400/40 text-left transition-all cursor-pointer shadow-sm group"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-50/90 hover:bg-stone-100 border border-stone-200 hover:border-emerald-500/40 text-left transition-all cursor-pointer shadow-xs group"
         title="오늘의 날씨 및 러닝 추천 복장 보기"
         aria-label="오늘의 날씨 정보"
       >
@@ -478,30 +478,30 @@ export const WeatherWidget: React.FC = () => {
           className={`p-1.5 rounded-lg flex items-center justify-center ${config.badgeBg} ${config.iconColor} transition-transform group-hover:scale-110`}
         >
           {isLoading && !currentWeather ? (
-            <RefreshCw className="w-4 h-4 animate-spin text-slate-400" />
+            <RefreshCw className="w-4 h-4 animate-spin text-stone-400" />
           ) : (
             <IconComponent className="w-4 h-4" />
           )}
         </div>
 
         <div className="flex flex-col">
-          <div className="text-[10px] text-slate-400 font-medium leading-none flex items-center gap-1">
+          <div className="text-[10px] text-stone-500 font-medium leading-none flex items-center gap-1">
             <span className="truncate max-w-[60px]">{locationName}</span>
             <span>•</span>
             <span>{config.label}</span>
           </div>
-          <div className="text-xs sm:text-sm font-black text-white font-athletic flex items-center gap-1 mt-0.5">
+          <div className="text-xs sm:text-sm font-black text-stone-900 font-athletic flex items-center gap-1 mt-0.5">
             {currentWeather ? (
               <>
                 <span>{currentWeather.temp}°C</span>
                 <ChevronDown
-                  className={`w-3 h-3 text-slate-400 transition-transform ${
+                  className={`w-3 h-3 text-stone-400 transition-transform ${
                     isPopoverOpen ? 'rotate-180' : ''
                   }`}
                 />
               </>
             ) : (
-              <span className="text-xs text-slate-400">날씨 로딩...</span>
+              <span className="text-xs text-stone-400">날씨 로딩...</span>
             )}
           </div>
         </div>
@@ -512,11 +512,11 @@ export const WeatherWidget: React.FC = () => {
         <>
           {/* Mobile Centered Modal Overlay (prevents any viewport cut-off) */}
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm sm:hidden animate-in fade-in duration-150"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs sm:hidden animate-in fade-in duration-150"
             onClick={() => setIsPopoverOpen(false)}
           >
             <div
-              className="w-full max-w-sm max-h-[90vh] overflow-y-auto p-4 rounded-2xl bg-slate-900 border border-white/20 shadow-2xl"
+              className="w-full max-w-sm max-h-[90vh] overflow-y-auto p-4 rounded-2xl bg-white border border-stone-200 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <WeatherPopupCard
@@ -535,7 +535,7 @@ export const WeatherWidget: React.FC = () => {
           </div>
 
           {/* Desktop Anchored Popover */}
-          <div className="hidden sm:block absolute right-0 top-full mt-2 w-96 p-4 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/15 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+          <div className="hidden sm:block absolute right-0 top-full mt-2 w-96 p-4 rounded-2xl bg-white/95 backdrop-blur-xl border border-stone-200 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
             <WeatherPopupCard
               currentWeather={currentWeather}
               dailyForecast={dailyForecast}
@@ -581,19 +581,19 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
   onClose,
 }) => {
   return (
-    <div className="space-y-3 text-xs">
+    <div className="space-y-3 text-xs text-stone-800">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-white/10">
+      <div className="flex items-center justify-between pb-3 border-b border-stone-200">
         <div className="flex items-center gap-2.5">
           <div className={`p-2 rounded-xl ${config.badgeBg} ${config.iconColor}`}>
             <IconComponent className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-1 font-bold text-white text-sm">
-              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="flex items-center gap-1 font-bold text-stone-900 text-sm">
+              <MapPin className="w-3.5 h-3.5 text-rose-700" />
               <span>{locationName} 실시간 날씨</span>
             </div>
-            <div className="text-[10px] text-slate-400">
+            <div className="text-[10px] text-stone-500">
               {config.label} •{' '}
               {lastUpdated
                 ? lastUpdated.toLocaleTimeString('ko-KR', {
@@ -614,11 +614,11 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               fetchWeather();
             }}
             disabled={isLoading}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border border-stone-200 transition-all cursor-pointer"
             title="날씨 새로고침"
           >
             <RefreshCw
-              className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`}
+              className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-700' : ''}`}
             />
           </button>
           <button
@@ -627,7 +627,7 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border border-stone-200 transition-all cursor-pointer"
             title="닫기"
           >
             <X className="w-3.5 h-3.5" />
@@ -637,49 +637,49 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
 
       {/* Current Metrics Grid */}
       <div className="grid grid-cols-3 gap-2 my-2.5">
-        <div className="p-2 rounded-xl bg-slate-950/60 border border-white/5 text-center">
-          <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
-            <Thermometer className="w-3 h-3 text-rose-400" />
+        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
+          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
+            <Thermometer className="w-3 h-3 text-rose-700" />
             <span>현재 기온</span>
           </div>
-          <div className="text-base font-black text-white font-athletic mt-0.5">
+          <div className="text-base font-black text-stone-900 font-athletic mt-0.5">
             {currentWeather.temp}°C
           </div>
         </div>
 
-        <div className="p-2 rounded-xl bg-slate-950/60 border border-white/5 text-center">
-          <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
-            <Droplets className="w-3 h-3 text-cyan-400" />
+        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
+          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
+            <Droplets className="w-3 h-3 text-emerald-700" />
             <span>체감 / 습도</span>
           </div>
-          <div className="text-xs font-bold text-cyan-300 font-athletic mt-0.5">
+          <div className="text-xs font-bold text-emerald-800 font-athletic mt-0.5">
             {currentWeather.feelsLike}°C
-            <span className="text-[10px] text-slate-400 font-normal font-sans ml-1">
+            <span className="text-[10px] text-stone-500 font-normal font-sans ml-1">
               ({currentWeather.humidity}%)
             </span>
           </div>
         </div>
 
-        <div className="p-2 rounded-xl bg-slate-950/60 border border-white/5 text-center">
-          <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1">
-            <Wind className="w-3 h-3 text-emerald-400" />
+        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
+          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
+            <Wind className="w-3 h-3 text-amber-700" />
             <span>풍속</span>
           </div>
-          <div className="text-xs font-bold text-emerald-300 font-athletic mt-0.5">
+          <div className="text-xs font-bold text-amber-800 font-athletic mt-0.5">
             {currentWeather.windSpeed}{' '}
-            <span className="text-[10px] text-slate-400 font-normal font-sans">km/h</span>
+            <span className="text-[10px] text-stone-500 font-normal font-sans">km/h</span>
           </div>
         </div>
       </div>
 
       {/* Running Gear Advice */}
       {gearAdvice && (
-        <div className="p-2.5 rounded-xl bg-gradient-to-r from-emerald-950/50 via-slate-950/60 to-slate-950 border border-emerald-500/30 space-y-1.5">
-          <div className="flex items-center gap-1.5 text-emerald-300 font-bold text-[11px] whitespace-nowrap">
+        <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-1.5">
+          <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-[11px] whitespace-nowrap">
             <span>🏃‍♂️ 오늘의 러닝 복장 가이드</span>
           </div>
-          <div className="text-white font-semibold text-[11px] keep-all">{gearAdvice.gear}</div>
-          <p className="text-[10px] text-slate-300 leading-relaxed border-t border-white/5 pt-1 keep-all">
+          <div className="text-stone-900 font-semibold text-[11px] keep-all">{gearAdvice.gear}</div>
+          <p className="text-[10px] text-stone-600 leading-relaxed border-t border-emerald-200/50 pt-1 keep-all">
             💡 {gearAdvice.tip}
           </p>
         </div>
@@ -687,9 +687,9 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
 
       {/* Quick 3-Day Forecast mini summary in popover */}
       {dailyForecast.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-white/10">
-          <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-cyan-400" />
+        <div className="space-y-1.5 pt-2 border-t border-stone-200">
+          <div className="text-[10px] font-bold text-stone-600 flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-emerald-700" />
             <span>향후 3일간 기상 및 훈련 환경</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
@@ -698,21 +698,21 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               return (
                 <div
                   key={idx}
-                  className="p-1.5 rounded-lg bg-slate-950/70 border border-white/5 text-center flex flex-col justify-between gap-1"
+                  className="p-1.5 rounded-lg bg-stone-50 border border-stone-200 text-center flex flex-col justify-between gap-1"
                 >
-                  <div className="text-[10px] font-bold text-slate-300">{day.dayName}</div>
+                  <div className="text-[10px] font-bold text-stone-700">{day.dayName}</div>
                   <div className="flex items-center justify-center gap-1 my-0.5">
                     <DayIcon className={`w-3.5 h-3.5 ${day.iconColor}`} />
-                    <span className="text-[10px] text-white font-medium">
+                    <span className="text-[10px] text-stone-900 font-medium">
                       {day.conditionLabel}
                     </span>
                   </div>
-                  <div className="text-[10px] font-mono text-slate-300 font-bold">
-                    <span className="text-cyan-300">{day.minTemp}°</span> ~{' '}
-                    <span className="text-amber-300">{day.maxTemp}°</span>
+                  <div className="text-[10px] font-mono font-bold">
+                    <span className="text-emerald-800">{day.minTemp}°</span> ~{' '}
+                    <span className="text-rose-900">{day.maxTemp}°</span>
                   </div>
                   {day.rainProb > 0 && (
-                    <div className="text-[9px] text-blue-300 font-medium">
+                    <div className="text-[9px] text-blue-700 font-medium">
                       강수 {day.rainProb}%
                     </div>
                   )}
@@ -739,29 +739,29 @@ export const ThreeDayWeatherForecast: React.FC = () => {
   }
 
   return (
-    <div className="mt-3.5 pt-3 border-t border-white/10">
+    <div className="mt-3.5 pt-3 border-t border-stone-200">
       {/* Header bar of 3-Day Forecast */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex-shrink-0">
+          <div className="p-1 rounded-md bg-rose-100 text-rose-900 border border-rose-200 flex-shrink-0">
             <Calendar className="w-3.5 h-3.5" />
           </div>
-          <span className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
             <span className="whitespace-nowrap">주간 훈련 계획을 위한 3일 기상 예보</span>
-            <span className="text-[10px] font-normal text-slate-400 font-mono whitespace-nowrap">
+            <span className="text-[10px] font-normal text-stone-500 font-mono whitespace-nowrap">
               ({locationName} 기준)
             </span>
           </span>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 text-xs flex-shrink-0">
-          <span className="text-[11px] text-slate-400 hidden md:inline keep-all">
+          <span className="text-[11px] text-stone-500 hidden md:inline keep-all">
             💡 일별 기온과 강수 확률에 맞추어 조깅/포인트 훈련 일정을 배치하세요.
           </span>
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900/60 border border-white/10 hover:border-white/20 transition-all cursor-pointer whitespace-nowrap"
+            className="text-[11px] text-stone-600 hover:text-stone-900 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-200 transition-all cursor-pointer whitespace-nowrap"
           >
             <span>{isExpanded ? '예보 접기' : '3일 예보 펼치기'}</span>
             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -777,10 +777,10 @@ export const ThreeDayWeatherForecast: React.FC = () => {
             return (
               <div
                 key={idx}
-                className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2 shadow-sm ${
+                className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2 shadow-2xs ${
                   idx === 0
-                    ? 'bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-950 border-emerald-500/30 ring-1 ring-emerald-500/10'
-                    : 'bg-slate-900/70 hover:bg-slate-900/90 border-white/10 hover:border-white/20'
+                    ? 'bg-emerald-50/90 border-emerald-300 ring-1 ring-emerald-400/20'
+                    : 'bg-stone-50/90 hover:bg-stone-100/90 border-stone-200'
                 }`}
               >
                 {/* Top Row: Date, Day badge & Weather Icon */}
@@ -789,13 +789,13 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                     <span
                       className={`text-[10px] font-black px-1.5 py-0.5 rounded-md flex-shrink-0 ${
                         idx === 0
-                          ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-300 border border-white/10'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-stone-200 text-stone-800'
                       }`}
                     >
                       {item.dayName}
                     </span>
-                    <span className="text-xs font-bold text-white">{item.dateLabel}</span>
+                    <span className="text-xs font-bold text-stone-900">{item.dateLabel}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
@@ -804,38 +804,38 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                     >
                       <ItemIcon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-xs font-bold text-slate-200">
+                    <span className="text-xs font-bold text-stone-800">
                       {item.conditionLabel}
                     </span>
                   </div>
                 </div>
 
                 {/* Middle Row: Temperature & Rain */}
-                <div className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-black/30 border border-white/5 whitespace-nowrap">
+                <div className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white border border-stone-200 whitespace-nowrap">
                   <div className="flex items-center gap-1.5 font-athletic">
-                    <span className="text-[10px] text-slate-400 font-sans">기온:</span>
-                    <span className="text-cyan-300 font-bold">{item.minTemp}°C</span>
-                    <span className="text-slate-500">~</span>
-                    <span className="text-amber-300 font-bold">{item.maxTemp}°C</span>
+                    <span className="text-[10px] text-stone-500 font-sans">기온:</span>
+                    <span className="text-emerald-800 font-bold">{item.minTemp}°C</span>
+                    <span className="text-stone-400">~</span>
+                    <span className="text-rose-900 font-bold">{item.maxTemp}°C</span>
                   </div>
 
                   <div className="flex items-center gap-1 font-mono text-[11px] flex-shrink-0">
                     <Umbrella
                       className={`w-3 h-3 ${
                         item.rainProb >= 50
-                          ? 'text-cyan-400 animate-pulse'
+                          ? 'text-blue-600 animate-pulse'
                           : item.rainProb > 0
-                          ? 'text-blue-400'
-                          : 'text-slate-500'
+                          ? 'text-blue-500'
+                          : 'text-stone-400'
                       }`}
                     />
                     <span
                       className={
                         item.rainProb >= 50
-                          ? 'text-cyan-300 font-bold'
+                          ? 'text-blue-700 font-bold'
                           : item.rainProb > 0
-                          ? 'text-slate-300'
-                          : 'text-slate-500'
+                          ? 'text-stone-700'
+                          : 'text-stone-400'
                       }
                     >
                       강수 {item.rainProb}%
@@ -852,7 +852,7 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                       {item.runnerAdvice.tag}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-300 leading-relaxed keep-all">
+                  <p className="text-[10px] text-stone-600 leading-relaxed keep-all">
                     {item.runnerAdvice.tip}
                   </p>
                 </div>

@@ -13,6 +13,7 @@ import { DailyInsightCard } from './components/DailyInsightCard';
 import { RunningPerformanceSummaryCard } from './components/RunningPerformanceSummaryCard';
 import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
 import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
+import { StadiumTrackBackground } from './components/StadiumTrackBackground';
 
 import {
   PhysicalInfo,
@@ -320,19 +321,12 @@ export default function App() {
   const currentVDOT = bestVdotCalc.vdot;
 
   return (
-    <div className="relative min-h-screen text-slate-100 flex flex-col items-center justify-start p-3 sm:p-6 lg:p-8">
+    <div className="relative min-h-screen text-stone-800 flex flex-col items-center justify-start p-3 sm:p-6 lg:p-8">
       {/* 
-        1. 배경화면: 트랙이 있는 잔디 운동장 이미지 + 어두운 오버레이
-        고해상도 스포츠 경기장 트랙 & 잔디 필드 이미지 (인물 없음)
+        1. 배경화면: 따사로운 봄 햇살 아래 푸른 잔디밭과 붉은 우레탄/클레이 육상 트랙이 펼쳐진 야외 운동장 배경
+        2027 경주마라톤 버건디 컬러 & 싱그러운 봄의 초록 잔디 테마
       */}
-      <div
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=2400&q=80')`,
-        }}
-      />
-      {/* 어두운 그라데이션 오버레이 (텍스트 가독성 최우선 확보 - 스크롤 깜빡임 방지) */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-slate-950/90 via-slate-950/85 to-slate-950/95 pointer-events-none" />
+      <StadiumTrackBackground />
 
       {/* Main Glassmorphism Container */}
       <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col smooth-scroll-surface">
@@ -390,11 +384,11 @@ export default function App() {
         />
 
         {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
-        <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-slate-900/95 border-b-2 border-x-2 border-emerald-500/30 shadow-2xl mb-8">
+        <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-white/95 border-b-2 border-x-2 border-emerald-600/30 shadow-xl mb-8 text-stone-800">
           {isLoading ? (
-            <div className="glass-panel rounded-2xl p-12 text-center border border-white/10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400 mb-3" />
-              <p className="text-sm text-slate-300">러닝 대시보드 데이터를 불러오는 중입니다...</p>
+            <div className="glass-panel rounded-2xl p-12 text-center border border-emerald-500/20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-3" />
+              <p className="text-sm text-stone-600">러닝 대시보드 데이터를 불러오는 중입니다...</p>
             </div>
           ) : (
             <>
@@ -423,6 +417,7 @@ export default function App() {
                   weeklyPlan={weeklyPlan}
                   weeklyPlanSettings={weeklyPlanSettings}
                   shoes={shoes}
+                  races={races}
                   onSaveRecords={handleSaveRecords}
                   onSaveGoals={handleSaveGoals}
                   onAddTrainingSession={handleAddTrainingSession}
@@ -452,12 +447,12 @@ export default function App() {
         <AnnualRunningHeatmap sessions={trainingSessions} />
 
         {/* Footer */}
-        <footer className="w-full text-center py-6 text-xs text-slate-400 border-t border-white/5">
-          <p className="mb-1">
-            PaceMaster · 맞춤형 러닝 대시보드 & 마스터즈 트레이닝 시스템
+        <footer className="w-full text-center py-6 text-xs text-stone-600 border-t border-emerald-900/15">
+          <p className="mb-1 font-semibold text-emerald-950">
+            PaceMaster · 2027 경주마라톤 정조준 & 싱그러운 봄 트랙 러닝 대시보드
           </p>
-          <p className="text-[11px] text-slate-500">
-            Firebase Firestore Multi-device Cloud Sync Ready
+          <p className="text-[11px] text-stone-500">
+            Firebase Firestore Multi-device Cloud Sync Ready · Gyeongju Marathon Heritage Edition
           </p>
         </footer>
       </div>

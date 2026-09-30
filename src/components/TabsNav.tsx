@@ -61,22 +61,22 @@ export const TabsNav: React.FC<TabsNavProps> = ({
       {/* 
         Container without top border - seamlessly connects into content below
       */}
-      <div className="relative pt-1 px-1 sm:px-2 bg-slate-950/80 border-x-2 border-emerald-500/30 backdrop-blur-md rounded-t-2xl sm:rounded-t-3xl">
+      <div className="relative pt-1 px-1 sm:px-2 bg-stone-100/90 border-x-2 border-t-2 border-emerald-600/30 backdrop-blur-md rounded-t-2xl sm:rounded-t-3xl">
         {/* Category guide strip */}
-        <div className="flex items-center justify-between px-2 py-1 mb-1 text-[11px] text-slate-400">
+        <div className="flex items-center justify-between px-2 py-1 mb-1 text-[11px] text-stone-600">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono font-bold uppercase tracking-wider text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+            <span className="font-mono font-bold uppercase tracking-wider text-stone-800">
               상세 관리 탭
             </span>
-            <span className="text-slate-600">/</span>
-            <span className="text-emerald-400 font-semibold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
+            <span className="text-stone-400">/</span>
+            <span className="text-emerald-900 font-bold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
               {activeTab === 'my_info' && '내 신체 스펙 & 러닝화 보관함'}
               {activeTab === 'running_records' && '러닝 기록 분석 & 맞춤 훈련 계획'}
-              {activeTab === 'marathon_races' && '2026 전국 마라톤 대회 일정'}
+              {activeTab === 'marathon_races' && '2026-2027 전국 마라톤 대회 일정 & 경주마라톤'}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 hidden sm:inline font-mono whitespace-nowrap">
+          <span className="text-[10px] text-emerald-800 hidden sm:inline font-mono font-semibold whitespace-nowrap">
             클릭하여 탭 전환
           </span>
         </div>
@@ -97,20 +97,20 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                 onClick={() => handleTabClick(tab.id)}
                 className={`relative group flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-3 sm:py-3.5 rounded-t-xl sm:rounded-t-2xl cursor-pointer select-none transition-colors duration-150 ${
                   isActive
-                    ? 'bg-slate-900/95 border-t-2 border-x border-emerald-400 border-b-transparent shadow-lg text-white font-bold z-20'
-                    : 'bg-slate-950/70 hover:bg-slate-900/60 border-t border-x border-white/5 border-b border-emerald-500/30 text-slate-400 hover:text-slate-200'
+                    ? 'bg-white border-t-2 border-x border-emerald-600 border-b-transparent shadow-md text-stone-900 font-bold z-20'
+                    : 'bg-stone-200/60 hover:bg-white/70 border-t border-x border-stone-200 border-b border-emerald-600/30 text-stone-600 hover:text-stone-900'
                 }`}
               >
                 {/* Active Top Accent Line Glow */}
                 {isActive && (
-                  <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-400 shadow-sm shadow-emerald-400" />
+                  <div className="absolute top-0 left-4 right-4 h-[2px] bg-gradient-to-r from-emerald-600 via-rose-700 to-emerald-600" />
                 )}
 
                 <div
                   className={`p-1.5 sm:p-2 rounded-xl transition-colors shrink-0 ${
                     isActive
-                      ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40'
-                      : 'bg-white/5 text-slate-400 group-hover:bg-emerald-500/10 group-hover:text-emerald-400'
+                      ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/40'
+                      : 'bg-white/80 text-stone-500 group-hover:bg-rose-50 group-hover:text-rose-800'
                   }`}
                 >
                   <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -120,7 +120,7 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                   <div className="flex items-center justify-center sm:justify-start gap-1.5">
                     <span
                       className={`text-xs sm:text-sm font-black tracking-tight truncate ${
-                        isActive ? 'text-white' : 'text-slate-300'
+                        isActive ? 'text-stone-900' : 'text-stone-700 group-hover:text-stone-900'
                       }`}
                     >
                       {tab.label}
@@ -128,8 +128,8 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                     <span
                       className={`hidden md:inline-block text-[9px] px-1.5 py-0.5 rounded-md font-semibold font-mono ${
                         isActive
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                          : 'bg-white/5 text-slate-400'
+                          ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                          : 'bg-stone-200 text-stone-700 border border-stone-300'
                       }`}
                     >
                       {tab.badge}
@@ -137,7 +137,7 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                   </div>
                   <div
                     className={`hidden sm:block text-[10px] mt-0.5 truncate ${
-                      isActive ? 'text-emerald-400/90 font-medium' : 'text-slate-500'
+                      isActive ? 'text-emerald-800 font-bold' : 'text-stone-500'
                     }`}
                   >
                     {tab.sublabel}

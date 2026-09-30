@@ -237,44 +237,44 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
   const getWorkoutColor = (title: string, dist: number) => {
     const t = title.toLowerCase();
     if (t.includes('인터벌') || t.includes('스피드') || t.includes('질주')) {
-      return 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+      return 'bg-rose-100 text-rose-900 border-rose-300 font-semibold';
     }
     if (t.includes('lsd') || t.includes('장거리') || dist >= 20) {
-      return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      return 'bg-stone-100 text-stone-800 border-stone-300 font-semibold';
     }
     if (t.includes('템포') || t.includes('지속') || t.includes('대회')) {
-      return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      return 'bg-amber-100 text-amber-900 border-amber-300 font-semibold';
     }
     if (t.includes('회복') || t.includes('리커버리')) {
-      return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      return 'bg-emerald-50 text-emerald-900 border-emerald-200 font-semibold';
     }
-    return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+    return 'bg-emerald-100 text-emerald-900 border-emerald-300 font-semibold';
   };
 
   return (
     <div className="space-y-4">
       {/* 1. Calendar Header & Navigation Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900/80 border border-white/10 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-stone-200 shadow-sm text-stone-800">
         {/* Month Navigator */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-950/70 p-1 rounded-xl border border-white/10">
+          <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-white transition-colors cursor-pointer"
               title="이전 달"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="px-3 min-w-[130px] text-center">
-              <span className="text-base sm:text-lg font-black text-white font-athletic tracking-wide">
+              <span className="text-base sm:text-lg font-black text-stone-900 font-athletic tracking-wide">
                 {currentYear}년 {currentMonth + 1}월
               </span>
             </div>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-stone-600 hover:text-stone-900 hover:bg-white transition-colors cursor-pointer"
               title="다음 달"
             >
               <ChevronRight className="w-5 h-5" />
@@ -284,7 +284,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
           <button
             type="button"
             onClick={handleGoToday}
-            className="px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl transition-all cursor-pointer shadow-sm"
+            className="px-3 py-1.5 text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl transition-all cursor-pointer shadow-2xs"
           >
             이번 달 (오늘)
           </button>
@@ -292,26 +292,26 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
         {/* Monthly Summary Badges */}
         <div className="flex items-center flex-wrap gap-2 text-xs">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-            <Activity className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 font-semibold shadow-2xs">
+            <Activity className="w-3.5 h-3.5 text-emerald-700" />
             <span>총 거리:</span>
-            <strong className="font-athletic text-sm text-emerald-400">
+            <strong className="font-athletic text-sm text-emerald-800">
               {monthStats.totalDistance} km
             </strong>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">
-            <Footprints className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 font-semibold shadow-2xs">
+            <Footprints className="w-3.5 h-3.5 text-rose-800" />
             <span>훈련:</span>
-            <strong className="font-athletic text-sm text-cyan-400">
+            <strong className="font-athletic text-sm text-rose-900">
               {monthStats.sessionCount}회
             </strong>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300">
-            <Zap className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-semibold shadow-2xs">
+            <Zap className="w-3.5 h-3.5 text-amber-700" />
             <span>평균 페이스:</span>
-            <strong className="font-athletic text-sm text-amber-400">
+            <strong className="font-athletic text-sm text-amber-800">
               {monthStats.avgPace}
             </strong>
           </div>
@@ -319,14 +319,14 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
       </div>
 
       {/* 2. Interactive Calendar Matrix Table */}
-      <div className="rounded-2xl bg-slate-900/60 border border-white/10 overflow-hidden shadow-xl">
+      <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 border-b border-white/10 bg-slate-950/70 text-center text-xs font-bold py-2.5">
+        <div className="grid grid-cols-7 border-b border-stone-200 bg-stone-50 text-center text-xs font-bold py-2.5">
           {WEEKDAYS.map((day, idx) => (
             <div
               key={day}
               className={`${
-                idx === 0 ? 'text-rose-400' : idx === 6 ? 'text-cyan-400' : 'text-slate-400'
+                idx === 0 ? 'text-rose-700' : idx === 6 ? 'text-emerald-700' : 'text-stone-700'
               }`}
             >
               {day}
@@ -335,10 +335,10 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
         </div>
 
         {/* Calendar Grid Rows */}
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-stone-200">
           {calendarWeeks.map((week, wIdx) => (
             <div key={wIdx} className="relative group/row">
-              <div className="grid grid-cols-7 divide-x divide-white/5">
+              <div className="grid grid-cols-7 divide-x divide-stone-200">
                 {week.days.map((day) => {
                   const isSelected = selectedDateStr === day.dateStr;
                   const hasSessions = day.sessions.length > 0;
@@ -349,10 +349,10 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                       onClick={() => setSelectedDateStr(day.dateStr)}
                       className={`min-h-[96px] sm:min-h-[110px] p-1.5 sm:p-2 flex flex-col justify-between transition-all cursor-pointer select-none relative ${
                         !day.isCurrentMonth
-                          ? 'bg-slate-950/30 opacity-40 hover:opacity-70'
+                          ? 'bg-stone-50/50 opacity-40 hover:opacity-70'
                           : isSelected
-                          ? 'bg-emerald-500/10 ring-1 ring-inset ring-emerald-400/50'
-                          : 'bg-slate-900/40 hover:bg-slate-800/50'
+                          ? 'bg-emerald-50/80 ring-2 ring-inset ring-emerald-600'
+                          : 'bg-white hover:bg-stone-50'
                       }`}
                     >
                       {/* Top Date Header Row */}
@@ -360,12 +360,12 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                         <span
                           className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${
                             day.isToday
-                              ? 'bg-emerald-400 text-slate-950 font-black shadow-sm shadow-emerald-400/40'
+                              ? 'bg-emerald-600 text-white font-black shadow-xs'
                               : day.dayOfWeek === 0
-                              ? 'text-rose-400'
+                              ? 'text-rose-700'
                               : day.dayOfWeek === 6
-                              ? 'text-cyan-400'
-                              : 'text-slate-300'
+                              ? 'text-emerald-700'
+                              : 'text-stone-700'
                           }`}
                         >
                           {day.dayNumber}
@@ -373,7 +373,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
                         {/* Daily Total Distance Pill */}
                         {hasSessions && (
-                          <span className="text-[10px] sm:text-xs font-athletic font-black text-emerald-300 bg-emerald-500/20 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                          <span className="text-[10px] sm:text-xs font-athletic font-black text-emerald-900 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300">
                             {day.totalDistance}k
                           </span>
                         )}
@@ -387,7 +387,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                           return (
                             <div
                               key={s.id}
-                              className={`p-1 rounded-md text-[10px] border leading-tight truncate ${badgeColor}`}
+                              className={`p-1 rounded-md text-[10px] border leading-tight truncate shadow-2xs ${badgeColor}`}
                               title={`${s.title} (${s.totalDistanceKm}km, ${s.avgPace})`}
                             >
                               <div className="flex items-center justify-between gap-1">
@@ -397,7 +397,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                                 <span className="font-mono shrink-0">{s.avgPace}</span>
                               </div>
                               {s.shoeName && (
-                                <div className="text-[9px] text-slate-400 truncate opacity-90 mt-0.5 flex items-center gap-0.5">
+                                <div className="text-[9px] text-stone-600 truncate opacity-90 mt-0.5 flex items-center gap-0.5 font-medium">
                                   <span>👟</span>
                                   <span className="truncate">{s.shoeName}</span>
                                 </div>
@@ -407,7 +407,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                         })}
 
                         {day.sessions.length > 2 && (
-                          <div className="text-[9px] text-slate-400 text-center font-bold">
+                          <div className="text-[9px] text-stone-500 text-center font-bold">
                             +{day.sessions.length - 2}개 더보기
                           </div>
                         )}
@@ -419,7 +419,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
               {/* Weekly Mileage Floating Indicator on Row Hover */}
               {week.weeklyDistance > 0 && (
-                <div className="absolute right-2 top-2 hidden group-hover/row:flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-slate-950/90 text-emerald-400 border border-emerald-500/40 shadow-lg pointer-events-none z-10 font-bold font-athletic">
+                <div className="absolute right-2 top-2 hidden group-hover/row:flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-800 text-white border border-emerald-700 shadow-md pointer-events-none z-10 font-bold font-athletic">
                   <span>주간 합계:</span>
                   <span>{week.weeklyDistance} km</span>
                 </div>
@@ -431,24 +431,24 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
       {/* 3. Selected Date Detail Drawer Panel */}
       {selectedDateStr && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-3 text-stone-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300">
                 <CalendarIcon className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="text-base font-bold text-white font-mono">
+                  <h4 className="text-base font-bold text-stone-900 font-mono">
                     {selectedDateStr} 훈련 상세 내역
                   </h4>
                   {selectedDateStr === todayStr && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold">
                       오늘
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-stone-600">
                   {selectedDateSessions.length > 0
                     ? `총 ${selectedDateSessions.length}개의 훈련 세션 기록이 있습니다.`
                     : '이 날짜에는 등록된 러닝 훈련이 없습니다 (휴식일).'}
@@ -460,7 +460,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenTodayWorkoutModal}
-                className="px-3.5 py-1.5 text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>오늘 훈련 기록 추가</span>
@@ -470,12 +470,12 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
           {/* Session Cards for Selected Date */}
           {selectedDateSessions.length === 0 ? (
-            <div className="py-8 text-center rounded-xl bg-slate-950/40 border border-white/5">
+            <div className="py-8 text-center rounded-xl bg-stone-50 border border-stone-200">
               <span className="text-3xl mb-2 inline-block">🏃‍♂️💤</span>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-stone-600 font-semibold">
                 {selectedDateStr} 에는 달린 기록이 없습니다.
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">
+              <p className="text-[11px] text-stone-500 mt-1">
                 완전 휴식 또는 크로스 트레이닝으로 다음 러닝을 준비한 날입니다.
               </p>
             </div>
@@ -484,13 +484,13 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
               {selectedDateSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-white/10 hover:border-white/20 transition-all space-y-3"
+                  className="p-3.5 sm:p-4 rounded-xl bg-stone-50 border border-stone-200 hover:border-emerald-300 transition-all space-y-3 shadow-2xs"
                 >
                   {/* Card Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-xs font-mono text-cyan-300 font-bold bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                        <span className="text-xs font-mono text-emerald-900 font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
                           {session.date}
                         </span>
 
@@ -500,8 +500,8 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                           onClick={() => onOpenShoeModal(session)}
                           className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
                             session.shoeName
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 font-semibold'
-                              : 'bg-slate-800 text-slate-400 border-white/10 hover:text-white hover:border-emerald-500/30'
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200 font-semibold'
+                              : 'bg-white text-stone-600 border-stone-300 hover:text-stone-900 hover:border-emerald-500'
                           }`}
                           title="훈련 착용 러닝화 선택 / 변경"
                         >
@@ -509,7 +509,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                           <span>{session.shoeName || '+ 러닝화 지정'}</span>
                         </button>
                       </div>
-                      <h5 className="text-sm sm:text-base font-bold text-white">
+                      <h5 className="text-sm sm:text-base font-bold text-stone-900">
                         {session.title}
                       </h5>
                     </div>
@@ -519,10 +519,10 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onShareSession(session)}
-                        className="px-2.5 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        className="px-2.5 py-1.5 text-xs font-semibold text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
                         title="이미지 카드로 저장 및 공유"
                       >
-                        <Share2 className="w-3.5 h-3.5" />
+                        <Share2 className="w-3.5 h-3.5 text-rose-700" />
                         <span>이미지 저장</span>
                       </button>
 
@@ -533,7 +533,7 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                             onDeleteSession(session.id);
                           }
                         }}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer"
+                        className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-100 rounded-lg transition-all cursor-pointer"
                         title="기록 삭제"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -542,31 +542,31 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                   </div>
 
                   {/* Stat Metrics Row */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-white/5 text-xs">
-                    <div className="p-2 rounded-lg bg-slate-900/60 border border-white/5">
-                      <div className="text-[10px] text-slate-400 mb-0.5">거리</div>
-                      <div className="text-sm sm:text-base font-black text-white font-athletic">
-                        {session.totalDistanceKm} <span className="text-xs text-emerald-400 font-bold">km</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-stone-200 text-xs">
+                    <div className="p-2 rounded-lg bg-white border border-stone-200 shadow-2xs">
+                      <div className="text-[10px] text-stone-500 mb-0.5">거리</div>
+                      <div className="text-sm sm:text-base font-black text-stone-900 font-athletic">
+                        {session.totalDistanceKm} <span className="text-xs text-emerald-700 font-bold">km</span>
                       </div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-slate-900/60 border border-white/5">
-                      <div className="text-[10px] text-slate-400 mb-0.5">평균 페이스</div>
-                      <div className="text-sm sm:text-base font-black text-cyan-300 font-athletic">
-                        {session.avgPace} <span className="text-xs text-slate-400 font-normal">/km</span>
+                    <div className="p-2 rounded-lg bg-white border border-stone-200 shadow-2xs">
+                      <div className="text-[10px] text-stone-500 mb-0.5">평균 페이스</div>
+                      <div className="text-sm sm:text-base font-black text-emerald-800 font-athletic">
+                        {session.avgPace} <span className="text-xs text-stone-500 font-normal">/km</span>
                       </div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-slate-900/60 border border-white/5">
-                      <div className="text-[10px] text-slate-400 mb-0.5">소요 시간</div>
-                      <div className="text-sm sm:text-base font-black text-white font-athletic">
+                    <div className="p-2 rounded-lg bg-white border border-stone-200 shadow-2xs">
+                      <div className="text-[10px] text-stone-500 mb-0.5">소요 시간</div>
+                      <div className="text-sm sm:text-base font-black text-stone-900 font-athletic">
                         {session.totalTime}
                       </div>
                     </div>
 
-                    <div className="p-2 rounded-lg bg-slate-900/60 border border-white/5">
-                      <div className="text-[10px] text-slate-400 mb-0.5">평균 심박수</div>
-                      <div className="text-sm sm:text-base font-black text-rose-300 font-athletic">
+                    <div className="p-2 rounded-lg bg-white border border-stone-200 shadow-2xs">
+                      <div className="text-[10px] text-stone-500 mb-0.5">평균 심박수</div>
+                      <div className="text-sm sm:text-base font-black text-rose-900 font-athletic">
                         {session.avgHr ? `${session.avgHr} bpm` : '-'}
                       </div>
                     </div>
@@ -574,27 +574,27 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
                   {/* Session Notes if exists */}
                   {session.notes && (
-                    <div className="p-2.5 rounded-lg bg-slate-900/50 border border-white/5 text-xs text-slate-300">
-                      <span className="text-[10px] text-slate-400 block mb-0.5 font-semibold">훈련 메모:</span>
+                    <div className="p-2.5 rounded-lg bg-white border border-stone-200 text-xs text-stone-700 shadow-2xs">
+                      <span className="text-[10px] text-stone-500 block mb-0.5 font-semibold">훈련 메모:</span>
                       {session.notes}
                     </div>
                   )}
 
                   {/* Laps Preview if exists */}
                   {session.laps && session.laps.length > 0 && (
-                    <div className="pt-2 border-t border-white/5">
-                      <div className="text-[10px] text-slate-400 font-semibold mb-1.5 flex items-center justify-between">
+                    <div className="pt-2 border-t border-stone-200">
+                      <div className="text-[10px] text-stone-600 font-semibold mb-1.5 flex items-center justify-between">
                         <span>랩 스플릿 (총 {session.laps.length}개)</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
                         {session.laps.map((l) => (
                           <div
                             key={l.lap}
-                            className="px-2 py-1 rounded bg-slate-900/80 border border-white/5 text-[10px] flex items-center gap-1.5 font-mono"
+                            className="px-2 py-1 rounded bg-white border border-stone-200 text-[10px] flex items-center gap-1.5 font-mono shadow-2xs"
                           >
-                            <span className="text-slate-400 font-bold">L{l.lap}</span>
-                            <span className="text-emerald-300 font-bold">{l.avgPace}</span>
-                            {l.avgHr && <span className="text-rose-300">({l.avgHr})</span>}
+                            <span className="text-stone-500 font-bold">L{l.lap}</span>
+                            <span className="text-emerald-800 font-bold">{l.avgPace}</span>
+                            {l.avgHr && <span className="text-rose-800">({l.avgHr})</span>}
                           </div>
                         ))}
                       </div>

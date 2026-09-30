@@ -301,37 +301,37 @@ export function getRunnerTier(vdot: number): { label: string; badgeColor: string
   if (vdot >= 65) {
     return {
       label: '엘리트 / 마스터즈 최상위 (Sub-2:35)',
-      badgeColor: 'text-amber-400 bg-amber-950/60 border-amber-500/40',
+      badgeColor: 'text-rose-950 bg-rose-100 border-rose-300 font-bold',
       description: '전국 마스터즈 대회 입상권 수준의 탁월한 엔진',
     };
   } else if (vdot >= 54) {
     return {
       label: '서브-3 (Sub-3) 완주 주자',
-      badgeColor: 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40',
+      badgeColor: 'text-emerald-950 bg-emerald-100 border-emerald-300 font-bold',
       description: '동호인 상위 2% 이내, 풀코스 2시간대 주파 실력',
     };
   } else if (vdot >= 47) {
     return {
       label: '싱글 / 서브-330 (Sub-3:30)',
-      badgeColor: 'text-cyan-400 bg-cyan-950/60 border-cyan-500/40',
+      badgeColor: 'text-emerald-900 bg-emerald-50 border-emerald-300 font-bold',
       description: '견고한 유산소 베이스와 템포주 능력을 겸비한 상급 러너',
     };
   } else if (vdot >= 40) {
     return {
       label: '서브-4 (Sub-4) 목표 주자',
-      badgeColor: 'text-blue-400 bg-blue-950/60 border-blue-500/40',
+      badgeColor: 'text-amber-900 bg-amber-50 border-amber-300 font-bold',
       description: '체계적인 훈련으로 풀코스 3시간대 진입을 노리는 탄탄한 중급자',
     };
   } else if (vdot >= 32) {
     return {
       label: '발전하는 러너 (Progressive Runner)',
-      badgeColor: 'text-purple-400 bg-purple-950/60 border-purple-500/40',
+      badgeColor: 'text-stone-800 bg-stone-100 border-stone-300 font-bold',
       description: '10K 50~60분대 안정적 완주, 하프 마라톤 도전 단계',
     };
   } else {
     return {
       label: '비기너 / 입문 러너 (Entry Runner)',
-      badgeColor: 'text-slate-300 bg-slate-800/80 border-slate-600/40',
+      badgeColor: 'text-stone-700 bg-stone-100 border-stone-200 font-medium',
       description: '부상 방지 조깅과 Zone 2 지구력 축적이 최우선인 즐거운 단계',
     };
   }

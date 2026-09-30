@@ -257,32 +257,32 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
     >
-      <div className="relative w-full max-w-2xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 rounded-2xl border border-cyan-500/30 shadow-2xl shadow-cyan-950/40 my-8 overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl border border-stone-200 shadow-2xl my-8 overflow-hidden text-stone-800">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 bg-slate-950/50">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-stone-200 bg-stone-50">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-slate-950 font-bold shadow-md shadow-cyan-500/25">
-              <Calculator className="w-5 h-5 text-white" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-800 to-rose-950 text-white font-bold shadow-xs">
+              <Calculator className="w-5 h-5 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold text-white font-athletic">
+                <h2 className="text-lg sm:text-xl font-bold text-stone-900 font-athletic">
                   목표 페이스 계산기
                 </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-900 border border-rose-300 font-semibold font-athletic">
                   TARGET PACE
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-stone-600">
                 목표 거리와 완주 예상 시간을 입력하면 필요한 평균 페이스와 랩 타임을 계산합니다.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
             title="닫기"
           >
             <X className="w-5 h-5" />
@@ -292,13 +292,13 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
         {/* Modal Body */}
         <div className="p-4 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {/* Section 1: Target Distance Selection */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+          <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-cyan-400" />
+              <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                <Compass className="w-4 h-4 text-emerald-700" />
                 <span>1. 목표 거리 선택</span>
               </label>
-              <div className="text-xs font-bold text-cyan-400">
+              <div className="text-xs font-bold text-emerald-800 font-athletic">
                 현재 거리: <span className="font-mono text-sm">{effectiveDistanceKm} km</span>
               </div>
             </div>
@@ -314,8 +314,8 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                     onClick={() => handleSelectPreset(p)}
                     className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center ${
                       isSelected
-                        ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/20 font-extrabold'
-                        : 'bg-slate-900/80 text-slate-300 border-white/10 hover:border-white/20 hover:text-white'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-extrabold'
+                        : 'bg-white text-stone-700 border-stone-200 hover:border-emerald-300 hover:text-stone-900 shadow-2xs'
                     }`}
                   >
                     <span>{p.label}</span>
@@ -326,8 +326,8 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
             </div>
 
             {/* Direct Distance Input */}
-            <div className="pt-2 border-t border-white/5 flex items-center gap-3">
-              <span className="text-xs text-slate-400 whitespace-nowrap">또는 직접 입력:</span>
+            <div className="pt-2 border-t border-stone-200 flex items-center gap-3">
+              <span className="text-xs text-stone-500 whitespace-nowrap">또는 직접 입력:</span>
               <div className="relative flex-1">
                 <input
                   type="number"
@@ -337,9 +337,9 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                   value={customDistanceInput}
                   onChange={(e) => handleCustomDistanceChange(e.target.value)}
                   placeholder="예: 7.5 또는 42.195"
-                  className="w-full pl-3 pr-10 py-1.5 glass-input rounded-xl text-xs font-mono font-semibold"
+                  className="w-full pl-3 pr-10 py-1.5 bg-white border border-stone-300 rounded-xl text-xs font-mono font-semibold text-stone-900 focus:outline-none focus:border-emerald-500"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-500">
                   km
                 </span>
               </div>
@@ -347,13 +347,13 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
           </div>
 
           {/* Section 2: Target Finish Time */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+          <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Timer className="w-4 h-4 text-emerald-400" />
+              <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                <Timer className="w-4 h-4 text-emerald-700" />
                 <span>2. 예상 완주 시간 설정 (hh : mm : ss)</span>
               </label>
-              <div className="text-xs font-bold text-emerald-400 font-mono">
+              <div className="text-xs font-bold text-emerald-800 font-mono">
                 총 {totalSeconds > 0 ? formatSecondsToTime(totalSeconds, true) : '00:00:00'} (
                 {totalSeconds.toLocaleString()}초)
               </div>
@@ -362,13 +362,13 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
             {/* Time Number Inputs */}
             <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
               {/* Hours */}
-              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/10 text-center">
-                <span className="block text-[11px] text-slate-400 font-medium mb-1">시간 (Hours)</span>
+              <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                <span className="block text-[11px] text-stone-500 font-medium mb-1">시간 (Hours)</span>
                 <div className="flex items-center justify-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setHours((prev) => Math.max(0, prev - 1))}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     -
                   </button>
@@ -378,12 +378,12 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                     max="23"
                     value={hours}
                     onChange={(e) => setHours(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="w-14 text-center py-1 bg-slate-950/80 border border-white/20 rounded-lg text-lg font-bold font-mono text-white"
+                    className="w-14 text-center py-1 bg-stone-50 border border-stone-300 rounded-lg text-lg font-bold font-mono text-stone-900"
                   />
                   <button
                     type="button"
                     onClick={() => setHours((prev) => prev + 1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     +
                   </button>
@@ -391,13 +391,13 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
               </div>
 
               {/* Minutes */}
-              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/10 text-center">
-                <span className="block text-[11px] text-slate-400 font-medium mb-1">분 (Minutes)</span>
+              <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                <span className="block text-[11px] text-stone-500 font-medium mb-1">분 (Minutes)</span>
                 <div className="flex items-center justify-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => adjustMinutes(-1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     -
                   </button>
@@ -407,12 +407,12 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                     max="59"
                     value={minutes}
                     onChange={(e) => setMinutes(Math.max(0, Math.min(59, parseInt(e.target.value, 10) || 0)))}
-                    className="w-14 text-center py-1 bg-slate-950/80 border border-white/20 rounded-lg text-lg font-bold font-mono text-white"
+                    className="w-14 text-center py-1 bg-stone-50 border border-stone-300 rounded-lg text-lg font-bold font-mono text-stone-900"
                   />
                   <button
                     type="button"
                     onClick={() => adjustMinutes(1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     +
                   </button>
@@ -420,13 +420,13 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
               </div>
 
               {/* Seconds */}
-              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-white/10 text-center">
-                <span className="block text-[11px] text-slate-400 font-medium mb-1">초 (Seconds)</span>
+              <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                <span className="block text-[11px] text-stone-500 font-medium mb-1">초 (Seconds)</span>
                 <div className="flex items-center justify-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => adjustSeconds(-1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     -
                   </button>
@@ -436,12 +436,12 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                     max="59"
                     value={seconds}
                     onChange={(e) => setSeconds(Math.max(0, Math.min(59, parseInt(e.target.value, 10) || 0)))}
-                    className="w-14 text-center py-1 bg-slate-950/80 border border-white/20 rounded-lg text-lg font-bold font-mono text-white"
+                    className="w-14 text-center py-1 bg-stone-50 border border-stone-300 rounded-lg text-lg font-bold font-mono text-stone-900"
                   />
                   <button
                     type="button"
                     onClick={() => adjustSeconds(1)}
-                    className="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-sm font-bold flex items-center justify-center"
+                    className="w-7 h-7 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-300 text-sm font-bold flex items-center justify-center cursor-pointer"
                   >
                     +
                   </button>
@@ -451,39 +451,39 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
 
             {/* Quick Adjustment Chips */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-slate-400 mr-1">빠른 조절:</span>
+              <span className="text-[11px] text-stone-500 mr-1 font-medium">빠른 조절:</span>
               <button
                 type="button"
                 onClick={() => adjustMinutes(-5)}
-                className="px-2 py-1 rounded-lg bg-slate-900 text-[11px] font-mono font-medium text-slate-300 hover:bg-slate-800 border border-white/10"
+                className="px-2 py-1 rounded-lg bg-white text-[11px] font-mono font-medium text-stone-700 hover:bg-stone-100 border border-stone-300 cursor-pointer shadow-2xs"
               >
                 -5분
               </button>
               <button
                 type="button"
                 onClick={() => adjustMinutes(-1)}
-                className="px-2 py-1 rounded-lg bg-slate-900 text-[11px] font-mono font-medium text-slate-300 hover:bg-slate-800 border border-white/10"
+                className="px-2 py-1 rounded-lg bg-white text-[11px] font-mono font-medium text-stone-700 hover:bg-stone-100 border border-stone-300 cursor-pointer shadow-2xs"
               >
                 -1분
               </button>
               <button
                 type="button"
                 onClick={() => adjustMinutes(1)}
-                className="px-2 py-1 rounded-lg bg-slate-900 text-[11px] font-mono font-medium text-slate-300 hover:bg-slate-800 border border-white/10"
+                className="px-2 py-1 rounded-lg bg-white text-[11px] font-mono font-medium text-stone-700 hover:bg-stone-100 border border-stone-300 cursor-pointer shadow-2xs"
               >
                 +1분
               </button>
               <button
                 type="button"
                 onClick={() => adjustMinutes(5)}
-                className="px-2 py-1 rounded-lg bg-slate-900 text-[11px] font-mono font-medium text-slate-300 hover:bg-slate-800 border border-white/10"
+                className="px-2 py-1 rounded-lg bg-white text-[11px] font-mono font-medium text-stone-700 hover:bg-stone-100 border border-stone-300 cursor-pointer shadow-2xs"
               >
                 +5분
               </button>
               <button
                 type="button"
                 onClick={() => adjustMinutes(10)}
-                className="px-2 py-1 rounded-lg bg-slate-900 text-[11px] font-mono font-medium text-slate-300 hover:bg-slate-800 border border-white/10"
+                className="px-2 py-1 rounded-lg bg-white text-[11px] font-mono font-medium text-stone-700 hover:bg-stone-100 border border-stone-300 cursor-pointer shadow-2xs"
               >
                 +10분
               </button>
@@ -491,8 +491,8 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
 
             {/* Popular Distance Time Presets */}
             {TIME_PRESETS_MAP[selectedPreset] && (
-              <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-emerald-400 font-semibold mr-1">
+              <div className="pt-2 border-t border-stone-200 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-emerald-800 font-bold mr-1">
                   {selectedPreset} 대표 목표치:
                 </span>
                 {TIME_PRESETS_MAP[selectedPreset].map((tp) => (
@@ -504,7 +504,7 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                       setMinutes(tp.m);
                       setSeconds(tp.s);
                     }}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all"
+                    className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 text-emerald-900 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                   >
                     {tp.label}
                   </button>
@@ -514,51 +514,51 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
           </div>
 
           {/* Section 3: Primary Calculation Result (Hero Card) */}
-          <div className="relative p-5 rounded-2xl bg-gradient-to-br from-cyan-950/80 via-slate-900/90 to-emerald-950/80 border-2 border-cyan-400/50 shadow-xl overflow-hidden">
+          <div className="relative p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-stone-50/90 to-rose-50/90 border-2 border-emerald-600/30 shadow-md overflow-hidden text-stone-800">
             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-              <Gauge className="w-32 h-32 text-cyan-400" />
+              <Gauge className="w-32 h-32 text-emerald-700" />
             </div>
 
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-semibold uppercase tracking-wider mb-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
                   필요한 평균 페이스
                 </span>
                 <div className="flex items-baseline gap-2">
-                  <div className="text-4xl sm:text-5xl font-black text-white font-athletic tracking-tight">
+                  <div className="text-4xl sm:text-5xl font-black text-rose-950 font-athletic tracking-tight">
                     {paceFormatted}
                   </div>
-                  <span className="text-base sm:text-lg font-bold text-cyan-300">/ km</span>
+                  <span className="text-base sm:text-lg font-bold text-rose-800">/ km</span>
                 </div>
-                <p className="text-xs text-slate-300 mt-1">
-                  1km당 <span className="font-bold text-cyan-300">{paceMinutes}분 {paceSecondsRemainder}초</span>의 속도로 달려야 합니다.
+                <p className="text-xs text-stone-700 mt-1">
+                  1km당 <span className="font-bold text-rose-900">{paceMinutes}분 {paceSecondsRemainder}초</span>의 속도로 달려야 합니다.
                 </p>
               </div>
 
               {/* Quick Stat Pill Highlights */}
               <div className="grid grid-cols-2 gap-2 sm:min-w-[220px]">
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                  <span className="block text-[10px] text-slate-400">평균 시속</span>
-                  <span className="text-base font-bold text-white font-athletic">
-                    {speedKmh} <span className="text-xs font-normal text-slate-400">km/h</span>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                  <span className="block text-[10px] text-stone-500">평균 시속</span>
+                  <span className="text-base font-bold text-stone-900 font-athletic">
+                    {speedKmh} <span className="text-xs font-normal text-stone-500">km/h</span>
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                  <span className="block text-[10px] text-slate-400">마일 페이스</span>
-                  <span className="text-base font-bold text-white font-athletic">
-                    {paceMileFormatted} <span className="text-xs font-normal text-slate-400">/mi</span>
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                  <span className="block text-[10px] text-stone-500">마일 페이스</span>
+                  <span className="text-base font-bold text-stone-900 font-athletic">
+                    {paceMileFormatted} <span className="text-xs font-normal text-stone-500">/mi</span>
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                  <span className="block text-[10px] text-slate-400">400m 트랙 1랩</span>
-                  <span className="text-xs font-bold text-emerald-400 font-mono">
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                  <span className="block text-[10px] text-stone-500">400m 트랙 1랩</span>
+                  <span className="text-xs font-bold text-emerald-800 font-mono">
                     {lap400mFormatted}
                   </span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                  <span className="block text-[10px] text-slate-400">요구 VDOT</span>
-                  <span className="text-xs font-bold text-cyan-300 font-mono">
+                <div className="p-2.5 rounded-xl bg-white border border-stone-200 text-center shadow-2xs">
+                  <span className="block text-[10px] text-stone-500">요구 VDOT</span>
+                  <span className="text-xs font-bold text-rose-900 font-mono">
                     {targetVDOT > 0 ? `VDOT ${targetVDOT.toFixed(1)}` : '-'}
                   </span>
                 </div>
@@ -567,17 +567,17 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
 
             {/* VDOT Comparison Note */}
             {currentVDOT !== undefined && currentVDOT > 0 && targetVDOT > 0 && (
-              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                <span className="text-slate-300">
+              <div className="mt-4 pt-3 border-t border-stone-200 flex items-center justify-between text-xs">
+                <span className="text-stone-700">
                   내 현재 VDOT ({currentVDOT.toFixed(1)}) 대비:
                 </span>
                 <span
-                  className={`font-bold px-2 py-0.5 rounded-md ${
+                  className={`font-bold px-2.5 py-0.5 rounded-md ${
                     targetVDOT <= currentVDOT
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
                       : targetVDOT <= currentVDOT + 3
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : 'bg-rose-100 text-rose-900 border border-rose-300'
                   }`}
                 >
                   {targetVDOT <= currentVDOT
@@ -593,20 +593,20 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
           {/* Section 4: Race Checkpoints Split Table */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-purple-400" />
+              <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-rose-800" />
                 <span>3. 구간별 예상 통과 시간 (Splits)</span>
               </label>
 
               {/* Strategy Mode Toggle */}
-              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-white/10 text-xs">
+              <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-300 text-xs">
                 <button
                   type="button"
                   onClick={() => setStrategyMode('even')}
-                  className={`px-2.5 py-0.5 rounded-lg font-medium transition-all ${
+                  className={`px-2.5 py-0.5 rounded-lg font-medium transition-all cursor-pointer ${
                     strategyMode === 'even'
-                      ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
                   이븐 페이스
@@ -614,10 +614,10 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStrategyMode('negative')}
-                  className={`px-2.5 py-0.5 rounded-lg font-medium transition-all ${
+                  className={`px-2.5 py-0.5 rounded-lg font-medium transition-all cursor-pointer ${
                     strategyMode === 'negative'
-                      ? 'bg-purple-500 text-white font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-rose-900 text-white font-bold shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
                   }`}
                 >
                   네거티브 스플릿 (후반 가속)
@@ -626,31 +626,31 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
             </div>
 
             {/* Split Table */}
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/70">
+            <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xs">
               <div className="max-h-56 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-slate-900/90 sticky top-0 border-b border-white/10 text-slate-400">
+                  <thead className="bg-stone-50 sticky top-0 border-b border-stone-200 text-stone-600">
                     <tr>
                       <th className="py-2.5 px-3.5 font-semibold">구간 (지점)</th>
                       <th className="py-2.5 px-3.5 font-semibold">구간 페이스</th>
                       <th className="py-2.5 px-3.5 font-semibold text-right">누적 경과 시간</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-stone-200">
                     {checkpoints.map((cp, idx) => (
                       <tr
                         key={idx}
                         className={`transition-colors ${
                           cp.isFinish
-                            ? 'bg-cyan-500/10 font-bold text-cyan-200'
-                            : 'hover:bg-white/5 text-slate-300'
+                            ? 'bg-rose-50/80 font-bold text-rose-950'
+                            : 'hover:bg-stone-50 text-stone-800'
                         }`}
                       >
                         <td className="py-2 px-3.5 flex items-center gap-1.5">
-                          {cp.isFinish && <Award className="w-3.5 h-3.5 text-cyan-400" />}
+                          {cp.isFinish && <Award className="w-3.5 h-3.5 text-rose-800" />}
                           <span>{cp.label}</span>
                         </td>
-                        <td className="py-2 px-3.5 text-slate-400 font-mono">
+                        <td className="py-2 px-3.5 text-stone-600 font-mono">
                           {strategyMode === 'negative'
                             ? cp.km <= effectiveDistanceKm / 2
                               ? formatPace(paceSecondsPerKm + 3)
@@ -658,7 +658,7 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                             : paceFormatted}
                           /km
                         </td>
-                        <td className="py-2 px-3.5 text-right font-mono font-bold text-white">
+                        <td className="py-2 px-3.5 text-right font-mono font-bold text-stone-900">
                           {cp.elapsed}
                         </td>
                       </tr>
@@ -667,27 +667,27 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
                 </table>
               </div>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-stone-500">
               * 마라톤 대회 실전에서는 5km마다 에너지젤이나 급수대 통과 시간을 고려하여 초반 오버페이스를 방지하는 것이 완주 기록 단축의 핵심입니다.
             </p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-white/10 bg-slate-950/80 flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-stone-700 hover:text-stone-900 border border-stone-300 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400 font-bold">복사 완료!</span>
+                <Check className="w-4 h-4 text-emerald-700" />
+                <span className="text-emerald-800 font-bold">복사 완료!</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-slate-400" />
+                <Copy className="w-4 h-4 text-stone-500" />
                 <span>계산 결과 복사</span>
               </>
             )}
@@ -696,7 +696,7 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 text-xs font-bold shadow-md shadow-cyan-500/20 hover:brightness-110 transition-all cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-xs font-bold shadow-xs hover:from-emerald-500 hover:to-emerald-600 transition-all cursor-pointer border border-emerald-500"
           >
             확인 및 닫기
           </button>

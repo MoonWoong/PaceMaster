@@ -12,6 +12,7 @@ export interface RunningShoe {
   name: string;
   brand: string;
   category: ShoeCategory;
+  size?: string; // 신발 사이즈 (mm, e.g. "270mm" or "270")
   mileage: number; // km
   maxMileage?: number; // target lifespan km (default 600-800km)
   review: string; // 한줄평

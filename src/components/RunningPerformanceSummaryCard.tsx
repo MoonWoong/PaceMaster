@@ -346,40 +346,36 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
   }, [sessions]);
 
   return (
-    <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-gradient-to-br from-slate-900/90 via-slate-900/95 to-slate-950 border border-emerald-500/20 shadow-2xl mb-6 backdrop-blur-xl">
-      {/* Background Glow Accents */}
-      <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-7 bg-white/95 border border-emerald-600/20 shadow-md mb-6 backdrop-blur-xl text-stone-800">
       {/* Top Header Bar */}
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-emerald-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10">
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-rose-800 to-rose-950 text-white border border-rose-700/40 shadow-sm">
             <Award className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 whitespace-nowrap">
+              <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2 whitespace-nowrap">
                 <span>러닝 성과 AI 종합 요약 & 역량 분석</span>
               </h2>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
                 {isLoading ? (
                   <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping inline-block" />
                     <span>실시간 성과 분석 중...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3 h-3 text-emerald-400" />
+                    <Sparkles className="w-3 h-3 text-emerald-700" />
                     <span>누적 세션 심층 분석</span>
                   </>
                 )}
               </span>
             </div>
-            <p className="text-xs text-slate-300 mt-0.5 keep-all">
-              현재까지 기록된 <span className="text-emerald-400 font-semibold font-mono">{totalStats.count}개</span> 세션(누적 총{' '}
-              <span className="text-cyan-400 font-semibold font-mono">{totalStats.distanceKm}km</span>, 최근 주간 평균{' '}
-              <span className="text-amber-400 font-semibold font-mono">{totalStats.avgWeeklyKm}km</span>)을 바탕으로 러너의 강점과 보완점을 진단합니다.
+            <p className="text-xs text-stone-600 mt-0.5 keep-all">
+              현재까지 기록된 <span className="text-emerald-800 font-bold font-mono">{totalStats.count}개</span> 세션(누적 총{' '}
+              <span className="text-rose-900 font-bold font-mono">{totalStats.distanceKm}km</span>, 최근 주간 평균{' '}
+              <span className="text-emerald-800 font-bold font-mono">{totalStats.avgWeeklyKm}km</span>)을 바탕으로 러너의 강점과 보완점을 진단합니다.
             </p>
           </div>
         </div>
@@ -390,17 +386,17 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
             type="button"
             onClick={() => fetchPerformanceSummary(true)}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-xs font-semibold text-stone-700 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
             title="누적 훈련 데이터 기반 AI 재분석"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden xs:inline">{isLoading ? '분석 중...' : 'AI 재분석'}</span>
           </button>
 
           <button
             type="button"
             onClick={toggleExpand}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-xs font-semibold text-stone-700 transition-all cursor-pointer whitespace-nowrap"
             title={isExpanded ? '상세 분석 접기' : '상세 분석 펼치기'}
           >
             <span>{isExpanded ? '간략히' : '상세보기'}</span>
@@ -410,43 +406,43 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
       </div>
 
       {/* Main Executive Summary Banner */}
-      <div className="relative z-10 mt-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-950/80 to-slate-900/80 border border-white/10 shadow-inner">
+      <div className="relative z-10 mt-5 p-4 sm:p-5 rounded-2xl bg-stone-50/90 border border-stone-200 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 whitespace-nowrap">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5 whitespace-nowrap">
                 <Footprints className="w-3.5 h-3.5" />
                 <span>{summaryData.runnerType}</span>
               </span>
 
               {upcomingRace && (
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-300 whitespace-nowrap">
                   🎯 {upcomingRace.name} {upcomingRace.dDayText}
                 </span>
               )}
             </div>
 
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight keep-all">
+            <h3 className="text-base sm:text-lg font-bold text-stone-900 tracking-tight keep-all">
               {summaryData.summaryTitle}
             </h3>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed keep-all">
+            <p className="text-xs sm:text-sm text-stone-600 leading-relaxed keep-all">
               {summaryData.aiSummary}
             </p>
           </div>
 
           {/* Overall Competency Score Badge */}
-          <div className="flex sm:flex-col items-center justify-between sm:justify-center p-3.5 sm:px-5 rounded-xl bg-slate-900/90 border border-emerald-500/30 shadow-md min-w-[150px] text-center flex-shrink-0">
-            <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">종합 러닝 완성도</span>
+          <div className="flex sm:flex-col items-center justify-between sm:justify-center p-3.5 sm:px-5 rounded-xl bg-white border border-emerald-600/30 shadow-sm min-w-[150px] text-center flex-shrink-0">
+            <span className="text-[11px] text-stone-500 font-medium whitespace-nowrap">종합 러닝 완성도</span>
             <div className="flex items-baseline gap-1 my-0.5">
-              <span className="text-2xl sm:text-3xl font-extrabold font-mono text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+              <span className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-800">
                 {summaryData.overallScore}
               </span>
-              <span className="text-xs text-slate-500 font-mono whitespace-nowrap">/ 100점</span>
+              <span className="text-xs text-stone-400 font-mono whitespace-nowrap">/ 100점</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+            <div className="w-full bg-stone-100 rounded-full h-2 mt-1 overflow-hidden border border-stone-200">
               <div
-                className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-1.5 rounded-full transition-all duration-1000"
+                className="bg-gradient-to-r from-emerald-600 via-amber-500 to-rose-700 h-2 rounded-full transition-all duration-1000"
                 style={{ width: `${Math.min(100, Math.max(10, summaryData.overallScore))}%` }}
               />
             </div>
@@ -454,26 +450,26 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
         </div>
 
         {/* Quick Stats Strip */}
-        <div className="mt-4 pt-3.5 border-t border-white/5 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
-          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400 whitespace-nowrap">총 훈련 세션</span>
-            <span className="font-mono font-bold text-white text-sm">{totalStats.count}회</span>
+        <div className="mt-4 pt-3.5 border-t border-stone-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+          <div className="p-2 rounded-xl bg-white border border-stone-200 shadow-xs">
+            <span className="block text-[10px] text-stone-500 whitespace-nowrap">총 훈련 세션</span>
+            <span className="font-mono font-bold text-stone-900 text-sm">{totalStats.count}회</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400 whitespace-nowrap">누적 총 마일리지</span>
-            <span className="font-mono font-bold text-emerald-400 text-sm">{totalStats.distanceKm} km</span>
+          <div className="p-2 rounded-xl bg-white border border-stone-200 shadow-xs">
+            <span className="block text-[10px] text-stone-500 whitespace-nowrap">누적 총 마일리지</span>
+            <span className="font-mono font-bold text-emerald-800 text-sm">{totalStats.distanceKm} km</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400 whitespace-nowrap">최근 주간 평균</span>
-            <span className="font-mono font-bold text-amber-300 text-sm">{totalStats.avgWeeklyKm} km/주</span>
+          <div className="p-2 rounded-xl bg-white border border-stone-200 shadow-xs">
+            <span className="block text-[10px] text-stone-500 whitespace-nowrap">최근 주간 평균</span>
+            <span className="font-mono font-bold text-rose-900 text-sm">{totalStats.avgWeeklyKm} km/주</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5">
-            <span className="block text-[10px] text-slate-400 whitespace-nowrap">최장 1회 거리</span>
-            <span className="font-mono font-bold text-cyan-400 text-sm">{totalStats.longestRunKm} km</span>
+          <div className="p-2 rounded-xl bg-white border border-stone-200 shadow-xs">
+            <span className="block text-[10px] text-stone-500 whitespace-nowrap">최장 1회 거리</span>
+            <span className="font-mono font-bold text-emerald-800 text-sm">{totalStats.longestRunKm} km</span>
           </div>
-          <div className="p-2 rounded-xl bg-slate-900/50 border border-white/5 col-span-2 sm:col-span-1">
-            <span className="block text-[10px] text-slate-400 whitespace-nowrap">VDOT 러닝 지수</span>
-            <span className="font-mono font-bold text-emerald-300 text-sm">{currentVDOT || '-'}</span>
+          <div className="p-2 rounded-xl bg-white border border-stone-200 shadow-xs col-span-2 sm:col-span-1">
+            <span className="block text-[10px] text-stone-500 whitespace-nowrap">VDOT 러닝 지수</span>
+            <span className="font-mono font-bold text-rose-900 text-sm">{currentVDOT || '-'}</span>
           </div>
         </div>
       </div>
@@ -484,45 +480,45 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
           {/* Grid: Strengths & Improvements */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* 1. Core Strengths (러너의 핵심 강점) */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-emerald-500/20 space-y-3.5 shadow-lg">
-              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+            <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 border border-emerald-300/60 space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-emerald-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
-                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-sm font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
                     <span className="keep-all">러너의 핵심 강점</span>
-                    <span className="text-xs text-slate-400 font-normal">Strengths</span>
-                    <span className="text-[11px] text-emerald-400 font-mono">
+                    <span className="text-xs text-stone-500 font-normal">Strengths</span>
+                    <span className="text-[11px] text-emerald-800 font-mono font-bold">
                       ({summaryData.strengths.length})
                     </span>
                   </h4>
                 </div>
-                <span className="text-[10px] text-slate-400 whitespace-nowrap">데이터 기반 분석</span>
+                <span className="text-[10px] text-stone-500 whitespace-nowrap">데이터 기반 분석</span>
               </div>
 
               <div className="space-y-3">
                 {summaryData.strengths.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-slate-900/70 border border-emerald-500/20 hover:border-emerald-500/40 transition-colors"
+                    className="p-3 rounded-xl bg-white border border-emerald-200 hover:border-emerald-400 transition-colors shadow-2xs"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                        <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                           {idx + 1}
                         </span>
-                        <h5 className="text-xs sm:text-sm font-bold text-emerald-300 keep-all">
+                        <h5 className="text-xs sm:text-sm font-bold text-stone-900 keep-all">
                           {item.title}
                         </h5>
                       </div>
                     </div>
 
                     <div className="ml-6 space-y-1">
-                      <div className="inline-block text-[11px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20 font-semibold mb-1">
+                      <div className="inline-block text-[11px] font-mono text-emerald-900 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300 font-bold mb-1">
                         📊 {item.metric}
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed keep-all">
+                      <p className="text-xs text-stone-700 leading-relaxed keep-all">
                         {item.description}
                       </p>
                     </div>
@@ -532,43 +528,43 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
             </div>
 
             {/* 2. Areas for Improvement (보완점 및 맞춤 처방) */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-3.5 shadow-lg">
-              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2.5">
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/70 border border-amber-300/60 space-y-3.5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 flex-shrink-0">
+                  <div className="p-1.5 rounded-lg bg-amber-100 text-amber-800 flex-shrink-0">
                     <Target className="w-4 h-4" />
                   </div>
-                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-sm font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
                     <span className="keep-all">보완점 및 맞춤 훈련 처방</span>
-                    <span className="text-xs text-slate-400 font-normal">Improvements</span>
-                    <span className="text-[11px] text-amber-400 font-mono">
+                    <span className="text-xs text-stone-500 font-normal">Improvements</span>
+                    <span className="text-[11px] text-amber-800 font-mono font-bold">
                       ({summaryData.improvements.length})
                     </span>
                   </h4>
                 </div>
-                <span className="text-[10px] text-slate-400 whitespace-nowrap">기록 향상 처방</span>
+                <span className="text-[10px] text-stone-500 whitespace-nowrap">기록 향상 처방</span>
               </div>
 
               <div className="space-y-3">
                 {summaryData.improvements.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-slate-900/70 border border-amber-500/20 hover:border-amber-500/40 transition-colors"
+                    className="p-3 rounded-xl bg-white border border-amber-200 hover:border-amber-400 transition-colors shadow-2xs"
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                        <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                           {idx + 1}
                         </span>
-                        <h5 className="text-xs sm:text-sm font-bold text-amber-300 keep-all">
+                        <h5 className="text-xs sm:text-sm font-bold text-stone-900 keep-all">
                           {item.title}
                         </h5>
                       </div>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-bold border whitespace-nowrap flex-shrink-0 ${
                           item.priority === '높음'
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                            : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                            ? 'bg-rose-100 text-rose-900 border-rose-300'
+                            : 'bg-amber-100 text-amber-900 border-amber-300'
                         }`}
                       >
                         우선순위: {item.priority}
@@ -576,11 +572,11 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
                     </div>
 
                     <div className="ml-6 space-y-1">
-                      <p className="text-xs text-slate-300 leading-relaxed keep-all">
-                        <span className="text-white font-semibold">💡 트레이닝 가이드:</span>{' '}
+                      <p className="text-xs text-stone-700 leading-relaxed keep-all">
+                        <span className="text-stone-900 font-bold">💡 트레이닝 가이드:</span>{' '}
                         {item.actionPlan}
                       </p>
-                      <div className="inline-block text-[11px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-semibold mt-1">
+                      <div className="inline-block text-[11px] font-mono text-emerald-900 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300 font-bold mt-1">
                         🎯 목표: {item.targetMetric}
                       </div>
                     </div>
@@ -592,17 +588,17 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
 
           {/* Coach's Key Strategic Advice & Routine */}
           {(summaryData.keyAdvice || summaryData.recommendedRoutine) && (
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 to-slate-900/70 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="p-4 rounded-2xl bg-rose-50/80 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
               <div className="space-y-1 flex-1">
                 {summaryData.keyAdvice && (
-                  <p className="text-slate-200 leading-relaxed keep-all">
-                    <span className="font-bold text-cyan-300 whitespace-nowrap">🏅 AI 수석 코치의 핵심 조언:</span>{' '}
+                  <p className="text-stone-800 leading-relaxed keep-all">
+                    <span className="font-bold text-rose-900 whitespace-nowrap">🏅 AI 수석 코치의 핵심 조언:</span>{' '}
                     {summaryData.keyAdvice}
                   </p>
                 )}
                 {summaryData.recommendedRoutine && (
-                  <p className="text-slate-400 leading-relaxed keep-all">
-                    <span className="font-semibold text-slate-300 whitespace-nowrap">📋 추천 주간 루틴:</span>{' '}
+                  <p className="text-stone-600 leading-relaxed keep-all">
+                    <span className="font-bold text-stone-800 whitespace-nowrap">📋 추천 주간 루틴:</span>{' '}
                     {summaryData.recommendedRoutine}
                   </p>
                 )}
@@ -612,7 +608,7 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
                 <button
                   type="button"
                   onClick={onOpenTodayWorkoutModal}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex-shrink-0 flex items-center gap-1.5 self-start sm:self-auto"
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 transition-all shadow-sm cursor-pointer flex-shrink-0 flex items-center gap-1.5 self-start sm:self-auto border border-emerald-500"
                 >
                   <Footprints className="w-3.5 h-3.5" />
                   <span>오늘 훈련 기록하기</span>
@@ -624,10 +620,10 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
       )}
 
       {/* Footer Meta Timestamp */}
-      <div className="relative z-10 mt-4 pt-3 border-t border-white/5 flex flex-col xs:flex-row xs:items-center justify-between gap-2 text-[11px] text-slate-400">
+      <div className="relative z-10 mt-4 pt-3 border-t border-stone-200 flex flex-col xs:flex-row xs:items-center justify-between gap-2 text-[11px] text-stone-500">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-700" />
             <span>
               {summaryData.source === 'gemini'
                 ? 'Gemini AI 스포츠 사이언스 심층 분석 완료'
@@ -636,7 +632,7 @@ export const RunningPerformanceSummaryCard: React.FC<RunningPerformanceSummaryCa
           </span>
         </div>
 
-        <div className="text-slate-500">
+        <div className="text-stone-400">
           <span>최근 분석 시각: {summaryData.generatedAt}</span>
         </div>
       </div>
