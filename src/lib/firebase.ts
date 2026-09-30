@@ -155,6 +155,8 @@ const DEFAULT_RACES: RegisteredRace[] = [
     websiteUrl: 'https://marathon.jtbc.com',
     isTarget: true,
     targetTime: '03:09:59',
+    priority: 'A',
+    importance: 'A-Race (메인 목표)',
     createdAt: '2026-08-01',
   },
   {
@@ -166,6 +168,8 @@ const DEFAULT_RACES: RegisteredRace[] = [
     websiteUrl: 'https://marathon.chosun.com',
     isTarget: false,
     targetTime: '03:19:59',
+    priority: 'B',
+    importance: 'B-Race (중간 점검)',
     createdAt: '2026-08-10',
   },
 ];

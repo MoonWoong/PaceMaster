@@ -119,6 +119,8 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
       location: race.location,
       websiteUrl: race.websiteUrl,
       isTarget: false,
+      priority: 'B',
+      importance: 'B-Race (중간 점검)',
       createdAt: new Date().toISOString(),
     });
 

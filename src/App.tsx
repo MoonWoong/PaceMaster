@@ -426,6 +426,7 @@ export default function App() {
                   onDeleteTrainingSession={handleDeleteTrainingSession}
                   onClearAllTrainingSessions={handleClearAllTrainingSessions}
                   onSaveWeeklyPlan={handleSaveWeeklyPlan}
+                  onUpdateRace={handleUpdateRace}
                   onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
                   onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
                   onNavigateToShoes={handleNavigateToShoes}

@@ -99,19 +99,19 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
 
       if (wearPct >= 100) {
         status = 'overdue';
-        statusLabel = '수명 종료 / 교체 요망';
+        statusLabel = '수명 완료';
         statusColor = 'text-rose-800';
         badgeBg = 'bg-rose-100 text-rose-900 border-rose-300';
       } else if (wearPct >= 80) {
         status = 'near_limit';
-        statusLabel = '교체 권장 (80% 도달)';
-        statusColor = 'text-orange-700';
-        badgeBg = 'bg-orange-100 text-orange-900 border-orange-300';
+        statusLabel = '사용 중';
+        statusColor = 'text-stone-700';
+        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
       } else if (wearPct >= 50) {
         status = 'warning';
-        statusLabel = '마모 진행 (50% 도달)';
-        statusColor = 'text-amber-700';
-        badgeBg = 'bg-amber-100 text-amber-900 border-amber-300';
+        statusLabel = '사용 중';
+        statusColor = 'text-stone-700';
+        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
       } else {
         status = 'optimal';
         statusLabel = '최상 컨디션';
@@ -589,11 +589,7 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
                       <span className={`text-xs font-bold px-1.5 py-0.5 rounded ml-1 ${
                         shoe.wearPct >= 100
                           ? 'bg-rose-100 text-rose-900 border border-rose-300'
-                          : shoe.wearPct >= 80
-                          ? 'bg-orange-100 text-orange-900 border border-orange-300'
-                          : shoe.wearPct >= 50
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-emerald-50 text-emerald-900 border border-emerald-300'
+                          : 'bg-stone-100 text-stone-700 border border-stone-200'
                       }`}>
                         {shoe.wearPct}%
                       </span>

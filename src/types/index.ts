@@ -28,6 +28,8 @@ export interface RegisteredRace {
   websiteUrl?: string;
   isTarget?: boolean;
   targetTime?: string; // specific target time e.g. "03:15:00"
+  priority?: 'A' | 'B' | 'C'; // 대회 중요도 우선순위: A(메인목표), B(중간점검), C(연습대회)
+  importance?: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)' | string;
   createdAt: string;
 }
 
@@ -109,6 +111,25 @@ export interface RecommendedShoeInfo {
   reason: string;
 }
 
+export interface RaceWeightDetail {
+  raceId?: string;
+  raceName: string;
+  raceDate: string;
+  course: string;
+  dDayDays: number;
+  dDayWeeks: number;
+  periodizationPhase: string;
+  racePriority?: 'A' | 'B' | 'C';
+  importanceGrade: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)';
+  importanceWeight: number; // e.g. 1.3
+  paceIntensityLevel: string; // e.g. '고강도 목표 (High)'
+  targetRacePace: string;
+  taperingVolumeCutPct: number;
+  taperingLsdDistKm: number;
+  taperScaleNote?: string;
+  weightedGuidance: string;
+}
+
 export interface RunnerStateAnalysis {
   // Weekly mileage trend
   recent4WeeksDistances: { weekLabel: string; distanceKm: number }[];
@@ -138,6 +159,9 @@ export interface RunnerStateAnalysis {
   thisWeekSessionsCount?: number;
   thisWeekDaysDone?: string[]; // e.g. ['월요일']
   remainingWeeklyPlanKm?: number; // e.g. 29.5 km
+  
+  // Registered Target Race weighting reflection
+  raceWeightDetail?: RaceWeightDetail;
 }
 
 export interface WeeklyPlanDay {

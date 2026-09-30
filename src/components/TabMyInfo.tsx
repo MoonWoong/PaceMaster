@@ -94,8 +94,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [newRaceCourse, setNewRaceCourse] = useState('풀 (42.195km)');
   const [newRaceLocation, setNewRaceLocation] = useState('서울');
   const [newRaceTargetTime, setNewRaceTargetTime] = useState('');
+  const [newRacePriority, setNewRacePriority] = useState<'A' | 'B' | 'C'>('A');
   const [editingRaceForTarget, setEditingRaceForTarget] = useState<RegisteredRace | null>(null);
   const [editRaceTargetTime, setEditRaceTargetTime] = useState('');
+  const [editRacePriority, setEditRacePriority] = useState<'A' | 'B' | 'C'>('A');
+  const [editRaceIsTarget, setEditRaceIsTarget] = useState(false);
 
   // Calculate BMI
   const heightM = parseFloat(height) / 100;
@@ -204,12 +207,20 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       course: newRaceCourse,
       location: newRaceLocation,
       targetTime: newRaceTargetTime.trim() || undefined,
-      isTarget: races.length === 0,
+      isTarget: races.length === 0 || newRacePriority === 'A',
+      priority: newRacePriority,
+      importance:
+        newRacePriority === 'A'
+          ? 'A-Race (메인 목표)'
+          : newRacePriority === 'B'
+          ? 'B-Race (중간 점검)'
+          : 'C-Race (연습 대회)',
       createdAt: new Date().toISOString(),
     });
 
     setNewRaceName('');
     setNewRaceTargetTime('');
+    setNewRacePriority('A');
     setIsRaceModalOpen(false);
   };
 
@@ -219,10 +230,33 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
     await onUpdateRace({
       ...editingRaceForTarget,
-      targetTime: editRaceTargetTime.trim(),
+      targetTime: editRaceTargetTime.trim() || undefined,
+      priority: editRacePriority,
+      isTarget: editRaceIsTarget,
+      importance:
+        editRacePriority === 'A'
+          ? 'A-Race (메인 목표)'
+          : editRacePriority === 'B'
+          ? 'B-Race (중간 점검)'
+          : 'C-Race (연습 대회)',
     });
 
     setEditingRaceForTarget(null);
+  };
+
+  // Quick 1-click Priority Switcher on Race Cards
+  const handleQuickChangePriority = async (race: RegisteredRace, newPriority: 'A' | 'B' | 'C') => {
+    if (!onUpdateRace) return;
+    await onUpdateRace({
+      ...race,
+      priority: newPriority,
+      importance:
+        newPriority === 'A'
+          ? 'A-Race (메인 목표)'
+          : newPriority === 'B'
+          ? 'B-Race (중간 점검)'
+          : 'C-Race (연습 대회)',
+    });
   };
 
   // Map session history to shoes (last worn date, sessions count, total session km)
@@ -281,19 +315,19 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       if (wearPct >= 100) {
         status = 'overdue';
-        statusLabel = '수명 종료 / 교체 요망';
+        statusLabel = '수명 완료';
         statusColor = 'text-rose-900';
         badgeBg = 'bg-rose-100 text-rose-900 border-rose-300';
       } else if (wearPct >= 80) {
         status = 'near_limit';
-        statusLabel = '교체 권장 (80% 도달)';
-        statusColor = 'text-orange-700';
-        badgeBg = 'bg-orange-100 text-orange-900 border-orange-300';
+        statusLabel = '사용 중';
+        statusColor = 'text-stone-700';
+        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
       } else if (wearPct >= 50) {
         status = 'warning';
-        statusLabel = '마모 진행 (50% 도달)';
-        statusColor = 'text-amber-700';
-        badgeBg = 'bg-amber-100 text-amber-900 border-amber-300';
+        statusLabel = '사용 중';
+        statusColor = 'text-stone-700';
+        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
       } else {
         status = 'optimal';
         statusLabel = '최상 컨디션';
@@ -984,18 +1018,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         </span>
                       </div>
 
-                      {/* Wear Status Callout: 교체 필요 시에만 직관적으로 경고 알림 */}
-                      {shoe.status === 'overdue' ? (
+                      {/* Wear Status Callout: 수명 초과 시에만 직관적으로 알림 */}
+                      {shoe.status === 'overdue' && (
                         <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2 font-bold keep-all leading-relaxed">
                           <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
                           <span>⚠️ {Math.abs(shoe.remainingKm)}km 초과 주행 — 완충 한계 도달 (관절 부상 방지를 위해 즉시 교체 요망)</span>
                         </div>
-                      ) : shoe.status === 'near_limit' ? (
-                        <div className="p-2.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 text-xs flex items-start gap-2 font-semibold keep-all leading-relaxed">
-                          <AlertCircle className="w-4 h-4 text-orange-700 shrink-0 mt-0.5" />
-                          <span>⏱️ 잔여 {shoe.remainingKm}km 후 수명 도달 (새 신발 교체 준비 권장)</span>
-                        </div>
-                      ) : null}
+                      )}
 
                       {/* Recent Workout Note if linked in sessions */}
                       {shoe.lastWornDate && (
@@ -1122,11 +1151,87 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           onClick={() => {
                             setEditingRaceForTarget(race);
                             setEditRaceTargetTime(race.targetTime || '');
+                            setEditRacePriority(
+                              race.priority === 'C' || race.importance?.includes('C')
+                                ? 'C'
+                                : race.priority === 'B' || race.importance?.includes('B')
+                                ? 'B'
+                                : 'A'
+                            );
+                            setEditRaceIsTarget(!!race.isTarget);
                           }}
                           className="px-2 py-0.5 rounded text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer"
                         >
-                          목표 수정
+                          목표·중요도 수정
                         </button>
+                      )}
+                    </div>
+
+                    {/* Race Priority (중요도) Selector & Quick 1-Click Buttons */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2 rounded-lg bg-stone-50 border border-stone-200 text-xs mb-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-semibold text-stone-700">대회 중요도:</span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                            race.priority === 'C' || race.importance?.includes('C')
+                              ? 'bg-stone-200 text-stone-800 border-stone-300'
+                              : race.priority === 'B' || race.importance?.includes('B')
+                              ? 'bg-amber-100 text-amber-900 border-amber-300'
+                              : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                          }`}
+                        >
+                          {race.priority === 'C' || race.importance?.includes('C')
+                            ? 'C-Race (연습대회)'
+                            : race.priority === 'B' || race.importance?.includes('B')
+                            ? 'B-Race (중간점검)'
+                            : 'A-Race (메인목표)'}
+                        </span>
+                        {race.isTarget && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-900 font-bold border border-rose-300">
+                            ★ 대표 목표
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quick 1-Click Priority Switcher */}
+                      {onUpdateRace && (
+                        <div className="flex items-center gap-1 self-end sm:self-auto">
+                          {(['A', 'B', 'C'] as const).map((p) => {
+                            const isCurrent =
+                              p === 'A'
+                                ? (!race.priority || race.priority === 'A' || race.importance?.includes('A')) &&
+                                  !race.importance?.includes('B') &&
+                                  !race.importance?.includes('C')
+                                : p === 'B'
+                                ? race.priority === 'B' || race.importance?.includes('B')
+                                : race.priority === 'C' || race.importance?.includes('C');
+                            return (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => handleQuickChangePriority(race, p)}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer border ${
+                                  isCurrent
+                                    ? p === 'A'
+                                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs'
+                                      : p === 'B'
+                                      ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                                      : 'bg-stone-700 text-white border-stone-800 shadow-xs'
+                                    : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-100'
+                                }`}
+                                title={
+                                  p === 'A'
+                                    ? 'A-Race: 최우선 메인 목표 (풀 테이퍼링/피킹)'
+                                    : p === 'B'
+                                    ? 'B-Race: 중간 점검 레이스 (미니 테이퍼링)'
+                                    : 'C-Race: 연습/훈련 대회 (테이퍼링 최소화, 마일리지 유지)'
+                                }
+                              >
+                                {p}-Race
+                              </button>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1389,6 +1494,24 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  대회 중요도 (우선순위 & 테이퍼링 강도 설정)
+                </label>
+                <select
+                  value={newRacePriority}
+                  onChange={(e) => setNewRacePriority(e.target.value as 'A' | 'B' | 'C')}
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                >
+                  <option value="A">A-Race (최우선 메인 목표) — 전력 완주 & 2~3주 정밀 테이퍼링</option>
+                  <option value="B">B-Race (중간 점검 / 준비) — 실전 페이스 점검 & 3~5일 미니 감량</option>
+                  <option value="C">C-Race (연습 / 훈련 대회) — 훈련용 대회 & 테이퍼링 최소화(마일리지 유지)</option>
+                </select>
+                <span className="text-[10px] text-stone-500 mt-1 block keep-all">
+                  💡 <strong>테이퍼링 자동 조율:</strong> 중요도와 목표 강도가 낮은 대회는 조기 감량으로 인한 지구력 손실을 막기 위해 테이퍼링을 최소화하고 평소 훈련 마일리지를 유지합니다.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
                   대회 목표 완주 기록 (선택)
                 </label>
                 <input
@@ -1644,33 +1767,68 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         </div>
       )}
 
-      {/* 대회별 목표 완주 기록 수정 모달 */}
+      {/* 대회별 중요도 및 목표 완주 기록 수정 모달 */}
       {editingRaceForTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-stone-200 shadow-2xl text-stone-800">
             <h3 className="text-lg font-bold text-stone-900 mb-2 flex items-center gap-2">
               <Target className="w-5 h-5 text-rose-800" />
-              <span>대회 목표 기록 수정</span>
+              <span>대회 중요도 & 목표 기록 수정</span>
             </h3>
             <p className="text-xs text-stone-600 mb-4">
-              <strong className="text-stone-900">{editingRaceForTarget.name}</strong> ({editingRaceForTarget.course})의 맞춤 목표 완주 시간을 설정합니다.
+              <strong className="text-stone-900">{editingRaceForTarget.name}</strong> ({editingRaceForTarget.course})의 중요도와 맞춤 목표 완주 시간을 설정합니다.
             </p>
 
             <form onSubmit={handleSaveRaceTargetSubmit} className="space-y-4">
+              {/* 1. 대회 중요도 (우선순위) */}
+              <div>
+                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  대회 중요도 (우선순위 & 테이퍼링 강도)
+                </label>
+                <select
+                  value={editRacePriority}
+                  onChange={(e) => setEditRacePriority(e.target.value as 'A' | 'B' | 'C')}
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                >
+                  <option value="A">A-Race (최우선 메인 목표) — 전력 완주 & 2~3주 정밀 테이퍼링</option>
+                  <option value="B">B-Race (중간 점검 / 준비) — 실전 페이스 점검 & 3~5일 미니 감량</option>
+                  <option value="C">C-Race (연습 / 훈련 대회) — 훈련용 대회 & 테이퍼링 최소화(마일리지 유지)</option>
+                </select>
+                <span className="text-[10px] text-stone-500 mt-1 block keep-all">
+                  💡 <strong>테이퍼링 자동 연동:</strong> C-Race나 목표 강도가 낮은 대회는 조기 감량으로 인한 심폐 능력 저하를 막기 위해 테이퍼링을 최소화하고 주간 훈련 마일리지를 온전히 유지합니다.
+                </span>
+              </div>
+
+              {/* 2. 목표 완주 시간 */}
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
                   목표 완주 시간 (hh:mm:ss)
                 </label>
                 <input
                   type="text"
-                  required
                   value={editRaceTargetTime}
                   onChange={(e) => setEditRaceTargetTime(e.target.value)}
                   placeholder="예: 03:19:59"
                   className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-stone-900"
                 />
-                <span className="text-[11px] text-stone-500 mt-1 block">
+                <span className="text-[10px] text-stone-500 mt-1 block">
                   대회마다 목표 완주 기록을 개별적으로 설정하여 관리할 수 있습니다.
+                </span>
+              </div>
+
+              {/* 3. 대표 목표 대회 설정 여부 */}
+              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800">
+                  <input
+                    type="checkbox"
+                    checked={editRaceIsTarget}
+                    onChange={(e) => setEditRaceIsTarget(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-stone-300"
+                  />
+                  <span>이 대회를 대표 메인 목표 대회로 지정</span>
+                </label>
+                <span className="text-[10px] text-stone-500 mt-1 block pl-6">
+                  * 홈 화면 상단 D-Day 위젯과 훈련 계획 생성 시 최우선 기준으로 분석됩니다.
                 </span>
               </div>
 
@@ -1687,7 +1845,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   className="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>목표 기록 저장</span>
+                  <span>설정 저장</span>
                 </button>
               </div>
             </form>

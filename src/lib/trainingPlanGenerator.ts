@@ -1,10 +1,11 @@
-import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe, SpeedWorkoutType, RegisteredRace, RunningGoals } from '../types';
+import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe, SpeedWorkoutType, RegisteredRace, RunningGoals, RaceWeightDetail } from '../types';
 import { getTrainingPaces, formatPace, parseTimeToSeconds } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
 export interface TargetRacePlanAnalysis {
+  raceId?: string;
   raceName: string;
   raceDate: string;
   course: string;
@@ -14,11 +15,14 @@ export interface TargetRacePlanAnalysis {
   targetRacePace: string;
   targetPaceRawSec: number;
   courseDistKm: number;
+  racePriority: 'A' | 'B' | 'C';
+  importanceGrade: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)';
   paceIntensityLevel: '고강도 목표 (High)' | '중상 강도 (Moderate-High)' | '중강도 (Moderate)' | '안정 완주 (Endurance)';
-  taperingVolumeCutPct: number; // e.g. 20, 35, 55
+  taperingVolumeCutPct: number; // e.g. 12, 20, 35, 55
   taperingIntensityStrategy: string;
   taperingSpeedRepNote: string;
   taperingLsdDistKm: number;
+  taperScaleNote?: string;
   periodizationPhase: '기초 유산소 구축기 (Base)' | '스피드/지구력 빌드업기 (Build)' | '목표 페이스 특화기 (Peak)' | '테이퍼링 감량기 (Tapering)' | '대회 직전 조정기 (Race Week)';
   phaseDescription: string;
   strategicAdvice: string;
@@ -112,18 +116,436 @@ export function inferWorkoutType(
 }
 
 /**
+ * Helper to rescale workout stages mathematically so their sum matches exact total distance
+ */
+export function rescaleWorkoutStages(stages: WorkoutStage[], newTotalDist: number): WorkoutStage[] {
+  if (!stages || stages.length === 0 || newTotalDist <= 0) return stages;
+  const oldTotal = stages.reduce((acc, s) => acc + (s.distanceKm || 0), 0);
+  if (oldTotal <= 0) return stages;
+
+  let accumulated = 0;
+  return stages.map((stg, idx) => {
+    const isLast = idx === stages.length - 1;
+    const stageDist = isLast
+      ? Math.max(0.5, Math.round((newTotalDist - accumulated) * 10) / 10)
+      : Math.max(0.5, Math.round(((stg.distanceKm / oldTotal) * newTotalDist) * 10) / 10);
+
+    const startKm = Math.round(accumulated * 10) / 10;
+    accumulated += stageDist;
+    const endKm = Math.round(accumulated * 10) / 10;
+
+    let baseStep = stg.step;
+    const parenIndex = baseStep.indexOf('(');
+    if (parenIndex !== -1) {
+      baseStep = baseStep.slice(0, parenIndex).trim();
+    }
+    const updatedStep = `${baseStep} (${startKm} ~ ${endKm}km, ${stageDist}km)`;
+
+    return {
+      ...stg,
+      step: updatedStep,
+      distanceKm: stageDist,
+    };
+  });
+}
+
+/**
+ * Synchronize a day plan's title, distanceKm, and workout stages to maintain strict mathematical consistency
+ */
+export function synchronizeWorkoutDistanceTitleStages(
+  dayPlan: WeeklyPlanDay,
+  exactDistanceKm: number
+): WeeklyPlanDay {
+  const dist = Math.round(exactDistanceKm * 10) / 10;
+  let newTitle = dayPlan.title;
+
+  // Replace any existing \d+(\.\d+)?km in the title to exact dist km
+  if (/\b\d+(\.\d+)?km\b/.test(newTitle)) {
+    newTitle = newTitle.replace(/\b\d+(\.\d+)?km\b/g, `${dist}km`);
+  }
+
+  let newStages = dayPlan.stages;
+  if (newStages && newStages.length > 0) {
+    newStages = rescaleWorkoutStages(newStages, dist);
+  }
+
+  return {
+    ...dayPlan,
+    title: newTitle,
+    distanceKm: dist,
+    stages: newStages,
+  };
+}
+
+/**
+ * Analyzes registered upcoming races & running goals to determine the runner's periodization phase
+ * and target race pace for smart periodized training plan generation.
+ */
+export function analyzeTargetRaceForTrainingPlan(
+  races: RegisteredRace[] = [],
+  goals?: RunningGoals,
+  targetCourseFallback: string = '풀코스'
+): TargetRacePlanAnalysis | null {
+  if (!races || races.length === 0) return null;
+
+  const now = new Date();
+  const todayMs = now.getTime();
+
+  // Find target or nearest upcoming race (prioritize explicit isTarget or 2027 Gyeongju Marathon)
+  const upcomingRaces = races
+    .filter((r) => {
+      const raceDate = new Date(r.date);
+      return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
+    })
+    .sort((a, b) => {
+      const aTarget = a.isTarget || a.priority === 'A' || a.name.includes('경주') ? 1 : 0;
+      const bTarget = b.isTarget || b.priority === 'A' || b.name.includes('경주') ? 1 : 0;
+      if (aTarget !== bTarget) return bTarget - aTarget;
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+
+  if (upcomingRaces.length === 0) return null;
+
+  const targetRace = upcomingRaces[0];
+  const raceDate = new Date(targetRace.date);
+  const diffDays = Math.max(0, Math.ceil((raceDate.getTime() - todayMs) / (1000 * 60 * 60 * 24)));
+  const diffWeeks = Math.ceil(diffDays / 7);
+
+  // Determine course distance in km
+  let courseDistKm = 42.195;
+  const crs = (targetRace.course || targetCourseFallback).toLowerCase();
+  if (crs.includes('하프') || crs.includes('21')) courseDistKm = 21.0975;
+  else if (crs.includes('10')) courseDistKm = 10.0;
+  else if (crs.includes('5')) courseDistKm = 5.0;
+
+  // Determine target finish time and pace
+  let finishTime = targetRace.targetTime || '';
+  if (!finishTime && goals) {
+    if (courseDistKm >= 40) finishTime = goals.targetFull || '03:29:59';
+    else if (courseDistKm >= 20) finishTime = goals.targetHalf || '01:39:59';
+    else finishTime = goals.target10k || '00:44:59';
+  }
+  if (!finishTime) {
+    finishTime = courseDistKm >= 40 ? '03:29:59' : courseDistKm >= 20 ? '01:39:59' : '00:44:59';
+  }
+
+  const finishSec = parseTimeToSeconds(finishTime);
+  const targetPaceRawSec = finishSec > 0 && courseDistKm > 0 ? Math.round(finishSec / courseDistKm) : 298;
+  const targetPace = formatPace(targetPaceRawSec);
+
+  // Pace Intensity Level (목표 페이스의 강도 등급 판정)
+  let paceIntensityLevel: TargetRacePlanAnalysis['paceIntensityLevel'] = '중강도 (Moderate)';
+  if (courseDistKm >= 40) {
+    if (targetPaceRawSec <= 285) paceIntensityLevel = '고강도 목표 (High)'; // Sub-3:20
+    else if (targetPaceRawSec <= 315) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-3:42
+    else if (targetPaceRawSec <= 360) paceIntensityLevel = '중강도 (Moderate)'; // Sub-4:13
+    else paceIntensityLevel = '안정 완주 (Endurance)';
+  } else if (courseDistKm >= 20) {
+    if (targetPaceRawSec <= 270) paceIntensityLevel = '고강도 목표 (High)'; // Sub-1:35
+    else if (targetPaceRawSec <= 300) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-1:45
+    else if (targetPaceRawSec <= 345) paceIntensityLevel = '중강도 (Moderate)'; // Sub-2:00
+    else paceIntensityLevel = '안정 완주 (Endurance)';
+  } else if (courseDistKm >= 9) {
+    if (targetPaceRawSec <= 260) paceIntensityLevel = '고강도 목표 (High)'; // Sub-43m
+    else if (targetPaceRawSec <= 290) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-48m
+    else if (targetPaceRawSec <= 330) paceIntensityLevel = '중강도 (Moderate)'; // Sub-55m
+    else paceIntensityLevel = '안정 완주 (Endurance)';
+  } else {
+    if (targetPaceRawSec <= 270) paceIntensityLevel = '고강도 목표 (High)';
+    else if (targetPaceRawSec <= 310) paceIntensityLevel = '중상 강도 (Moderate-High)';
+    else paceIntensityLevel = '중강도 (Moderate)';
+  }
+
+  // Check if race day falls within this active week (Monday ~ Sunday)
+  const currentWeekMonday = getWeekMondayDate(now);
+  const currentWeekSunday = new Date(currentWeekMonday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+  const isRaceThisWeek = raceDate >= currentWeekMonday && raceDate <= currentWeekSunday;
+  const dayNameList: DayOfWeek[] = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+  const raceDayOfWeek = dayNameList[raceDate.getDay()];
+
+  // Extract user-selected race priority (A, B, C)
+  const racePriority: 'A' | 'B' | 'C' =
+    targetRace.priority === 'C' || targetRace.importance?.includes('C')
+      ? 'C'
+      : targetRace.priority === 'B' || targetRace.importance?.includes('B')
+      ? 'B'
+      : 'A';
+
+  const importanceGrade: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)' =
+    racePriority === 'C'
+      ? 'C-Race (연습 대회)'
+      : racePriority === 'B'
+      ? 'B-Race (중간 점검)'
+      : 'A-Race (메인 목표)';
+
+  // Determine Periodization Phase and Fine-Grained Tapering Modulation based on D-Day, Importance (A/B/C) & Pace Intensity
+  // 핵심 원칙: 목표 강도가 낮고 중요도도 낮다면(C-Race & 완주 페이스) 불필요한 장기 테이퍼링을 대폭 줄이고 훈련 볼륨을 유지합니다.
+  let periodizationPhase: TargetRacePlanAnalysis['periodizationPhase'];
+  let phaseDescription = '';
+  let strategicAdvice = '';
+  let taperingVolumeCutPct = 0;
+  let taperingIntensityStrategy = '';
+  let taperingSpeedRepNote = '';
+  let taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 12;
+  let taperScaleNote = '';
+
+  if (diffDays <= 7 || isRaceThisWeek) {
+    periodizationPhase = '대회 직전 조정기 (Race Week)';
+
+    if (racePriority === 'C') {
+      if (paceIntensityLevel === '안정 완주 (Endurance)') {
+        taperingVolumeCutPct = 12; // 최소 감량!
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 16);
+        taperingSpeedRepNote = '가벼운 5km 조깅 및 코호흡 유지';
+        taperScaleNote = '중요도(C-Race) 및 안정 완주 강도 반영 ➡️ 테이퍼링 감량 최소화(-12%)로 평소 훈련 마일리지 보존';
+        taperingIntensityStrategy = `[C-Race · 완주 목표 최소 감량] 중요도와 목표 강도가 모두 낮으므로 과도한 조기 테이퍼링을 배제하고 주간 볼륨(-12%)을 온전히 유지하며 대회 전일 1~2일만 가볍게 컨디션을 정돈합니다.`;
+      } else if (paceIntensityLevel === '중강도 (Moderate)') {
+        taperingVolumeCutPct = 18;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 14);
+        taperingSpeedRepNote = '가벼운 5km 조깅 + 100m 스트라이드 2회';
+        taperScaleNote = '중요도(C-Race) 반영 ➡️ 테이퍼링 감량폭 축소(-18%)';
+        taperingIntensityStrategy = `[C-Race 훈련주 감량 축소] 일상 훈련의 연장선으로 테이퍼링을 -18%로 최소화하여 주간 지구력 흐름을 보존합니다.`;
+      } else {
+        taperingVolumeCutPct = 26;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 12);
+        taperingSpeedRepNote = `목표 페이스(${targetPace}) 300m 2회 리듬 점검`;
+        taperScaleNote = 'C-Race이지만 고강도 목표 반영 ➡️ 미니 테이퍼링(-26%)';
+        taperingIntensityStrategy = `[C-Race 훈련 레이스 감량] 빠른 주행에 따른 부상 방지를 위해 -26% 미니 테이퍼링을 적용합니다.`;
+      }
+    } else if (racePriority === 'B') {
+      if (paceIntensityLevel === '안정 완주 (Endurance)') {
+        taperingVolumeCutPct = 22;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 12);
+        taperingSpeedRepNote = '가벼운 4km 조깅 및 가동성 스트레칭';
+        taperScaleNote = 'B-Race 점검 & 완주 목표 반영 ➡️ 테이퍼링 감량 축소(-22%)';
+        taperingIntensityStrategy = `[B-Race 완주 점검 감량] 중간 점검 레이스로 주간 볼륨을 -22%만 가볍게 정돈하여 주간 지구력을 유지합니다.`;
+      } else if (paceIntensityLevel === '중강도 (Moderate)') {
+        taperingVolumeCutPct = 30;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 10);
+        taperingSpeedRepNote = `목표 페이스(${targetPace}) 400m 2회`;
+        taperScaleNote = 'B-Race 중간 점검 반영 ➡️ 미니 테이퍼링(-30%)';
+        taperingIntensityStrategy = `[B-Race 페이스 점검 감량] 실전 페이스 감각을 확인하되 훈련 흐름을 깨지 않도록 -30% 미니 감량을 진행합니다.`;
+      } else {
+        taperingVolumeCutPct = 38;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 9);
+        taperingSpeedRepNote = `목표 페이스(${targetPace}) 300m 3회 리듬 점검`;
+        taperScaleNote = 'B-Race 고강도 점검 반영 ➡️ 테이퍼링(-38%)';
+        taperingIntensityStrategy = `[B-Race 고강도 점검 감량] 기록 점검 레이스를 위해 주간 볼륨 -38% 감량으로 피로를 배출합니다.`;
+      }
+    } else {
+      // A-Race (메인 목표)
+      if (paceIntensityLevel === '안정 완주 (Endurance)') {
+        taperingVolumeCutPct = 35;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 9;
+        taperingSpeedRepNote = '가벼운 4km 조깅 및 코호흡';
+        taperScaleNote = 'A-Race 메인 목표 & 안정 완주 반영 ➡️ 테이퍼링(-35%)';
+        taperingIntensityStrategy = `[A-Race 안정 완주 감량] 결승선까지 체력을 온전히 보존하기 위해 주간 볼륨 -35% 감량 및 수면/글리코겐을 충전합니다.`;
+      } else if (paceIntensityLevel === '중강도 (Moderate)') {
+        taperingVolumeCutPct = 45;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 9;
+        taperingSpeedRepNote = '가벼운 4km 조깅 후 100m 스트라이드 2회';
+        taperScaleNote = 'A-Race 메인 목표 반영 ➡️ 표준 정밀 테이퍼링(-45%)';
+        taperingIntensityStrategy = `[A-Race 중강도 완주 감량] 메인 레이스 피킹을 위해 주간 볼륨 -45% 감량 및 관절/건 컨디션을 최고치로 리셋합니다.`;
+      } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
+        taperingVolumeCutPct = 52;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 8;
+        taperingSpeedRepNote = `목표 페이스(${targetPace}) 300m 3회 리듬 점검`;
+        taperScaleNote = 'A-Race 중상 강도 목표 반영 ➡️ 심화 테이퍼링(-52%)';
+        taperingIntensityStrategy = `[A-Race 중상 강도 목표 감량] 주간 볼륨 -52% 집중 감량. 가벼운 이지 조깅과 ${targetPace} 리듬만 짧게 점검하여 다리의 생생함을 극대화합니다.`;
+      } else {
+        taperingVolumeCutPct = 58;
+        taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 7;
+        taperingSpeedRepNote = `목표 페이스(${targetPace}) 200m 3회 질주 (신경계 자극, 젖산 차단)`;
+        taperScaleNote = 'A-Race 초고강도 목표(Sub-3급) 반영 ➡️ 최고치 초강력 테이퍼링(-58%)';
+        taperingIntensityStrategy = `[A-Race 고강도 특화 감량] 주간 볼륨 -58% 초강력 감량! 글리코겐 완전 충전 및 피로를 완전히 배출하며 신경계 발화 감각을 최상으로 유지합니다.`;
+      }
+    }
+
+    phaseDescription = `대회 D-${diffDays}일(${importanceGrade}): 가벼운 리듬 조깅과 글리코겐 충전 주간입니다. (${taperScaleNote})`;
+    strategicAdvice = isRaceThisWeek
+      ? `이번 주 ${raceDayOfWeek} 결승의 날입니다! 주중 볼륨을 ${taperingVolumeCutPct}% 감량하고, 목표 페이스(${targetPace})로 스타트하여 흔들림 없이 피니시 라인까지 달리세요.`
+      : `주간 볼륨을 평소 대비 ${taperingVolumeCutPct}% 감량하고, ${taperingSpeedRepNote}로 근육 텐션을 가볍게 유지하세요.`;
+  } else if (diffDays <= 21) {
+    const isWeek2 = diffDays <= 14;
+
+    if (racePriority === 'C') {
+      if (isWeek2) {
+        if (paceIntensityLevel === '안정 완주 (Endurance)' || paceIntensityLevel === '중강도 (Moderate)') {
+          // No tapering for C-race with low/moderate intensity!
+          periodizationPhase = '목표 페이스 특화기 (Peak)';
+          taperingVolumeCutPct = 0;
+          taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 14;
+          taperScaleNote = '중요도(C-Race) & 완주 강도 반영 ➡️ 2주 전 조기 감량 배제(0%), 주간 마일리지 100% 지속';
+          taperingIntensityStrategy = `[C-Race 완주 목표 감량 배제] 중요도와 강도가 낮아 2주 전 조기 감량 시 심폐 능력 손실 우려가 있으므로, 주간 마일리지 100%를 온전히 유지합니다.`;
+          phaseDescription = `대회 D-${diffDays}일(C-Race 2주전): 연습 대회이므로 장기 테이퍼링 없이 정상 마일리지를 소화합니다. (${taperScaleNote})`;
+          strategicAdvice = `주간 마일리지를 온전히 유지하며, 편안한 조깅과 LSD(${taperingLsdDistKm}km)로 지구력을 계속 쌓아가세요.`;
+        } else {
+          periodizationPhase = '테이퍼링 감량기 (Tapering)';
+          taperingVolumeCutPct = 8;
+          taperingLsdDistKm = Math.min(courseDistKm, 20);
+          taperScaleNote = 'C-Race 고강도 목표 반영 ➡️ 2주차 극소 감량(-8%)';
+          taperingIntensityStrategy = `[C-Race 2주차 극소 감량] 주간 볼륨 -8%만 살짝 덜어내며 훈련 흐름을 유지합니다.`;
+          phaseDescription = `대회 D-${diffDays}일(C-Race 2주차): 미니 조율(-8%) 단계입니다.`;
+          strategicAdvice = `LSD는 ${taperingLsdDistKm}km 수준으로 가볍게 조절하고 일상 훈련을 지속하세요.`;
+        }
+      } else {
+        // Week 1 (D-15~21) for C-Race -> 0% cut, pure build/peak!
+        periodizationPhase = '스피드/지구력 빌드업기 (Build)';
+        taperingVolumeCutPct = 0;
+        taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 14;
+        taperScaleNote = 'C-Race 연습 대회: 3주 전 감량 배제(0%), 정상 훈련 마일리지 지속';
+        taperingIntensityStrategy = `[C-Race 3주전 감량 배제] 훈련 흐름 보존을 위해 조기 감량을 전혀 두지 않고 마일리지 빌드업을 지속합니다.`;
+        phaseDescription = `대회 D-${diffDays}일(C-Race 3주전): 장기 테이퍼링 배제, 정상 유산소 훈련 지속 단계입니다.`;
+        strategicAdvice = `주간 마일리지를 충실히 유지하며 유산소 베이스와 역치 템포런을 소화하세요.`;
+      }
+    } else if (racePriority === 'B') {
+      if (isWeek2) {
+        periodizationPhase = '테이퍼링 감량기 (Tapering)';
+        if (paceIntensityLevel === '안정 완주 (Endurance)') {
+          taperingVolumeCutPct = 8;
+          taperingLsdDistKm = Math.min(courseDistKm, 20);
+          taperScaleNote = 'B-Race 완주 목표 반영 ➡️ 2주차 미니 감량(-8%)';
+        } else if (paceIntensityLevel === '중강도 (Moderate)') {
+          taperingVolumeCutPct = 14;
+          taperingLsdDistKm = Math.min(courseDistKm, 18);
+          taperScaleNote = 'B-Race 중강도 점검 반영 ➡️ 2주차 미니 감량(-14%)';
+        } else {
+          taperingVolumeCutPct = 20;
+          taperingLsdDistKm = Math.min(courseDistKm, 16);
+          taperScaleNote = 'B-Race 고강도 점검 반영 ➡️ 2주차 감량(-20%)';
+        }
+        taperingIntensityStrategy = `[B-Race 2주차 점검 감량] 볼륨 -${taperingVolumeCutPct}% 미니 감량으로 실전 점검 컨디션을 맞춥니다.`;
+        phaseDescription = `대회 D-${diffDays}일(B-Race 점검 2주차): 미니 감량(-${taperingVolumeCutPct}%) 단계입니다. (${taperScaleNote})`;
+        strategicAdvice = `LSD를 ${taperingLsdDistKm}km로 가볍게 정돈하고 페이스 리듬을 점검하세요.`;
+      } else {
+        // Week 1 for B-Race -> 0% cut
+        periodizationPhase = '목표 페이스 특화기 (Peak)';
+        taperingVolumeCutPct = 0;
+        taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 14;
+        taperScaleNote = 'B-Race 점검 대회: 3주 전 감량 배제(0%), 정상 피크 훈련 지속';
+        taperingIntensityStrategy = `[B-Race 3주전 정상 가동] 점검 레이스 3주 전이므로 테이퍼링 없이 주간 마일리지를 온전히 소화합니다.`;
+        phaseDescription = `대회 D-${diffDays}일(B-Race 3주전): 정상 마일리지 및 피크 페이스 훈련 단계입니다.`;
+        strategicAdvice = `주간 마일리지를 100% 가동하며 대회 목표 페이스 적응도를 점검하세요.`;
+      }
+    } else {
+      // A-Race
+      periodizationPhase = '테이퍼링 감량기 (Tapering)';
+      if (isWeek2) {
+        if (paceIntensityLevel === '고강도 목표 (High)') {
+          taperingVolumeCutPct = 38;
+          taperingLsdDistKm = Math.min(courseDistKm, 14);
+          taperScaleNote = 'A-Race 고강도 목표 반영 ➡️ 2주차 집중 감량(-38%)';
+        } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
+          taperingVolumeCutPct = 30;
+          taperingLsdDistKm = Math.min(courseDistKm, 16);
+          taperScaleNote = 'A-Race 중상 강도 반영 ➡️ 2주차 감량(-30%)';
+        } else if (paceIntensityLevel === '중강도 (Moderate)') {
+          taperingVolumeCutPct = 24;
+          taperingLsdDistKm = Math.min(courseDistKm, 18);
+          taperScaleNote = 'A-Race 중강도 완주 반영 ➡️ 2주차 감량(-24%)';
+        } else {
+          taperingVolumeCutPct = 18;
+          taperingLsdDistKm = Math.min(courseDistKm, 20);
+          taperScaleNote = 'A-Race 완주 목표 반영 ➡️ 2주차 온건 감량(-18%)';
+        }
+        taperingIntensityStrategy = `[A-Race 2주차 테이퍼링] 주간 볼륨 -${taperingVolumeCutPct}% 감량 및 LSD ${taperingLsdDistKm}km 축소. 피로를 제거하고 스피드 감각을 날카롭게 보존합니다.`;
+        phaseDescription = `대회 D-${diffDays}일(테이퍼링 2주차): 주간 볼륨 ${taperingVolumeCutPct}% 감량 단계입니다. (${taperScaleNote})`;
+        strategicAdvice = `LSD 거리를 ${taperingLsdDistKm}km로 축소하고, 가벼운 포인트 훈련으로 피로는 털어내고 페이스 감각을 살려두세요.`;
+      } else {
+        // Week 1 (D-15~21)
+        if (paceIntensityLevel === '고강도 목표 (High)') {
+          taperingVolumeCutPct = 22;
+          taperingLsdDistKm = Math.min(courseDistKm, 18);
+          taperScaleNote = 'A-Race 고강도 목표 반영 ➡️ 1주차 점진 감량(-22%)';
+        } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
+          taperingVolumeCutPct = 18;
+          taperingLsdDistKm = Math.min(courseDistKm, 20);
+          taperScaleNote = 'A-Race 중상 강도 반영 ➡️ 1주차 감량(-18%)';
+        } else if (paceIntensityLevel === '중강도 (Moderate)') {
+          taperingVolumeCutPct = 14;
+          taperingLsdDistKm = Math.min(courseDistKm, 22);
+          taperScaleNote = 'A-Race 중강도 반영 ➡️ 1주차 감량(-14%)';
+        } else {
+          taperingVolumeCutPct = 10;
+          taperingLsdDistKm = Math.min(courseDistKm, 24);
+          taperScaleNote = 'A-Race 완주 목표 반영 ➡️ 1주차 최소 감량(-10%)';
+        }
+        taperingIntensityStrategy = `[A-Race 1주차 테이퍼링] 주간 볼륨 -${taperingVolumeCutPct}% 감량 시작, 긴장 완화와 에너지 비축을 시작합니다.`;
+        phaseDescription = `대회 D-${diffDays}일(테이퍼링 1주차): 점진적 감량기 진입(-${taperingVolumeCutPct}%). (${taperScaleNote})`;
+        strategicAdvice = `LSD를 ${taperingLsdDistKm}km로 조절하고, 대회 페이스 주행 시 심박수를 차분히 관찰하세요.`;
+      }
+    }
+  } else if (diffDays <= 56) {
+    periodizationPhase = '목표 페이스 특화기 (Peak)';
+    taperingVolumeCutPct = 0;
+    taperingLsdDistKm = courseDistKm >= 40 ? 28 : courseDistKm >= 20 ? 20 : 14;
+    taperingSpeedRepNote = `야소 800m / 역치 템포런 전출력 소화`;
+    taperScaleNote = `피크기: 주간 마일리지 100% 가동 (${importanceGrade})`;
+    taperingIntensityStrategy = `[피크기 페이스 특화] 주간 마일리지 100% 가동. 목표 페이스(${targetPace}) 지속 능력을 최고치로 끌어올리는 핵심 승부처입니다.`;
+    phaseDescription = `대회 D-${diffWeeks}주전: 대회 코스 목표 페이스(${targetPace}) 집중 적응과 후반 페이스 유지력을 극대화하는 피크 훈련기입니다.`;
+    strategicAdvice = `주말 LSD 후반 6~8km를 대회 목표 페이스(${targetPace})로 달리는 빌드업주와 야소 800m / 역치 템포런으로 경기력을 최고치로 끌어올립니다.`;
+  } else if (diffDays <= 112) {
+    periodizationPhase = '스피드/지구력 빌드업기 (Build)';
+    taperingVolumeCutPct = 0;
+    taperingLsdDistKm = courseDistKm >= 40 ? 24 : 16;
+    taperingSpeedRepNote = `VO2max 인터벌 & 점진적 마일리지 증량`;
+    taperScaleNote = `빌드업기: 심폐 엔진 및 역치(LT) 페이스 확장`;
+    taperingIntensityStrategy = `[빌드업기 체계적 증량] 심폐 엔진 및 역치(LT) 페이스 확장 훈련.`;
+    phaseDescription = `대회 D-${diffWeeks}주전: 심폐 지구력과 젖산 역치(LT) 페이스를 끌어올려 탄탄한 훈련 기반을 쌓는 점진적 증량기입니다.`;
+    strategicAdvice = `주간 마일리지를 전주 대비 5~10% 점진 증량하고, 주 1회 역치 템포런과 인터벌을 통해 심폐 한계치(VO2Max)를 확장하세요.`;
+  } else {
+    periodizationPhase = '기초 유산소 구축기 (Base)';
+    taperingVolumeCutPct = 0;
+    taperingLsdDistKm = courseDistKm >= 40 ? 22 : 14;
+    taperScaleNote = `베이스 구축기: Zone 2 80% 이상 유지`;
+    taperingSpeedRepNote = `유산소 이지 조깅 + 질주 4회`;
+    taperingIntensityStrategy = `[베이스 구축기 엔진 빌딩] Zone 2 80% 이상 유지로 심혈관계 모세혈관 발달.`;
+    phaseDescription = `대회 D-${diffDays}일(약 ${diffWeeks}주): 2027 경주마라톤 정조준 장기 기초 유산소(Zone 2) 엔진 구축 및 부상 방지 마일리지 축적 단계입니다.`;
+    strategicAdvice = `편안한 호흡의 이지런(Zone 2) 비중을 80% 이상 유지하여 모세혈관과 미토콘드리아를 증식하고, 하체 건/인대 결합조직을 튼튼히 보강하세요.`;
+  }
+
+  return {
+    raceId: targetRace.id,
+    raceName: targetRace.name,
+    raceDate: targetRace.date,
+    course: targetRace.course || targetCourseFallback,
+    dDayDays: diffDays,
+    dDayWeeks: diffWeeks,
+    targetFinishTime: finishTime,
+    targetRacePace: targetPace,
+    targetPaceRawSec,
+    courseDistKm,
+    racePriority,
+    importanceGrade,
+    paceIntensityLevel,
+    taperingVolumeCutPct,
+    taperingIntensityStrategy,
+    taperingSpeedRepNote,
+    taperingLsdDistKm,
+    taperScaleNote,
+    periodizationPhase,
+    phaseDescription,
+    strategicAdvice,
+    isRaceThisWeek,
+    raceDayOfWeek,
+  };
+}
+
+/**
  * In-depth Runner Workload & Training State Analyzer
  * Evaluates:
  * 1. 월요일~일요일 기준 직전 주간(지난주) 완료 마일리지 & 최근 4주 완료 주간 마일리지 추세
  * 2. ACWR (Acute:Chronic Workload Ratio) for Overuse/Fatigue Risk Assessment (지난주 / 최근 4주 평균)
  * 3. 이번 주 실훈련 기록(예: 월요일 훈련) 실시간 감지 및 남은 요일 잔여 볼륨 자동 산출
  * 4. Recent Longest Run endurance capacity
- * 5. Tailored Volume & Point workout distance adjustment parameters
+ * 5. 사용자 명시 참가 대회 데이터의 중요도(A/B/C-Race), 목표 페이스 강도 및 주기화/테이퍼링 복합 가중치 반영
  */
 export function analyzeRunnerState(
   trainingSessions: TrainingSession[] = [],
   targetRaceCourse: string = '풀코스',
-  refDate: Date = new Date()
+  refDate: Date = new Date(),
+  races: RegisteredRace[] = [],
+  goals?: RunningGoals
 ): RunnerStateAnalysis {
   const isFullCourse = targetRaceCourse.includes('풀') || targetRaceCourse.includes('42');
   const isHalfCourse = targetRaceCourse.includes('하프') || targetRaceCourse.includes('21');
@@ -159,7 +581,57 @@ export function analyzeRunnerState(
     lastWeekSunday.getDate()
   ).padStart(2, '0')}(일)`;
 
+  // Evaluate Target Race Plan & Weighting
+  const targetRacePlan = analyzeTargetRaceForTrainingPlan(races, goals, targetRaceCourse);
+  const targetRace = races.find((r) => r.isTarget) || (races.length > 0 ? races[0] : null);
+
+  let importanceGrade: RaceWeightDetail['importanceGrade'] = 'A-Race (메인 목표)';
+  let importanceWeight = 1.25;
+
+  if (targetRace) {
+    if (targetRace.priority === 'C' || targetRace.importance?.includes('C')) {
+      importanceGrade = 'C-Race (연습 대회)';
+      importanceWeight = 1.0;
+    } else if (targetRace.priority === 'B' || targetRace.importance?.includes('B')) {
+      importanceGrade = 'B-Race (중간 점검)';
+      importanceWeight = 1.1;
+    } else {
+      importanceGrade = 'A-Race (메인 목표)';
+      importanceWeight = 1.25;
+    }
+  }
+
   if (!trainingSessions || trainingSessions.length === 0) {
+    let baseWeeklyKm = defaultWeeklyBase;
+    let lsdDist = defaultTargetLsd;
+    let speedDist = isFullCourse ? 10 : isHalfCourse ? 9 : 8;
+
+    if (targetRacePlan) {
+      if (targetRacePlan.taperingVolumeCutPct > 0) {
+        baseWeeklyKm = Math.round(baseWeeklyKm * (1 - targetRacePlan.taperingVolumeCutPct / 100));
+        lsdDist = targetRacePlan.taperingLsdDistKm;
+        speedDist = targetRacePlan.isRaceThisWeek ? 4 : 6;
+      }
+    }
+
+    const raceWeightDetail: RaceWeightDetail | undefined = targetRacePlan
+      ? {
+          raceName: targetRacePlan.raceName,
+          raceDate: targetRacePlan.raceDate,
+          course: targetRacePlan.course,
+          dDayDays: targetRacePlan.dDayDays,
+          dDayWeeks: targetRacePlan.dDayWeeks,
+          periodizationPhase: targetRacePlan.periodizationPhase,
+          importanceGrade,
+          importanceWeight,
+          paceIntensityLevel: targetRacePlan.paceIntensityLevel,
+          targetRacePace: targetRacePlan.targetRacePace,
+          taperingVolumeCutPct: targetRacePlan.taperingVolumeCutPct,
+          taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
+          weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}) 대비: ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 테이퍼링 -${targetRacePlan.taperingVolumeCutPct}%` : ''})`,
+        }
+      : undefined;
+
     return {
       recent4WeeksDistances: [],
       avgWeeklyMileage4Weeks: defaultWeeklyBase,
@@ -172,16 +644,21 @@ export function analyzeRunnerState(
       acwr: 1.0,
       fatigueRisk: '안전(스위트스팟)',
       recentLongestRunKm: defaultTargetLsd * 0.75,
-      recommendedWeeklyKm: defaultWeeklyBase,
-      mileageAdjustmentNote: '누적 훈련 데이터가 없어 목표 코스 기준 표준 가이드라인 볼륨으로 산출되었습니다.',
-      intensityAdjustmentNote: '기본 훈련 강도로 시작하며 점진적인 빌드업을 권장합니다.',
-      longRunRecommendedKm: defaultTargetLsd,
-      speedVolumeRecommendedKm: isFullCourse ? 10 : isHalfCourse ? 9 : 8,
+      recommendedWeeklyKm: baseWeeklyKm,
+      mileageAdjustmentNote: targetRacePlan
+        ? `[목표 대회 가중치 반영] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${importanceGrade})의 ${targetRacePlan.periodizationPhase} 및 ${targetRacePlan.paceIntensityLevel} (${targetRacePlan.targetRacePace}/km) 목표 강도가 반영되어 주간 볼륨 ${baseWeeklyKm}km로 산출되었습니다.`
+        : '누적 훈련 데이터가 없어 목표 코스 기준 표준 가이드라인 볼륨으로 산출되었습니다.',
+      intensityAdjustmentNote: targetRacePlan
+        ? `[대회 페이스 강도 가중치] ${targetRacePlan.taperingIntensityStrategy || '목표 페이스에 맞춘 점진적 인터벌 훈련 권장'}`
+        : '기본 훈련 강도로 시작하며 점진적인 빌드업을 권장합니다.',
+      longRunRecommendedKm: lsdDist,
+      speedVolumeRecommendedKm: speedDist,
       lastWeekLabel,
       thisWeekLoggedKm: 0,
       thisWeekSessionsCount: 0,
       thisWeekDaysDone: [],
-      remainingWeeklyPlanKm: defaultWeeklyBase,
+      remainingWeeklyPlanKm: baseWeeklyKm,
+      raceWeightDetail,
     };
   }
 
@@ -312,8 +789,6 @@ export function analyzeRunnerState(
   }
 
   // 4. ACWR (Acute:Chronic Workload Ratio)
-  // Acute: Last completed week's volume (월~일 지난주)
-  // Chronic: rolling 4-week average of completed weeks
   const acuteLoadKm = lastWeekDistance;
   const chronicLoadKm = avgWeeklyMileage4Weeks > 0 ? avgWeeklyMileage4Weeks : defaultWeeklyBase;
   const acwr = chronicLoadKm > 0 ? Math.round((acuteLoadKm / chronicLoadKm) * 100) / 100 : 1.0;
@@ -335,18 +810,15 @@ export function analyzeRunnerState(
   let intensityAdjustmentNote = '';
 
   if (acwr > 1.3) {
-    // Overload danger: throttle back volume slightly (-5%~-10%) to absorb fatigue
     targetWeeklyVolume = Math.round(lastWeekDistance * 0.92);
     mileageAdjustmentNote = `지난주 주간 부하(ACWR ${acwr})가 1.3을 초과하여 주의 구간입니다. 피로 흡수를 위해 주간 마일리지를 하향 조정한 ${targetWeeklyVolume}km로 안전하게 리셋합니다.`;
     intensityAdjustmentNote = '인터벌 질주 반복수와 고강도 지속주 거리를 축소하고 보강 운동 및 완전 휴식에 비중을 둡니다.';
   } else if (acwr < 0.8) {
-    // Under-training: safely ramp up (+10%) from current level
     const baseRef = Math.max(lastWeekDistance, chronicLoadKm * 0.85);
     targetWeeklyVolume = Math.round(Math.min(baseRef * 1.1, defaultWeeklyBase));
     mileageAdjustmentNote = `지난주 마일리지가 일시적 감소 상태(ACWR ${acwr})였습니다. 10% 증량 안전 법칙을 적용하여 단계적으로 ${targetWeeklyVolume}km까지 회복 빌드업합니다.`;
     intensityAdjustmentNote = '고강도 질주보다는 Zone 2 유산소 베이스 조깅의 비중을 높여 기초 심폐 용적을 재충전합니다.';
   } else {
-    // Optimal Sweet Spot (0.8 ~ 1.3)
     if (mileageTrend === '증가세') {
       targetWeeklyVolume = Math.round(Math.min(lastWeekDistance * 1.05, defaultWeeklyBase * 1.15));
       mileageAdjustmentNote = `안정적인 주간 마일리지 상승세(최근 4주 평균 ${avgWeeklyMileage4Weeks}km ➡️ 지난주 ${lastWeekDistance}km)를 반영하여 안전 권장 상한(+5%)인 ${targetWeeklyVolume}km로 세팅되었습니다.`;
@@ -356,6 +828,44 @@ export function analyzeRunnerState(
       mileageAdjustmentNote = `안정적인 훈련 지속성(ACWR ${acwr}, 최근 4주 평균 ${avgWeeklyMileage4Weeks}km)을 감안하여 몸에 부담 없는 ${targetWeeklyVolume}km로 밸런스를 맞추었습니다.`;
       intensityAdjustmentNote = '목표 대회 페이스에 맞춘 정밀 인터벌/템포런 훈련을 핵심 포인트로 배치합니다.';
     }
+  }
+
+  // Incorporate Target Race Importance, Goal Pace Intensity, and Periodization Weighting!
+  let raceWeightDetail: RaceWeightDetail | undefined = undefined;
+
+  if (targetRacePlan) {
+    // 1) Periodization Volume Modulation
+    if (targetRacePlan.taperingVolumeCutPct > 0) {
+      const taperVol = Math.round(targetWeeklyVolume * (1 - targetRacePlan.taperingVolumeCutPct / 100));
+      const minSafe = targetRacePlan.isRaceThisWeek ? targetRacePlan.courseDistKm + 6 : 14;
+      targetWeeklyVolume = Math.max(minSafe, taperVol);
+    } else if (targetRacePlan.periodizationPhase.includes('Peak')) {
+      targetWeeklyVolume = Math.round(targetWeeklyVolume * 1.12);
+    } else if (targetRacePlan.periodizationPhase.includes('Build')) {
+      targetWeeklyVolume = Math.round(targetWeeklyVolume * 1.05);
+    }
+
+    raceWeightDetail = {
+      raceId: targetRacePlan.raceId,
+      raceName: targetRacePlan.raceName,
+      raceDate: targetRacePlan.raceDate,
+      course: targetRacePlan.course,
+      dDayDays: targetRacePlan.dDayDays,
+      dDayWeeks: targetRacePlan.dDayWeeks,
+      periodizationPhase: targetRacePlan.periodizationPhase,
+      racePriority: targetRacePlan.racePriority,
+      importanceGrade,
+      importanceWeight,
+      paceIntensityLevel: targetRacePlan.paceIntensityLevel,
+      targetRacePace: targetRacePlan.targetRacePace,
+      taperingVolumeCutPct: targetRacePlan.taperingVolumeCutPct,
+      taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
+      taperScaleNote: targetRacePlan.taperScaleNote,
+      weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}): ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 감량 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 볼륨 가동'}${targetRacePlan.taperScaleNote ? ` · ${targetRacePlan.taperScaleNote}` : ''})`,
+    };
+
+    mileageAdjustmentNote = `[참가 대회 가중치 & 테이퍼링 정밀 조율] ${targetRacePlan.raceName} (${importanceGrade}, ${targetRacePlan.paceIntensityLevel}) 대비: ${targetRacePlan.taperScaleNote || `${targetRacePlan.periodizationPhase} 반영`}. 주간 볼륨 ${targetWeeklyVolume}km 세팅. ${mileageAdjustmentNote}`;
+    intensityAdjustmentNote = `[대회 페이스 강도 조율] ${targetRacePlan.taperingIntensityStrategy || '목표 대회 페이스에 맞춘 정밀 인터벌/템포런 훈련을 핵심 포인트로 배치합니다.'} ${intensityAdjustmentNote}`;
   }
 
   // Ensure minimum threshold
@@ -370,20 +880,41 @@ export function analyzeRunnerState(
   }
 
   // 6. Adaptive Long Run & Speed Run Distances
-  const maxSafeLongRun = Math.round(
+  let maxSafeLongRun = Math.round(
     Math.min(
       defaultTargetLsd,
       targetWeeklyVolume * 0.4,
       Math.max(recentLongestRunKm + 3, defaultTargetLsd * 0.65)
     )
   );
+
+  if (targetRacePlan) {
+    if (targetRacePlan.isRaceThisWeek) {
+      maxSafeLongRun = targetRacePlan.courseDistKm;
+    } else if (targetRacePlan.taperingLsdDistKm > 0 && targetRacePlan.taperingVolumeCutPct > 0) {
+      maxSafeLongRun = targetRacePlan.taperingLsdDistKm;
+    } else if (targetRacePlan.periodizationPhase.includes('Peak')) {
+      maxSafeLongRun = isFullCourse ? 30 : isHalfCourse ? 20 : 14;
+    }
+  }
+
   const longRunRecommendedKm = Math.max(maxSafeLongRun, isFullCourse ? 18 : isHalfCourse ? 12 : 8);
 
-  const speedVolumeRecommendedKm = isFullCourse
+  let speedVolumeRecommendedKm = isFullCourse
     ? targetWeeklyVolume >= 42 ? 10 : 8
     : isHalfCourse
     ? targetWeeklyVolume >= 34 ? 9 : 8
     : 8;
+
+  if (targetRacePlan) {
+    if (targetRacePlan.isRaceThisWeek) {
+      speedVolumeRecommendedKm = targetRacePlan.paceIntensityLevel === '고강도 목표 (High)' ? 4 : 5;
+    } else if (targetRacePlan.taperingVolumeCutPct > 0) {
+      speedVolumeRecommendedKm = targetRacePlan.dDayDays <= 14 ? 6 : 7;
+    } else if (targetRacePlan.paceIntensityLevel === '고강도 목표 (High)') {
+      speedVolumeRecommendedKm = Math.min(12, speedVolumeRecommendedKm + 1);
+    }
+  }
 
   const recent4WeeksDistances = completed4Weeks.map((w) => ({
     weekLabel: w.weekLabel,
@@ -412,220 +943,7 @@ export function analyzeRunnerState(
     thisWeekSessionsCount: thisWeekSessions.length,
     thisWeekDaysDone,
     remainingWeeklyPlanKm,
-  };
-}
-
-/**
- * Analyzes registered upcoming races & running goals to determine the runner's periodization phase
- * and target race pace for smart periodized training plan generation.
- */
-export function analyzeTargetRaceForTrainingPlan(
-  races: RegisteredRace[] = [],
-  goals?: RunningGoals,
-  targetCourseFallback: string = '풀코스'
-): TargetRacePlanAnalysis | null {
-  if (!races || races.length === 0) return null;
-
-  const now = new Date();
-  const todayMs = now.getTime();
-
-  // Find target or nearest upcoming race (prioritize 2027 Gyeongju Marathon or explicit isTarget)
-  const upcomingRaces = races
-    .filter((r) => {
-      const raceDate = new Date(r.date);
-      return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
-    })
-    .sort((a, b) => {
-      const aGyeongju = a.name.includes('경주') || a.isTarget ? 1 : 0;
-      const bGyeongju = b.name.includes('경주') || b.isTarget ? 1 : 0;
-      if (aGyeongju !== bGyeongju) return bGyeongju - aGyeongju;
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-
-  if (upcomingRaces.length === 0) return null;
-
-  const targetRace = upcomingRaces[0];
-  const raceDate = new Date(targetRace.date);
-  const diffDays = Math.max(0, Math.ceil((raceDate.getTime() - todayMs) / (1000 * 60 * 60 * 24)));
-  const diffWeeks = Math.ceil(diffDays / 7);
-
-  // Determine course distance in km
-  let courseDistKm = 42.195;
-  const crs = (targetRace.course || targetCourseFallback).toLowerCase();
-  if (crs.includes('하프') || crs.includes('21')) courseDistKm = 21.0975;
-  else if (crs.includes('10')) courseDistKm = 10.0;
-  else if (crs.includes('5')) courseDistKm = 5.0;
-
-  // Determine target finish time and pace
-  let finishTime = targetRace.targetTime || '';
-  if (!finishTime && goals) {
-    if (courseDistKm >= 40) finishTime = goals.targetFull || '03:29:59';
-    else if (courseDistKm >= 20) finishTime = goals.targetHalf || '01:39:59';
-    else finishTime = goals.target10k || '00:44:59';
-  }
-  if (!finishTime) {
-    finishTime = courseDistKm >= 40 ? '03:29:59' : courseDistKm >= 20 ? '01:39:59' : '00:44:59';
-  }
-
-  const finishSec = parseTimeToSeconds(finishTime);
-  const targetPaceRawSec = finishSec > 0 && courseDistKm > 0 ? Math.round(finishSec / courseDistKm) : 298;
-  const targetPace = formatPace(targetPaceRawSec);
-
-  // Pace Intensity Level (목표 페이스의 강도 등급 판정)
-  let paceIntensityLevel: TargetRacePlanAnalysis['paceIntensityLevel'] = '중강도 (Moderate)';
-  if (courseDistKm >= 40) {
-    if (targetPaceRawSec <= 285) paceIntensityLevel = '고강도 목표 (High)'; // Sub-3:20
-    else if (targetPaceRawSec <= 315) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-3:42
-    else if (targetPaceRawSec <= 360) paceIntensityLevel = '중강도 (Moderate)'; // Sub-4:13
-    else paceIntensityLevel = '안정 완주 (Endurance)';
-  } else if (courseDistKm >= 20) {
-    if (targetPaceRawSec <= 270) paceIntensityLevel = '고강도 목표 (High)'; // Sub-1:35
-    else if (targetPaceRawSec <= 300) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-1:45
-    else if (targetPaceRawSec <= 345) paceIntensityLevel = '중강도 (Moderate)'; // Sub-2:00
-    else paceIntensityLevel = '안정 완주 (Endurance)';
-  } else if (courseDistKm >= 9) {
-    if (targetPaceRawSec <= 260) paceIntensityLevel = '고강도 목표 (High)'; // Sub-43m
-    else if (targetPaceRawSec <= 290) paceIntensityLevel = '중상 강도 (Moderate-High)'; // Sub-48m
-    else if (targetPaceRawSec <= 330) paceIntensityLevel = '중강도 (Moderate)'; // Sub-55m
-    else paceIntensityLevel = '안정 완주 (Endurance)';
-  } else {
-    if (targetPaceRawSec <= 270) paceIntensityLevel = '고강도 목표 (High)';
-    else if (targetPaceRawSec <= 310) paceIntensityLevel = '중상 강도 (Moderate-High)';
-    else paceIntensityLevel = '중강도 (Moderate)';
-  }
-
-  // Check if race day falls within this active week (Monday ~ Sunday)
-  const currentWeekMonday = getWeekMondayDate(now);
-  const currentWeekSunday = new Date(currentWeekMonday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
-  const isRaceThisWeek = raceDate >= currentWeekMonday && raceDate <= currentWeekSunday;
-  const dayNameList: DayOfWeek[] = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  const raceDayOfWeek = dayNameList[raceDate.getDay()];
-
-  // Determine Periodization Phase and Fine-Grained Tapering Modulation based on D-Day & Pace Intensity
-  let periodizationPhase: TargetRacePlanAnalysis['periodizationPhase'];
-  let phaseDescription = '';
-  let strategicAdvice = '';
-  let taperingVolumeCutPct = 0;
-  let taperingIntensityStrategy = '';
-  let taperingSpeedRepNote = '';
-  let taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 12;
-
-  if (diffDays <= 7 || isRaceThisWeek) {
-    periodizationPhase = '대회 직전 조정기 (Race Week)';
-    if (paceIntensityLevel === '고강도 목표 (High)') {
-      taperingVolumeCutPct = 58;
-      taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 7;
-      taperingSpeedRepNote = `목표 페이스(${targetPace}) 200m 3회 가벼운 질주 (신경계만 자극, 젖산 축적 차단)`;
-      taperingIntensityStrategy = `[고강도 목표 특화 감량] 주간 볼륨 -58% 초강력 감량! 글리코겐 완전 충전 및 근육 피로를 완전히 배출하되, 목표 페이스(${targetPace}) 200m 질주로 신경계 발화 감각을 최상으로 유지합니다.`;
-    } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
-      taperingVolumeCutPct = 52;
-      taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 8;
-      taperingSpeedRepNote = `목표 페이스(${targetPace}) 300m 3회 리듬 점검`;
-      taperingIntensityStrategy = `[중상 강도 목표 감량] 주간 볼륨 -52% 감량. 가벼운 이지 조깅 중심에 ${targetPace} 리듬만 짧게 점검하여 다리의 생생함을 극대화합니다.`;
-    } else if (paceIntensityLevel === '중강도 (Moderate)') {
-      taperingVolumeCutPct = 45;
-      taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 9;
-      taperingSpeedRepNote = `가벼운 4km 조깅 후 100m 스트라이드 2회`;
-      taperingIntensityStrategy = `[중강도 완주 감량] 주간 볼륨 -45% 감량. 부상 위험을 원천 차단하고 관절과 건을 신선하게 리셋합니다.`;
-    } else {
-      taperingVolumeCutPct = 40;
-      taperingLsdDistKm = isRaceThisWeek ? courseDistKm : 8;
-      taperingSpeedRepNote = `가벼운 4km 조깅 및 코호흡`;
-      taperingIntensityStrategy = `[안정 완주 감량] 주간 볼륨 -40% 감량 및 충분한 수면, 탄수화물 식단 충전.`;
-    }
-    phaseDescription = `대회 D-${diffDays}일: 가벼운 리듬 조깅과 글리코겐 탄수화물 로딩, 최적 수면 및 컨디션 관리 주간입니다.`;
-    strategicAdvice = isRaceThisWeek
-      ? `이번 주 ${raceDayOfWeek} 결승의 날입니다! 주중 볼륨을 ${taperingVolumeCutPct}% 감량하고, 목표 페이스(${targetPace})로 스타트하여 흔들림 없이 피니시 라인까지 달리세요.`
-      : `주간 볼륨을 평소 대비 ${taperingVolumeCutPct}% 감량하고, ${taperingSpeedRepNote}로 근육 텐션만 가볍게 유지하세요.`;
-  } else if (diffDays <= 21) {
-    periodizationPhase = '테이퍼링 감량기 (Tapering)';
-    const isWeek2 = diffDays <= 14;
-    if (isWeek2) {
-      if (paceIntensityLevel === '고강도 목표 (High)') {
-        taperingVolumeCutPct = 38;
-        taperingLsdDistKm = Math.min(courseDistKm, 14);
-        taperingSpeedRepNote = `400m x 4회 (목표 페이스 ${targetPace}, 세트 간 완전 휴식)`;
-        taperingIntensityStrategy = `[고강도 목표 2주차 테이퍼링] 주간 볼륨 -38% 집중 감량. LSD는 14km로 축소하고 중반 4km만 목표 페이스(${targetPace})로 점검하여 다리의 무거움을 완벽히 제거합니다.`;
-      } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
-        taperingVolumeCutPct = 30;
-        taperingLsdDistKm = Math.min(courseDistKm, 16);
-        taperingSpeedRepNote = `400m x 5회 (목표 페이스 ${targetPace})`;
-        taperingIntensityStrategy = `[중상 강도 2주차 테이퍼링] 주간 볼륨 -30% 감량 및 LSD 16km 축소. 스피드 훈련 세트 수를 줄여 회복과 근력을 동시에 보존합니다.`;
-      } else {
-        taperingVolumeCutPct = 25;
-        taperingLsdDistKm = Math.min(courseDistKm, 18);
-        taperingSpeedRepNote = `3km 목표 페이스(${targetPace}) 점검 지속주`;
-        taperingIntensityStrategy = `[안정 완주 2주차 테이퍼링] 주간 볼륨 -25% 감량 및 LSD 18km. 관절 충격을 줄이며 페이스 감각을 익힙니다.`;
-      }
-      phaseDescription = `대회 D-${diffDays}일(테이퍼링 2주차): 주간 볼륨을 ${taperingVolumeCutPct}% 대폭 감량하며 대회 목표 페이스(${targetPace}) 감각을 예리하게 가다듬는 단계입니다.`;
-      strategicAdvice = `장거리 LSD 거리는 ${taperingLsdDistKm}km로 축소하고, 포인트 훈련(${taperingSpeedRepNote})으로 피로는 털어내고 고속 페이스 감각은 살려두세요.`;
-    } else {
-      // Week 1 of Tapering (D-15~21)
-      if (paceIntensityLevel === '고강도 목표 (High)') {
-        taperingVolumeCutPct = 22;
-        taperingLsdDistKm = Math.min(courseDistKm, 18);
-        taperingSpeedRepNote = `400m x 6회 (목표 페이스 ${targetPace})`;
-        taperingIntensityStrategy = `[고강도 목표 1주차 테이퍼링] 주간 볼륨 -22% 감량 시작. LSD 18km(목표 페이스 6km 포함)로 피크기 피로를 해소하기 시작합니다.`;
-      } else if (paceIntensityLevel === '중상 강도 (Moderate-High)') {
-        taperingVolumeCutPct = 18;
-        taperingLsdDistKm = Math.min(courseDistKm, 20);
-        taperingSpeedRepNote = `4km 목표 페이스(${targetPace}) 템포런`;
-        taperingIntensityStrategy = `[중상 강도 1주차 테이퍼링] 주간 볼륨 -18% 감량, LSD 20km로 전환하며 체내 에너지 회복을 유도합니다.`;
-      } else {
-        taperingVolumeCutPct = 15;
-        taperingLsdDistKm = Math.min(courseDistKm, 22);
-        taperingSpeedRepNote = `편안한 5km 지속주`;
-        taperingIntensityStrategy = `[완주 목표 1주차 테이퍼링] 주간 볼륨 -15% 완만한 감량 개시.`;
-      }
-      phaseDescription = `대회 D-${diffDays}일(테이퍼링 1주차): 점진적 감량기 진입(-${taperingVolumeCutPct}%). 긴장 완화와 목표 페이스(${targetPace}) 적응을 병행합니다.`;
-      strategicAdvice = `LSD를 ${taperingLsdDistKm}km로 가볍게 줄이고, 대회 페이스(${targetPace}) 주행 시의 심박수와 호흡 리듬을 차분히 관찰하세요.`;
-    }
-  } else if (diffDays <= 56) {
-    periodizationPhase = '목표 페이스 특화기 (Peak)';
-    taperingVolumeCutPct = 0;
-    taperingLsdDistKm = courseDistKm >= 40 ? 28 : courseDistKm >= 20 ? 20 : 14;
-    taperingSpeedRepNote = `야소 800m / 역치 템포런 전출력 소화`;
-    taperingIntensityStrategy = `[피크기 페이스 특화] 주간 마일리지 100% 가동. 목표 페이스(${targetPace}) 지속 능력을 최고치로 끌어올리는 핵심 승부처입니다.`;
-    phaseDescription = `대회 D-${diffWeeks}주전: 대회 코스 목표 페이스(${targetPace}) 집중 적응과 후반 페이스 유지력을 극대화하는 피크 훈련기입니다.`;
-    strategicAdvice = `주말 LSD 후반 6~8km를 대회 목표 페이스(${targetPace})로 달리는 빌드업주와 야소 800m / 역치 템포런으로 경기력을 최고치로 끌어올립니다.`;
-  } else if (diffDays <= 112) {
-    periodizationPhase = '스피드/지구력 빌드업기 (Build)';
-    taperingVolumeCutPct = 0;
-    taperingLsdDistKm = courseDistKm >= 40 ? 24 : 16;
-    taperingSpeedRepNote = `VO2max 인터벌 & 점진적 마일리지 증량`;
-    taperingIntensityStrategy = `[빌드업기 체계적 증량] 심폐 엔진 및 역치(LT) 페이스 확장 훈련.`;
-    phaseDescription = `대회 D-${diffWeeks}주전: 심폐 지구력과 젖산 역치(LT) 페이스를 끌어올려 탄탄한 훈련 기반을 쌓는 점진적 증량기입니다.`;
-    strategicAdvice = `주간 마일리지를 전주 대비 5~10% 점진 증량하고, 주 1회 역치 템포런과 인터벌을 통해 심폐 한계치(VO2Max)를 확장하세요.`;
-  } else {
-    periodizationPhase = '기초 유산소 구축기 (Base)';
-    taperingVolumeCutPct = 0;
-    taperingLsdDistKm = courseDistKm >= 40 ? 22 : 14;
-    taperingSpeedRepNote = `유산소 이지 조깅 + 질주 4회`;
-    taperingIntensityStrategy = `[베이스 구축기 엔진 빌딩] Zone 2 80% 이상 유지로 심혈관계 모세혈관 발달.`;
-    phaseDescription = `대회 D-${diffDays}일(약 ${diffWeeks}주): 2027 경주마라톤 정조준 장기 기초 유산소(Zone 2) 엔진 구축 및 부상 방지 마일리지 축적 단계입니다.`;
-    strategicAdvice = `편안한 호흡의 이지런(Zone 2) 비중을 80% 이상 유지하여 모세혈관과 미토콘드리아를 증식하고, 하체 건/인대 결합조직을 튼튼히 보강하세요.`;
-  }
-
-  return {
-    raceName: targetRace.name,
-    raceDate: targetRace.date,
-    course: targetRace.course || targetCourseFallback,
-    dDayDays: diffDays,
-    dDayWeeks: diffWeeks,
-    targetFinishTime: finishTime,
-    targetRacePace: targetPace,
-    targetPaceRawSec,
-    courseDistKm,
-    paceIntensityLevel,
-    taperingVolumeCutPct,
-    taperingIntensityStrategy,
-    taperingSpeedRepNote,
-    taperingLsdDistKm,
-    periodizationPhase,
-    phaseDescription,
-    strategicAdvice,
-    isRaceThisWeek,
-    raceDayOfWeek,
+    raceWeightDetail,
   };
 }
 
@@ -659,9 +977,9 @@ export function generateWeeklyTrainingPlan(
   const targetRacePlan = analyzeTargetRaceForTrainingPlan(options?.races, options?.goals, targetRaceCourse);
   const effectiveRacePace = targetRacePlan?.targetRacePace || marathonPace;
 
-  // If training sessions are provided, perform in-depth workload and state analysis
+  // If training sessions are provided, perform in-depth workload and state analysis with race weighting
   const analysis = options?.trainingSessions
-    ? analyzeRunnerState(options.trainingSessions, targetRaceCourse)
+    ? analyzeRunnerState(options.trainingSessions, targetRaceCourse, new Date(), options?.races, options?.goals)
     : null;
 
   // Defaults if options not provided
@@ -834,24 +1152,27 @@ export function generateWeeklyTrainingPlan(
       // Check if race is this week and falls on this weekend
       if (targetRacePlan?.isRaceThisWeek && (dayName === targetRacePlan.raceDayOfWeek || (!targetRacePlan.raceDayOfWeek && dayName === longRunDay))) {
         const raceDist = targetRacePlan.courseDistKm;
+        const p1 = Math.min(5, Math.round(raceDist * 0.15 * 10) / 10);
+        const p2 = Math.round((raceDist * 0.6) * 10) / 10;
+        const p3 = Math.round((raceDist - p1 - p2) * 10) / 10;
         const raceStages: WorkoutStage[] = [
           {
-            step: `1구간: 출발~초반 5km`,
-            distanceKm: 5,
+            step: `1구간: 출발~초반 (0 ~ ${p1}km, ${p1}km)`,
+            distanceKm: p1,
             pace: targetRacePlan.targetRacePace,
             zone: 'Zone 3 (흥분 억제)',
             focus: '오버페이스 절대 금지! 출발 인파 속에서 심박을 안정화하고 목표 페이스에 차분히 안착',
           },
           {
-            step: `2구간: 중반 정속 순항 (6~${Math.round(raceDist * 0.7)}km)`,
-            distanceKm: Math.round(raceDist * 0.7) - 5,
+            step: `2구간: 중반 정속 순항 (${p1} ~ ${Math.round((p1 + p2) * 10) / 10}km, ${p2}km)`,
+            distanceKm: p2,
             pace: targetRacePlan.targetRacePace,
             zone: 'Zone 3~4 (정속 크루징)',
             focus: '5km마다 스포츠 음료 및 에너지젤 규칙적 섭취, 일정한 피치와 호흡 유지',
           },
           {
-            step: `3구간: 승부처 & 피니시 (${Math.round(raceDist * 0.7) + 1}~${raceDist}km)`,
-            distanceKm: Math.round((raceDist - Math.round(raceDist * 0.7)) * 10) / 10,
+            step: `3구간: 승부처 & 피니시 (${Math.round((p1 + p2) * 10) / 10} ~ ${raceDist}km, ${p3}km)`,
+            distanceKm: p3,
             pace: targetRacePlan.targetRacePace,
             zone: 'Zone 4 (젖산 내성 극복)',
             focus: '후반 허벅지 피로를 코어와 팔치기로 극복하며 감격의 목표 기록 결승선 피니시!',
@@ -863,7 +1184,7 @@ export function generateWeeklyTrainingPlan(
           dayShort,
           dateStr,
           type: 'LSD',
-          title: `[🏆 D-DAY 목표 대회] ${targetRacePlan.raceName} (${targetRacePlan.course})`,
+          title: `[🏆 D-DAY 목표 대회] ${targetRacePlan.raceName} (${targetRacePlan.course} ${raceDist}km)`,
           distanceKm: raceDist,
           targetPace: targetRacePlan.targetRacePace,
           targetZone: '실전 마라톤 레이스',
@@ -874,20 +1195,21 @@ export function generateWeeklyTrainingPlan(
       }
 
       const isTaper = isTaperingPhase;
-      const warmupDist = 2;
-      const mainDist = Math.max(2, defaultLsdDist - 4);
-      const cooldownDist = Math.min(2, Math.max(1, defaultLsdDist - warmupDist - mainDist));
+      const actualLsdDist = defaultLsdDist;
+      const warmupDist = actualLsdDist <= 8 ? 1.5 : 2.0;
+      const cooldownDist = actualLsdDist <= 8 ? 1.5 : 2.0;
+      const mainDist = Math.max(1, Math.round((actualLsdDist - warmupDist - cooldownDist) * 10) / 10);
 
       const lsdStages: WorkoutStage[] = [
         {
-          step: `1구간 (워밍업 1~${warmupDist}km)`,
+          step: `1구간: 워밍업 (0 ~ ${warmupDist}km, ${warmupDist}km)`,
           distanceKm: warmupDist,
           pace: easyMax,
           zone: 'Zone 1~2',
           focus: isTaper ? '워밍업 및 가벼운 다리 털기, 체온 상승' : '워밍업 및 체온 상승, 가벼운 호흡 리듬 조성',
         },
         {
-          step: `2구간 (본운동 ${warmupDist + 1}~${warmupDist + mainDist}km)`,
+          step: `2구간: 본운동 (${warmupDist} ~ ${Math.round((warmupDist + mainDist) * 10) / 10}km, ${mainDist}km)`,
           distanceKm: mainDist,
           pace: isTaper ? effectiveRacePace : `${effectiveRacePace} ~ ${easyMin}`,
           zone: isTaper ? 'Zone 3 (레이스 페이스 점검)' : 'Zone 2 (지속주)',
@@ -898,7 +1220,7 @@ export function generateWeeklyTrainingPlan(
             : '지방 대사 최적화 및 5km마다 뉴트리션 섭취 시뮬레이션',
         },
         {
-          step: `3구간 (후반 마무리 ${defaultLsdDist - cooldownDist + 1}~${defaultLsdDist}km)`,
+          step: `3구간: 후반 마무리 (${Math.round((warmupDist + mainDist) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
           distanceKm: cooldownDist,
           pace: isTaper ? easyMax : effectiveRacePace,
           zone: isTaper ? 'Zone 1 (회복)' : 'Zone 2~3',
@@ -907,13 +1229,13 @@ export function generateWeeklyTrainingPlan(
       ];
 
       const lsdTitle = isTaper
-        ? `[대회 테이퍼링 · 목표 페이스(${effectiveRacePace}) 점검] ${targetRacePlan.raceName.slice(0, 10)} D-${targetRacePlan.dDayDays}일 LSD ${defaultLsdDist}km`
+        ? `[대회 테이퍼링 · 목표 페이스(${effectiveRacePace}) 점검] ${targetRacePlan.raceName.slice(0, 10)} D-${targetRacePlan.dDayDays}일 LSD ${actualLsdDist}km`
         : targetRacePlan
-        ? `[포인트: 장거리] ${targetRacePlan.raceName.slice(0, 14)} D-${targetRacePlan.dDayDays}일 대비 LSD ${defaultLsdDist}km`
-        : `[포인트: 장거리] 주말 장거리 지속주(LSD) ${defaultLsdDist}km`;
+        ? `[포인트: 장거리] ${targetRacePlan.raceName.slice(0, 14)} D-${targetRacePlan.dDayDays}일 대비 LSD ${actualLsdDist}km`
+        : `[포인트: 장거리] 주말 장거리 지속주(LSD) ${actualLsdDist}km`;
 
       const lsdDesc = isTaper
-        ? `대회 D-${targetRacePlan.dDayDays}일 테이퍼링 감량 LSD입니다. 목표 페이스(${effectiveRacePace}/km) 감각을 점검하고 피로를 털어내기 위해 주행 거리를 ${defaultLsdDist}km로 축소 조율했습니다.`
+        ? `대회 D-${targetRacePlan.dDayDays}일 테이퍼링 감량 LSD입니다. 목표 페이스(${effectiveRacePace}/km) 감각을 점검하고 피로를 털어내기 위해 주행 거리를 ${actualLsdDist}km로 축소 조율했습니다.`
         : targetRacePlan
         ? `${targetRacePlan.raceName} (${targetRacePlan.course}) 대비 ${targetRacePlan.periodizationPhase}. 목표 페이스(${effectiveRacePace}/km) 감각 유지 및 에너지 대사 적응.`
         : `${targetRaceCourse} 완주를 위한 심폐 및 글리코겐 고갈 적응 훈련. 5km/10km/15km 지점 수분 및 뉴트리션 섭취 시뮬레이션.`;
@@ -923,11 +1245,11 @@ export function generateWeeklyTrainingPlan(
         dayShort,
         type: 'LSD',
         title: lsdTitle,
-        distanceKm: defaultLsdDist,
+        distanceKm: actualLsdDist,
         targetPace: isTaper ? `${effectiveRacePace}` : `${effectiveRacePace} ~ ${easyMin}`,
         targetZone: isTaper ? 'Zone 2~3 (테이퍼링 점검)' : 'Zone 2~3 (마라톤 페이스)',
         description: lsdDesc,
-        intensity: isTaper && defaultLsdDist <= 14 ? '보통' : '높음',
+        intensity: isTaper && actualLsdDist <= 14 ? '보통' : '높음',
         stages: lsdStages,
       };
     }
@@ -945,21 +1267,21 @@ export function generateWeeklyTrainingPlan(
           intervalReps = targetRacePlan?.dDayDays <= 14 ? (targetRacePlan?.paceIntensityLevel === '고강도 목표 (High)' ? 4 : 5) : 6;
         }
 
-        const warmupKm = 2;
-        const repsKm = intervalReps * 0.6; // 400m sprint + 200m rest = 600m
-        const cooldownKm = Math.max(1, Math.round((defaultSpeedDist - warmupKm - repsKm) * 10) / 10);
+        const warmupKm = 2.0;
+        const repsKm = Math.round(intervalReps * 0.6 * 10) / 10; // 400m sprint + 200m rest = 600m
+        const cooldownKm = Math.max(1.0, Math.round((defaultSpeedDist - warmupKm - repsKm) * 10) / 10);
         const actualSpeedDist = Math.round((warmupKm + repsKm + cooldownKm) * 10) / 10;
 
         const intervalStages: WorkoutStage[] = [
           {
-            step: '워밍업 (1~2km)',
+            step: `1단계: 워밍업 (0 ~ ${warmupKm}km, ${warmupKm}km)`,
             distanceKm: warmupKm,
             pace: `${easyMin} ~ ${easyMax}`,
             zone: 'Zone 1~2',
             focus: '가벼운 조깅 + 동적 스트레칭 및 50m 질주 2회',
           },
           {
-            step: `본세트 (400m 질주 x ${intervalReps}회)`,
+            step: `2단계: 본세트 400m 질주 x ${intervalReps}회 (${warmupKm} ~ ${Math.round((warmupKm + repsKm) * 10) / 10}km, ${repsKm}km)`,
             distanceKm: repsKm,
             pace: isTaper ? effectiveRacePace : intervalPace,
             zone: isTaper ? 'Zone 4 (레이스 텐션)' : 'Zone 5 (무산소)',
@@ -968,7 +1290,7 @@ export function generateWeeklyTrainingPlan(
               : `트랙 400m ${intervalPace} (대회 목표 대비 +스피드) 페이스 유지, 세트 간 200m(90초) 조깅 휴식`,
           },
           {
-            step: `쿨다운 (${actualSpeedDist - cooldownKm + 1}~${actualSpeedDist}km)`,
+            step: `3단계: 쿨다운 (${Math.round((warmupKm + repsKm) * 10) / 10} ~ ${actualSpeedDist}km, ${cooldownKm}km)`,
             distanceKm: cooldownKm,
             pace: easyMax,
             zone: 'Zone 1 (회복)',
@@ -981,16 +1303,16 @@ export function generateWeeklyTrainingPlan(
           dayShort,
           type: '인터벌',
           title: isTaper
-            ? `[대회 테이퍼링 감량 인터벌] ${effectiveRacePace} 텐션 유지 (400m x ${intervalReps}회)`
+            ? `[대회 테이퍼링 감량 인터벌] ${effectiveRacePace} 텐션 유지 ${actualSpeedDist}km (400m x ${intervalReps}회)`
             : targetRacePlan
-            ? `[포인트: 스피드] ${targetRacePlan.raceName.slice(0, 10)} 대비 VO2max 인터벌 (400m x ${intervalReps}회)`
-            : `[포인트: 스피드] VO2max 트랙 인터벌 (400m x ${intervalReps}회)`,
+            ? `[포인트: 스피드] ${targetRacePlan.raceName.slice(0, 10)} 대비 VO2max 인터벌 ${actualSpeedDist}km (400m x ${intervalReps}회)`
+            : `[포인트: 스피드] VO2max 트랙 인터벌 ${actualSpeedDist}km (400m x ${intervalReps}회)`,
           distanceKm: actualSpeedDist,
           targetPace: isTaper ? effectiveRacePace : intervalPace,
           targetZone: isTaper ? 'Zone 4 (레이스 페이스 텐션)' : 'Zone 5 (무산소/VO2max)',
           description: isTaper
             ? `대회 D-${targetRacePlan.dDayDays}일 감량 인터벌. 세트 수를 ${intervalReps}회로 축소하여 피로 축적을 막고 목표 페이스(${effectiveRacePace}) 신경계 발화 텐션만 날카롭게 유지합니다.`
-            : `워밍업 2km + 트랙 400m 질주(${intervalPace} 페이스) 및 200m 불완전 휴식 90초 ${intervalReps}회 반복 + 쿨다운 ${cooldownKm}km. 심폐 환기량 극대화.`,
+            : `워밍업 ${warmupKm}km + 트랙 400m 질주(${intervalPace} 페이스) 및 200m 불완전 휴식 90초 ${intervalReps}회 반복 + 쿨다운 ${cooldownKm}km. 심폐 환기량 극대화.`,
           intensity: isRaceWeekTaper ? '보통' : '높음',
           stages: intervalStages,
         };
@@ -999,24 +1321,24 @@ export function generateWeeklyTrainingPlan(
         if (isRaceWeekTaper) reps = 2;
         else if (isTaper) reps = targetRacePlan?.dDayDays <= 14 ? 3 : 4;
 
-        const warmupKm = 2;
+        const warmupKm = 2.0;
         const repWorkKm = 0.8;
         const repRestKm = 0.4;
-        const mainWorkVolume = reps * (repWorkKm + repRestKm);
-        const cooldownKm = Math.max(1, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
+        const mainWorkVolume = Math.round(reps * (repWorkKm + repRestKm) * 10) / 10;
+        const cooldownKm = Math.max(1.0, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
         const actualTotalDist = Math.round((warmupKm + mainWorkVolume + cooldownKm) * 10) / 10;
 
         const yassoStages: WorkoutStage[] = [
           {
-            step: '워밍업 (1~2km)',
+            step: `1단계: 워밍업 (0 ~ ${warmupKm}km, ${warmupKm}km)`,
             distanceKm: warmupKm,
             pace: `${easyMin} ~ ${easyMax}`,
             zone: 'Zone 1~2',
             focus: '가벼운 조깅 + 고관절 가동성 스트레칭 및 80m 질주 2회',
           },
           {
-            step: `본세트 (800m 질주 x ${reps}회)`,
-            distanceKm: Math.round(mainWorkVolume * 10) / 10,
+            step: `2단계: 본세트 800m 질주 x ${reps}회 (${warmupKm} ~ ${Math.round((warmupKm + mainWorkVolume) * 10) / 10}km, ${mainWorkVolume}km)`,
+            distanceKm: mainWorkVolume,
             pace: isTaper ? effectiveRacePace : intervalPace,
             zone: isTaper ? 'Zone 4~5 (대회 페이스 점검)' : 'Zone 5 (VO2max / 야소 800)',
             focus: isTaper
@@ -1024,7 +1346,7 @@ export function generateWeeklyTrainingPlan(
               : `트랙 800m(2바퀴) ${intervalPace} 일정한 페이스 유지, 세트 간 400m(2분~2분30초) 불완전 회복 조깅`,
           },
           {
-            step: `쿨다운 (${actualTotalDist - cooldownKm + 0.1}~${actualTotalDist}km)`,
+            step: `3단계: 쿨다운 (${Math.round((warmupKm + mainWorkVolume) * 10) / 10} ~ ${actualTotalDist}km, ${cooldownKm}km)`,
             distanceKm: cooldownKm,
             pace: easyMax,
             zone: 'Zone 1 (회복)',
@@ -1037,14 +1359,14 @@ export function generateWeeklyTrainingPlan(
           dayShort,
           type: '인터벌',
           title: isTaper
-            ? `[대회 테이퍼링 감량 인터벌] 800m 페이스 점검 (800m x ${reps}회)`
-            : `[포인트: 스피드] 800m 야소 인터벌 (800m x ${reps}회)`,
+            ? `[대회 테이퍼링 감량 인터벌] 800m 페이스 점검 ${actualTotalDist}km (800m x ${reps}회)`
+            : `[포인트: 스피드] 800m 야소 인터벌 ${actualTotalDist}km (800m x ${reps}회)`,
           distanceKm: actualTotalDist,
           targetPace: isTaper ? effectiveRacePace : intervalPace,
           targetZone: isTaper ? 'Zone 4~5 (대회 페이스 점검)' : 'Zone 5 (VO2max / 야소 800)',
           description: isTaper
             ? `대회 D-${targetRacePlan.dDayDays}일 테이퍼링 인터벌. 세트 수를 ${reps}회로 축소하여 다리 피로를 완전히 풀면서 목표 페이스(${effectiveRacePace}) 리듬을 유지합니다.`
-            : `워밍업 2km + 트랙 800m 질주(${intervalPace} 페이스) 및 400m 불완전 회복 조깅 ${reps}세트 반복 + 쿨다운 ${cooldownKm}km.`,
+            : `워밍업 ${warmupKm}km + 트랙 800m 질주(${intervalPace} 페이스) 및 400m 불완전 회복 조깅 ${reps}세트 반복 + 쿨다운 ${cooldownKm}km.`,
           intensity: isRaceWeekTaper ? '보통' : '높음',
           stages: yassoStages,
         };
@@ -1053,28 +1375,28 @@ export function generateWeeklyTrainingPlan(
         const repDistKm = isLongVolume ? 2 : 1; // 1km or 2km repeats
         const reps = isLongVolume ? (defaultSpeedDist >= 14 ? 4 : 3) : (defaultSpeedDist >= 9 ? 5 : 4);
         const restKm = 0.4; // 400m jog
-        const warmupKm = 2;
-        const mainWorkVolume = reps * (repDistKm + restKm);
-        const cooldownKm = Math.max(1, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
+        const warmupKm = 2.0;
+        const mainWorkVolume = Math.round(reps * (repDistKm + restKm) * 10) / 10;
+        const cooldownKm = Math.max(1.0, Math.round((defaultSpeedDist - warmupKm - mainWorkVolume) * 10) / 10);
         const actualTotalDist = Math.round((warmupKm + mainWorkVolume + cooldownKm) * 10) / 10;
 
         const cruiseStages: WorkoutStage[] = [
           {
-            step: '워밍업 (1~2km)',
+            step: `1단계: 워밍업 (0 ~ ${warmupKm}km, ${warmupKm}km)`,
             distanceKm: warmupKm,
             pace: `${easyMin} ~ ${easyMax}`,
             zone: 'Zone 1~2',
             focus: '가벼운 조깅 + 호흡 리듬 정렬 및 동적 스트레칭',
           },
           {
-            step: `본세트 (${repDistKm}km 롱 인터벌 x ${reps}회)`,
-            distanceKm: Math.round(mainWorkVolume * 10) / 10,
+            step: `2단계: 본세트 ${repDistKm}km 롱 크루즈 x ${reps}회 (${warmupKm} ~ ${Math.round((warmupKm + mainWorkVolume) * 10) / 10}km, ${mainWorkVolume}km)`,
+            distanceKm: mainWorkVolume,
             pace: `${tempoPace} ~ ${intervalPace}`,
             zone: 'Zone 4~5 (크루즈 역치 인터벌)',
             focus: `${repDistKm}km 정속 크루즈 주행(${tempoPace}), 세트 간 400m(90초~2분) 불완전 회복 조깅`,
           },
           {
-            step: `쿨다운 (${actualTotalDist - cooldownKm + 0.1}~${actualTotalDist}km)`,
+            step: `3단계: 쿨다운 (${Math.round((warmupKm + mainWorkVolume) * 10) / 10} ~ ${actualTotalDist}km, ${cooldownKm}km)`,
             distanceKm: cooldownKm,
             pace: easyMax,
             zone: 'Zone 1 (회복)',
@@ -1086,36 +1408,37 @@ export function generateWeeklyTrainingPlan(
           day: dayName,
           dayShort,
           type: '인터벌',
-          title: `[포인트: 스피드] 1~3k 롱 크루즈 인터벌 (${repDistKm}km x ${reps}회)`,
+          title: `[포인트: 스피드] 1~3k 롱 크루즈 인터벌 ${actualTotalDist}km (${repDistKm}km x ${reps}회)`,
           distanceKm: actualTotalDist,
           targetPace: `${tempoPace} ~ ${intervalPace}`,
           targetZone: 'Zone 4~5 (크루즈 역치 인터벌)',
-          description: `워밍업 2km + ${repDistKm}km 롱 크루즈 인터벌(${tempoPace}) ${reps}회 반복 (세트 간 400m 조깅 휴식) + 쿨다운 ${cooldownKm}km. 하프/풀코스 실전 레이스 페이스 지구력 및 역치 한계 속도 적응.`,
+          description: `워밍업 ${warmupKm}km + ${repDistKm}km 롱 크루즈 인터벌(${tempoPace}) ${reps}회 반복 (세트 간 400m 조깅 휴식) + 쿨다운 ${cooldownKm}km. 하프/풀코스 실전 레이스 페이스 지구력 및 역치 한계 속도 적응.`,
           intensity: '높음',
           stages: cruiseStages,
         };
       } else if (speedWorkoutType === '템포런') {
-        const warmupKm = 2;
-        const cooldownKm = 1;
-        const mainTempoKm = defaultSpeedDist - (warmupKm + cooldownKm);
+        const warmupKm = defaultSpeedDist <= 7 ? 1.5 : 2.0;
+        const cooldownKm = 1.0;
+        const mainTempoKm = Math.max(2.0, Math.round((defaultSpeedDist - warmupKm - cooldownKm) * 10) / 10);
+        const actualTotalDist = Math.round((warmupKm + mainTempoKm + cooldownKm) * 10) / 10;
 
         const tempoStages: WorkoutStage[] = [
           {
-            step: `1단계: 워밍업 (1~${warmupKm}km)`,
+            step: `1단계: 워밍업 (0 ~ ${warmupKm}km, ${warmupKm}km)`,
             distanceKm: warmupKm,
             pace: easyMax,
             zone: 'Zone 2 (유산소 기초)',
             focus: '체온 상승 및 심박수 점진적 상승 준비',
           },
           {
-            step: `2단계: 젖산역치 지속주 (${warmupKm + 1}~${warmupKm + mainTempoKm}km, ${mainTempoKm}km)`,
+            step: `2단계: 젖산역치 지속주 (${warmupKm} ~ ${Math.round((warmupKm + mainTempoKm) * 10) / 10}km, ${mainTempoKm}km)`,
             distanceKm: mainTempoKm,
             pace: tempoPace,
             zone: 'Zone 4 (젖산 역치)',
             focus: `T-Pace(${tempoPace}) 정속 주행으로 젖산 분해 및 페이스 억제 능력 강화`,
           },
           {
-            step: `3단계: 쿨다운 (${defaultSpeedDist - cooldownKm + 1}~${defaultSpeedDist}km)`,
+            step: `3단계: 쿨다운 (${Math.round((warmupKm + mainTempoKm) * 10) / 10} ~ ${actualTotalDist}km, ${cooldownKm}km)`,
             distanceKm: cooldownKm,
             pace: easyMax,
             zone: 'Zone 1 (회복)',
@@ -1127,36 +1450,37 @@ export function generateWeeklyTrainingPlan(
           day: dayName,
           dayShort,
           type: '템포런',
-          title: `[포인트: 스피드] 젖산 역치(Threshold) ${defaultSpeedDist}km 템포런`,
-          distanceKm: defaultSpeedDist,
+          title: `[포인트: 스피드] 젖산 역치(Threshold) ${actualTotalDist}km 템포런`,
+          distanceKm: actualTotalDist,
           targetPace: tempoPace,
           targetZone: 'Zone 4 (젖산 역치)',
-          description: `워밍업 2km + T-Pace 지속주 ${mainTempoKm}km(${tempoPace}) + 쿨다운 1km. 젖산 축적 억제 및 페이스 유지력 극대화.`,
+          description: `워밍업 ${warmupKm}km + T-Pace 지속주 ${mainTempoKm}km(${tempoPace}) + 쿨다운 ${cooldownKm}km. 젖산 축적 억제 및 페이스 유지력 극대화.`,
           intensity: '높음',
           stages: tempoStages,
         };
       } else if (speedWorkoutType === '변속주(파틀렉)') {
-        const warmupKm = 2;
-        const cooldownKm = 1;
-        const mainFartlekKm = defaultSpeedDist - (warmupKm + cooldownKm);
+        const warmupKm = defaultSpeedDist <= 7 ? 1.5 : 2.0;
+        const cooldownKm = 1.0;
+        const mainFartlekKm = Math.max(2.0, Math.round((defaultSpeedDist - warmupKm - cooldownKm) * 10) / 10);
+        const actualTotalDist = Math.round((warmupKm + mainFartlekKm + cooldownKm) * 10) / 10;
 
         const fartlekStages: WorkoutStage[] = [
           {
-            step: `1단계: 워밍업 (1~${warmupKm}km)`,
+            step: `1단계: 워밍업 (0 ~ ${warmupKm}km, ${warmupKm}km)`,
             distanceKm: warmupKm,
             pace: easyMax,
             zone: 'Zone 2',
             focus: '가벼운 조깅 및 관절 가동성 확보',
           },
           {
-            step: `2단계: 파틀렉 인터벌 (${warmupKm + 1}~${warmupKm + mainFartlekKm}km, ${mainFartlekKm}km)`,
+            step: `2단계: 파틀렉 인터벌 (${warmupKm} ~ ${Math.round((warmupKm + mainFartlekKm) * 10) / 10}km, ${mainFartlekKm}km)`,
             distanceKm: mainFartlekKm,
             pace: `${intervalPace} ↔ ${easyMin}`,
             zone: 'Zone 3~5',
             focus: '3분 쾌속 질주 + 2분 회복 조깅 6~7회 교대 반복',
           },
           {
-            step: `3단계: 쿨다운 (${defaultSpeedDist - cooldownKm + 1}~${defaultSpeedDist}km)`,
+            step: `3단계: 쿨다운 (${Math.round((warmupKm + mainFartlekKm) * 10) / 10} ~ ${actualTotalDist}km, ${cooldownKm}km)`,
             distanceKm: cooldownKm,
             pace: easyMax,
             zone: 'Zone 1',
@@ -1168,125 +1492,50 @@ export function generateWeeklyTrainingPlan(
           day: dayName,
           dayShort,
           type: '인터벌',
-          title: `[포인트: 스피드] 파틀렉(Fartlek) 변속주 ${defaultSpeedDist}km`,
-          distanceKm: defaultSpeedDist,
+          title: `[포인트: 스피드] 파틀렉(Fartlek) 변속주 ${actualTotalDist}km`,
+          distanceKm: actualTotalDist,
           targetPace: `${intervalPace} ~ ${easyMin}`,
           targetZone: 'Zone 3~5 (심박 변동)',
-          description: `워밍업 2km + 빠른 질주 3분(${intervalPace})과 회복 조깅 2분 교대 반복 ${mainFartlekKm}km + 쿨다운 1km. 지형과 페이스 변화에 대한 스피드 적응력 향상.`,
+          description: `워밍업 ${warmupKm}km + 빠른 질주 3분(${intervalPace})과 회복 조깅 2분 교대 반복 ${mainFartlekKm}km + 쿨다운 ${cooldownKm}km. 지형과 페이스 변화에 대한 스피드 적응력 향상.`,
           intensity: '높음',
           stages: fartlekStages,
         };
       } else {
         // 빌드업주 (Negative Split Progression Run)
-        // Mathematically accurate build-up:
-        // Divides total distance (e.g. 9km or 10km) into 3~4 distinct progressive blocks.
-        const totalDist = defaultSpeedDist;
+        const totalDist = Math.round(defaultSpeedDist * 10) / 10;
         const stages: WorkoutStage[] = [];
+        const numStages = totalDist >= 10 ? 4 : 3;
 
-        if (totalDist === 9) {
-          // 9km: Exactly three 3km blocks (1~3km, 4~6km, 7~9km)
-          const step1Sec = Math.round(rawEasySec); // e.g. 5'30" (Zone 2)
-          const step2Sec = Math.round((rawEasySec + rawTempoSec) / 2); // e.g. 5'00" (Zone 3 M-Pace)
-          const step3Sec = Math.round(rawTempoSec); // e.g. 4'32" (Zone 4 T-Pace)
+        const paceSteps = [
+          { label: 'Zone 2 (출발)', sec: rawEasySec },
+          { label: 'Zone 3 (순항)', sec: Math.round(rawEasySec - (rawEasySec - rawTempoSec) * (numStages === 4 ? 0.35 : 0.5)) },
+          { label: 'Zone 3~4 (가속)', sec: Math.round(rawEasySec - (rawEasySec - rawTempoSec) * (numStages === 4 ? 0.70 : 0.85)) },
+          { label: 'Zone 4 (피니시)', sec: rawTempoSec },
+        ];
 
-          stages.push(
-            {
-              step: '1구간 (1~3km, 3km)',
-              distanceKm: 3,
-              pace: formatPace(step1Sec),
-              zone: 'Zone 2 (유산소 이지)',
-              focus: `시작 페이스 ${formatPace(step1Sec)} 정속 주행으로 호흡과 다리 리듬 세팅`,
-            },
-            {
-              step: '2구간 (4~6km, 3km)',
-              distanceKm: 3,
-              pace: formatPace(step2Sec),
-              zone: 'Zone 3 (마라톤 템포)',
-              focus: `페이스를 km당 약 ${step1Sec - step2Sec}초 올려 ${formatPace(step2Sec)}로 빌드업 가속`,
-            },
-            {
-              step: '3구간 (7~9km, 3km)',
-              distanceKm: 3,
-              pace: formatPace(step3Sec),
-              zone: 'Zone 4 (젖산 역치)',
-              focus: `최종 타겟 역치 페이스 ${formatPace(step3Sec)}로 힘차게 밀고 나가며 피니시`,
-            }
-          );
-        } else if (totalDist === 10) {
-          // 10km: 2km x 5 stages or 2km/3km/3km/2km
-          // 4 stages: 1~3km (3km), 4~6km (3km), 7~8km (2km), 9~10km (2km)
-          const p1 = Math.round(rawEasySec);
-          const p2 = Math.round(rawEasySec - (rawEasySec - rawTempoSec) * 0.33);
-          const p3 = Math.round(rawEasySec - (rawEasySec - rawTempoSec) * 0.67);
-          const p4 = Math.round(rawTempoSec);
+        let accumulatedKm = 0;
+        for (let s = 0; s < numStages; s++) {
+          const isLast = s === numStages - 1;
+          const stageDist = isLast
+            ? Math.max(0.5, Math.round((totalDist - accumulatedKm) * 10) / 10)
+            : Math.max(0.5, Math.round((totalDist / numStages) * 10) / 10);
 
-          stages.push(
-            {
-              step: '1구간 (1~3km, 3km)',
-              distanceKm: 3,
-              pace: formatPace(p1),
-              zone: 'Zone 2 (유산소 기초)',
-              focus: '편안한 이지 페이스로 출발하여 심폐 예열',
-            },
-            {
-              step: '2구간 (4~6km, 3km)',
-              distanceKm: 3,
-              pace: formatPace(p2),
-              zone: 'Zone 3 (하프 마라톤 페이스)',
-              focus: '자세 정렬 및 가속, 일정한 피폭 유지',
-            },
-            {
-              step: '3구간 (7~8km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p3),
-              zone: 'Zone 3~4 (고강도 유산소)',
-              focus: '호흡을 깊게 유지하며 역치 직전 강도로 페이스업',
-            },
-            {
-              step: '4구간 (9~10km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p4),
-              zone: 'Zone 4 (젖산 역치 피니시)',
-              focus: `최고 스피드 구간! 젖산 역치(${formatPace(p4)}) 페이스로 완주`,
-            }
-          );
-        } else {
-          // 8km or other distance: 2km x 4 stages
-          const p1 = Math.round(rawEasySec);
-          const p2 = Math.round(rawEasySec - (rawEasySec - rawTempoSec) * 0.35);
-          const p3 = Math.round(rawEasySec - (rawEasySec - rawTempoSec) * 0.7);
-          const p4 = Math.round(rawTempoSec);
+          const startKm = Math.round(accumulatedKm * 10) / 10;
+          accumulatedKm += stageDist;
+          const endKm = Math.round(accumulatedKm * 10) / 10;
 
-          stages.push(
-            {
-              step: '1구간 (1~2km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p1),
-              zone: 'Zone 2 (출발)',
-              focus: '편안한 이지 페이스로 호흡 정렬',
-            },
-            {
-              step: '2구간 (3~4km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p2),
-              zone: 'Zone 3 (가속)',
-              focus: '케이던스를 올리며 템포 페이스 진입',
-            },
-            {
-              step: '3구간 (5~6km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p3),
-              zone: 'Zone 3~4 (빌드업)',
-              focus: '피로 저항력을 시험하며 강도 유지',
-            },
-            {
-              step: '4구간 (7~8km, 2km)',
-              distanceKm: 2,
-              pace: formatPace(p4),
-              zone: 'Zone 4 (피니시)',
-              focus: `역치 페이스(${formatPace(p4)})로 피니시`,
-            }
-          );
+          const pInfo = paceSteps[numStages === 3 ? (s === 0 ? 0 : s === 1 ? 1 : 3) : s];
+          stages.push({
+            step: `${s + 1}구간 (${startKm} ~ ${endKm}km, ${stageDist}km)`,
+            distanceKm: stageDist,
+            pace: formatPace(pInfo.sec),
+            zone: pInfo.label,
+            focus: isLast
+              ? `최종 타겟 역치 페이스(${formatPace(pInfo.sec)})로 강력하게 밀고 나가며 피니시`
+              : s === 0
+              ? '편안한 이지 페이스로 호흡과 다리 리듬 세팅'
+              : '케이던스와 보폭을 점진적으로 올리며 가속 주행',
+          });
         }
 
         const startPace = stages[0].pace;
@@ -1487,6 +1736,8 @@ export function enrichWeeklyPlanWithActualSessions(
     // 3. Uncompleted Running Day -> Dynamically tuned if this week already has completed runs
     let adjustedDist = pDay.distanceKm;
     let adjustedDesc = pDay.description;
+    let adjustedTitle = pDay.title;
+    let adjustedStages = pDay.stages ? [...pDay.stages] : undefined;
 
     if (completedKmThisWeek > 0 && originalRemainingSum > 0 && remainingKm > 0) {
       adjustedDist = Math.max(
@@ -1494,15 +1745,34 @@ export function enrichWeeklyPlanWithActualSessions(
         Math.round(((pDay.distanceKm / originalRemainingSum) * remainingKm) * 10) / 10
       );
       if (!adjustedDesc.includes('실훈련 반영')) {
-        adjustedDesc = `[이번 주 실훈련(${completedKmThisWeek}km) 소화 반영 맞춤] 주간 잔여 권장 볼륨 ${remainingKm}km에 맞추어 조율된 세션입니다. ${pDay.description}`;
+        adjustedDesc = `[이번 주 실훈련(${completedKmThisWeek}km) 소화 반영 맞춤] 주간 잔여 권장 볼륨 ${remainingKm}km에 맞추어 목표 거리(${adjustedDist}km)와 세부 구간이 자동 재조율되었습니다. ${pDay.description}`;
       }
+    }
+
+    // Always guarantee that title distance, stage distances, and distanceKm match 100%
+    if (adjustedDist > 0) {
+      const synched = synchronizeWorkoutDistanceTitleStages(
+        {
+          ...pDay,
+          title: adjustedTitle,
+          description: adjustedDesc,
+          stages: adjustedStages,
+          distanceKm: adjustedDist,
+        },
+        adjustedDist
+      );
+      adjustedTitle = synched.title;
+      adjustedStages = synched.stages;
+      adjustedDist = synched.distanceKm;
     }
 
     return {
       ...pDay,
       dateStr,
       isCompleted: false,
+      title: adjustedTitle,
       distanceKm: adjustedDist,
+      stages: adjustedStages,
       description: adjustedDesc,
     };
   });
