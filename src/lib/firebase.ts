@@ -586,15 +586,19 @@ export async function addBatchTrainingSessions(
   );
   setLocalItem('training_sessions', nextList);
 
-  // Firestore sync: batch commit
+  // Firestore sync: batch commit (chunked in groups of 400 to respect Firestore 500-write limit)
   if (firestoreInstance) {
     try {
-      const batch = writeBatch(firestoreInstance);
-      for (const s of createdSessions) {
-        const ref = doc(firestoreInstance, 'training_sessions', s.id);
-        batch.set(ref, cleanFirestoreData(s, false));
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < createdSessions.length; i += CHUNK_SIZE) {
+        const chunk = createdSessions.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(firestoreInstance);
+        for (const s of chunk) {
+          const ref = doc(firestoreInstance, 'training_sessions', s.id);
+          batch.set(ref, cleanFirestoreData(s, false));
+        }
+        await batch.commit();
       }
-      await batch.commit();
       console.log(`[Firebase] Batch added ${createdSessions.length} training sessions.`);
     } catch (e) {
       console.error('Firestore addBatchTrainingSessions failed, falling back to parallel setDoc', e);

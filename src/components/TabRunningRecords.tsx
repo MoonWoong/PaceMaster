@@ -637,8 +637,49 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     return clean;
   };
 
-  // Helper to parse a single CSV file with PapaParse
-  const parseSingleCsvFile = (file: File): Promise<Omit<TrainingSession, 'id' | 'createdAt'>> => {
+  // Helper to parse date string into strict YYYY-MM-DD
+  const parseDateToYyyyMmDd = (raw: string): string => {
+    if (!raw) return '';
+    const clean = raw.trim();
+
+    // 1. Matches YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD, YYYY년 M월 D일
+    const ymdMatch = clean.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
+    if (ymdMatch) {
+      const year = ymdMatch[1];
+      const month = ymdMatch[2].padStart(2, '0');
+      const day = ymdMatch[3].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // 2. Matches YYYYMMDD (8 digits)
+    const compactMatch = clean.match(/^(\d{4})(\d{2})(\d{2})/);
+    if (compactMatch) {
+      return `${compactMatch[1]}-${compactMatch[2]}-${compactMatch[3]}`;
+    }
+
+    // 3. Matches MM/DD/YYYY or M/D/YYYY
+    const mdyMatch = clean.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+    if (mdyMatch) {
+      const month = mdyMatch[1].padStart(2, '0');
+      const day = mdyMatch[2].padStart(2, '0');
+      const year = mdyMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    // 4. Fallback to JS Date parse
+    const parsed = new Date(clean);
+    if (!isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = (parsed.getMonth() + 1).toString().padStart(2, '0');
+      const d = parsed.getDate().toString().padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    return '';
+  };
+
+  // Helper to parse CSV file (Supports both: 1) Garmin Activities List where 1 row = 1 workout session, and 2) Single-activity Lap breakdown)
+  const parseCsvFile = (file: File): Promise<Omit<TrainingSession, 'id' | 'createdAt'>[]> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
@@ -647,7 +688,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           try {
             const rawRows = results.data as Record<string, string>[];
             if (!rawRows || rawRows.length === 0) {
-              return reject(new Error(`${file.name}: CSV 파일에 유효한 랩 데이터가 없습니다.`));
+              return reject(new Error(`${file.name}: CSV 파일에 유효한 데이터가 없습니다.`));
             }
 
             // Filter out completely blank rows
@@ -659,6 +700,262 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               return reject(new Error(`${file.name}: 유효한 데이터 행이 없습니다.`));
             }
 
+            const firstRow = rows[0] || {};
+            const headers = Object.keys(firstRow);
+
+            // Check if this CSV is an Activity List (where each row is one training session)
+            // 1. Has explicit '제목' (Title) column (as requested by user: 데이터중 '제목'이 훈련 제목이야)
+            const hasTitleColumn = headers.some((h) => {
+              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
+              return (
+                norm === '제목' ||
+                norm === 'title' ||
+                norm === '활동명' ||
+                norm === '활동이름' ||
+                norm === '세션명' ||
+                norm === '훈련명' ||
+                norm === 'activityname'
+              );
+            });
+
+            // 2. Has activity type column like '활동 유형' / 'Activity Type'
+            const hasActivityTypeColumn = headers.some((h) => {
+              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
+              return (
+                norm === '활동유형' ||
+                norm === 'activitytype' ||
+                norm === '종목' ||
+                norm === 'sport'
+              );
+            });
+
+            // 3. Check for lap sequences 1, 2, 3...
+            const hasLapHeader = headers.some((h) => {
+              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
+              return norm === '랩' || norm === 'lap' || norm === '구간' || norm === '스텝';
+            });
+
+            const hasLapSequence =
+              hasLapHeader &&
+              rows.slice(0, 3).some((r, i) => {
+                const val = getRowValue(r, ['랩', 'Lap', '구간', '스텝']).replace(/\D/g, '');
+                return val === String(i + 1);
+              });
+
+            // 4. Check for distinct dates
+            const distinctDates = new Set<string>();
+            rows.forEach((r) => {
+              const d = getRowValue(r, [
+                '날짜',
+                'Date',
+                '활동 일시',
+                '활동일시',
+                '시작 시간',
+                '시작시간',
+                'Start Time',
+                'Activity Date',
+              ]);
+              const parsedD = parseDateToYyyyMmDd(d);
+              if (parsedD) distinctDates.add(parsedD);
+            });
+
+            const isActivityList =
+              hasTitleColumn ||
+              hasActivityTypeColumn ||
+              (distinctDates.size > 1 && !hasLapSequence) ||
+              (!hasLapSequence && distinctDates.size >= 1 && rows.length > 1);
+
+            if (isActivityList) {
+              // MODE A: Garmin Activity List CSV (1 row = 1 workout session)
+              const sessionResults: Omit<TrainingSession, 'id' | 'createdAt'>[] = [];
+              const fileMeta = parseFilename(file.name);
+
+              rows.forEach((row, rowIdx) => {
+                // Check if row has at least some meaningful data
+                const rawTitle = getRowValue(row, [
+                  '제목',
+                  'Title',
+                  '활동명',
+                  '활동 명',
+                  '활동이름',
+                  '세션명',
+                  '훈련명',
+                  'Activity Name',
+                  'Workout Name',
+                  'Name',
+                ]);
+
+                const rawDate = getRowValue(row, [
+                  '날짜',
+                  '일자',
+                  'Date',
+                  '활동 일시',
+                  '활동일시',
+                  '시작 시간',
+                  '시작시간',
+                  'Start Time',
+                  'Activity Date',
+                  'Date/Time',
+                  'Timestamp',
+                ]);
+
+                const parsedDate = parseDateToYyyyMmDd(rawDate);
+                const rawDistance = getRowValue(row, [
+                  '거리',
+                  '거리 (km)',
+                  '거리(km)',
+                  '거리 km',
+                  'Distance',
+                  'Distance (km)',
+                  '총 거리',
+                  '총거리',
+                ]);
+                const distanceKm = parseDistanceKm(rawDistance);
+
+                const rawTime = getRowValue(row, [
+                  '시간',
+                  'Time',
+                  '이동 시간',
+                  '이동시간',
+                  '경과 시간',
+                  '경과시간',
+                  'Duration',
+                  'Elapsed Time',
+                  'Moving Time',
+                  '총 시간',
+                ]);
+                const finalTime = normalizeTimeString(rawTime);
+
+                // If completely empty row (no title, no date, 0 distance, 0 time), skip
+                if (!rawTitle && !parsedDate && distanceKm <= 0 && (!finalTime || finalTime === '00:00:00')) {
+                  return;
+                }
+
+                // Title: Prioritize '제목' as user requested
+                let title = rawTitle.trim();
+                if (!title) {
+                  const activityType = getRowValue(row, ['활동 유형', '활동유형', 'Activity Type', 'Type']);
+                  if (distanceKm > 0) {
+                    title = `${distanceKm.toFixed(1)}km ${activityType || '러닝 훈련'}`;
+                  } else {
+                    title = activityType ? `${activityType} 세션` : `가민 훈련 ${rowIdx + 1}`;
+                  }
+                }
+
+                // Date: Fallback to file name date or today if missing
+                const date = parsedDate || fileMeta.dateStr || new Date().toISOString().split('T')[0];
+
+                // Pace
+                let paceVal = formatPace(
+                  getRowValue(row, [
+                    '평균 페이스',
+                    '평균 페이스 (min/km)',
+                    '평균 페이스 min/km',
+                    '평균페이스',
+                    'Avg Pace',
+                    'Avg Pace (min/km)',
+                    'Pace',
+                  ])
+                );
+                if (!paceVal || paceVal === "0'00\"") {
+                  const totalSecs = timeToSeconds(finalTime);
+                  if (totalSecs > 0 && distanceKm > 0) {
+                    paceVal = secondsToPace(totalSecs / distanceKm);
+                  } else {
+                    paceVal = "5'00\"";
+                  }
+                }
+
+                // Heart Rate
+                const avgHr =
+                  parseHeartRate(
+                    getRowValue(row, [
+                      '평균 심박수',
+                      '평균 심박',
+                      '평균심박',
+                      'Avg HR',
+                      'Avg Heart Rate',
+                      '평균 심박수 (bpm)',
+                      '평균 심박 (bpm)',
+                    ])
+                  ) || 148;
+
+                const maxHr =
+                  parseHeartRate(
+                    getRowValue(row, [
+                      '최대 심박수',
+                      '최대 심박',
+                      '최대심박',
+                      'Max HR',
+                      'Max Heart Rate',
+                      '최고 심박수',
+                      '최고 심박',
+                    ])
+                  ) || (avgHr > 0 ? avgHr + 15 : 165);
+
+                // Notes / Memo
+                let notes = getRowValue(row, [
+                  '메모',
+                  '훈련 메모',
+                  '훈련메모',
+                  '설명',
+                  '비고',
+                  'Notes',
+                  'Note',
+                  'Description',
+                  'Comments',
+                  'Comment',
+                ]);
+
+                // Also check if there's sport/activity type details (e.g. 트랙 러닝, 야외 달리기, 런닝머신)
+                const activityType = getRowValue(row, ['활동 유형', '활동유형', 'Activity Type', 'Type']);
+                if (
+                  activityType &&
+                  activityType !== '달리기' &&
+                  activityType !== '러닝' &&
+                  activityType !== 'Running'
+                ) {
+                  if (notes) {
+                    notes = `[${activityType}] ${notes}`;
+                  } else {
+                    notes = `종목: ${activityType}`;
+                  }
+                }
+
+                sessionResults.push({
+                  date,
+                  title,
+                  totalDistanceKm: distanceKm,
+                  totalTime: finalTime || '00:30:00',
+                  avgPace: paceVal,
+                  avgHr,
+                  maxHr,
+                  notes: notes || '',
+                  laps: [
+                    {
+                      lap: '1',
+                      time: finalTime || '00:30:00',
+                      cumulativeTime: finalTime || '00:30:00',
+                      distanceKm,
+                      avgPace: paceVal,
+                      avgGap: paceVal,
+                      avgHr,
+                      maxHr,
+                    },
+                  ],
+                });
+              });
+
+              if (sessionResults.length === 0) {
+                return reject(new Error(`${file.name}: 파싱 가능한 유효한 훈련 행이 없습니다.`));
+              }
+
+              // Sort chronologically by date descending
+              sessionResults.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+              return resolve(sessionResults);
+            }
+
+            // MODE B: Single Activity Lap Breakdown CSV (existing logic)
             // 1. Identify Summary Row (총계 / 요약 / Summary / Total)
             // Look from bottom to top as summary is typically the last row in Garmin exports
             let summaryRow: Record<string, string> | null = null;
@@ -694,11 +991,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             const candidateRows = rows.filter((_, idx) => idx !== summaryRowIndex);
 
             // 2. Handle composite interval / range rows (e.g. Lap 1-3 vs Lap 1, 2, 3)
-            // In Garmin, interval repeat blocks have both a group header (e.g. "1-3", "4-6")
-            // and the individual split laps ("1", "2", "3").
-            // If individual split numbers exist, we filter out the duplicate group header!
-
-            // Collect all single lap numbers present in candidate rows
             const singleLapNums = new Set<number>();
             candidateRows.forEach((row) => {
               const lapStr = getRowValue(row, ['랩', 'Lap', '구간', '스텝', 'Step', 'Laps']).trim();
@@ -807,7 +1099,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             let finalMaxHr = lapsPeakHr || 165;
 
             if (summaryRow) {
-              // Direct from Summary Row (총계 row)
               const sumDist = parseDistanceKm(
                 getRowValue(summaryRow, ['거리 km', '거리km', '거리 (km)', '거리(km)', '거리', 'Distance', 'Distance (km)'])
               );
@@ -861,7 +1152,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               );
               finalMaxHr = Math.max(sumMaxHr || 0, lapsPeakHr || 0) || 165;
             } else {
-              // Fallback if no summary row exists in CSV
               finalDistanceKm = Math.round(lapsDistSum * 100) / 100;
               finalTime = parsedLaps[parsedLaps.length - 1]?.cumulativeTime || '00:50:00';
               const totalSecs = timeToSeconds(finalTime);
@@ -873,7 +1163,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               finalMaxHr = lapsPeakHr || 165;
             }
 
-            // If candidateRows is empty and summaryRow provided total metrics, generate at least 1 lap
             if (parsedLaps.length === 0 && finalDistanceKm > 0) {
               parsedLaps.push({
                 lap: '1',
@@ -892,7 +1181,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               ? sessionTitle
               : `${sessionTitle} (${finalDistanceKm.toFixed(2)}km)`;
 
-            // Extract activity date from CSV if available (e.g. Activity Date, Start Time, 날짜)
             const candidateDateKeys = [
               '날짜',
               '일자',
@@ -912,13 +1200,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
             let effectiveDate = dateStr;
             if (rawDateFromCsv) {
-              const dateMatch = rawDateFromCsv.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
-              if (dateMatch) {
-                effectiveDate = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
-              }
+              const parsedDate = parseDateToYyyyMmDd(rawDateFromCsv);
+              if (parsedDate) effectiveDate = parsedDate;
             }
 
-            // Extract notes/memo column if present in CSV
             const candidateMemoKeys = [
               '메모',
               '훈련메모',
@@ -938,17 +1223,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               (summaryRow ? getRowValue(summaryRow, candidateMemoKeys) : '') ||
               (candidateRows[0] ? getRowValue(candidateRows[0], candidateMemoKeys) : '');
 
-            resolve({
-              date: effectiveDate,
-              title: displayTitle,
-              totalDistanceKm: finalDistanceKm,
-              totalTime: finalTime,
-              avgPace: finalAvgPace,
-              avgHr: finalAvgHr,
-              maxHr: finalMaxHr,
-              notes: rawNoteFromCsv || '',
-              laps: parsedLaps,
-            });
+            resolve([
+              {
+                date: effectiveDate,
+                title: displayTitle,
+                totalDistanceKm: finalDistanceKm,
+                totalTime: finalTime,
+                avgPace: finalAvgPace,
+                avgHr: finalAvgHr,
+                maxHr: finalMaxHr,
+                notes: rawNoteFromCsv || '',
+                laps: parsedLaps,
+              },
+            ]);
           } catch (err: any) {
             reject(err);
           }
@@ -960,13 +1247,13 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     });
   };
 
-  // Handle Multi CSV File Upload - Opens CsvWorkoutUploadModal with memo input
+  // Handle CSV File Upload (Single Activity List CSV e.g. 2025 whole year, OR multi-file lap CSVs)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
     const files = Array.from(fileList);
-    setCsvStatus(`⏳ ${files.length}개 CSV 파일 파싱 및 분석 중...`);
+    setCsvStatus(`⏳ ${files.length}개 CSV 파일 파싱 및 데이터 분석 중...`);
 
     const parsedItems: ParsedCsvUploadItem[] = [];
     const errors: string[] = [];
@@ -974,19 +1261,21 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const sessionData = await parseSingleCsvFile(file);
-        parsedItems.push({
-          id: `csv-${Date.now()}-${i}`,
-          fileName: file.name,
-          date: sessionData.date,
-          title: sessionData.title,
-          totalDistanceKm: sessionData.totalDistanceKm,
-          totalTime: sessionData.totalTime,
-          avgPace: sessionData.avgPace,
-          avgHr: sessionData.avgHr,
-          maxHr: sessionData.maxHr,
-          notes: sessionData.notes || '',
-          laps: sessionData.laps,
+        const sessionList = await parseCsvFile(file);
+        sessionList.forEach((sessionData, subIdx) => {
+          parsedItems.push({
+            id: `csv-${Date.now()}-${i}-${subIdx}`,
+            fileName: files.length > 1 ? `${file.name} #${subIdx + 1}` : file.name,
+            date: sessionData.date,
+            title: sessionData.title,
+            totalDistanceKm: sessionData.totalDistanceKm,
+            totalTime: sessionData.totalTime,
+            avgPace: sessionData.avgPace,
+            avgHr: sessionData.avgHr,
+            maxHr: sessionData.maxHr,
+            notes: sessionData.notes || '',
+            laps: sessionData.laps,
+          });
         });
       } catch (err: any) {
         console.error(`Failed to process ${file.name}`, err);
@@ -996,9 +1285,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
     if (errors.length > 0) {
       setCsvStatus(`⚠️ ${errors.length}개 파일 파싱 실패: ${errors[0]}`);
-      setTimeout(() => setCsvStatus(''), 5000);
+      setTimeout(() => setCsvStatus(''), 6000);
     } else {
-      setCsvStatus('');
+      setCsvStatus(`✅ 총 ${parsedItems.length}개 훈련 세션 파싱 완료! 모달에서 확인 후 등록하세요.`);
+      setTimeout(() => setCsvStatus(''), 4000);
     }
 
     if (parsedItems.length > 0) {
@@ -1485,9 +1775,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             )}
 
             {/* CSV File Upload Input */}
-            <label className="px-4 py-2 text-xs font-semibold text-slate-950 bg-blue-400 hover:bg-blue-300 rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5">
+            <label className="px-4 py-2 text-xs font-semibold text-slate-950 bg-blue-400 hover:bg-blue-300 rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
               <Upload className="w-3.5 h-3.5" />
-              <span>CSV 다중 파일 업로드</span>
+              <span>가민 CSV 업로드 (2025 연간 일괄 / 다중 파일)</span>
               <input
                 type="file"
                 multiple
@@ -1502,13 +1792,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         {/* CSV Format Notice */}
         <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 mb-5 text-xs text-slate-300 flex items-start gap-2.5">
           <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="leading-relaxed space-y-0.5">
-            <div>
-              <span className="font-semibold text-white">파일명 자동 파싱:</span> 파일명을 <code className="text-cyan-300 font-mono">YYYYMMDD_훈련이름.csv</code> 형식으로 지정하면 앞 8자리는 날짜(년-월-일), 뒤 텍스트는 훈련 제목으로 자동 등록됩니다. (예: <code className="text-amber-300 font-mono">20260924_10km 빌드업 런.csv</code>)
+          <div className="leading-relaxed space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-white">가민 CSV 스마트 업로드 지원:</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">
+                1) 2025년 등 연간 활동 목록 단일 CSV (1행=1훈련, '제목' 컬럼 자동 인식)
+              </span>
+              <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                2) 개별 훈련 랩(Lap) 상세 분석 CSV 다중 파일
+              </span>
             </div>
-            <div className="text-slate-400 text-[11px]">
-              * 여러 개의 CSV 파일을 동시에 선택하여 한 번에 일괄 업로드할 수 있습니다.
-            </div>
+            <p className="text-slate-400 text-[11px] keep-all">
+              가민에서 내려받은 CSV 파일(첫 줄 헤더)을 올리면 <strong className="text-cyan-300 font-medium">'제목'</strong>을 훈련 제목으로 자동 인식하고, 일자별 거리·시간·페이스·심박수를 읽어 <strong className="text-emerald-300 font-medium">연도/월별 아코디언 및 히트맵</strong>에 날짜별로 즉시 자동 분류·등록합니다.
+            </p>
           </div>
         </div>
 
@@ -2625,6 +2921,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           isOpen={isCsvModalOpen}
           parsedItems={pendingCsvItems}
           shoes={shoes}
+          existingSessions={trainingSessions}
           onClose={() => {
             setIsCsvModalOpen(false);
             setPendingCsvItems([]);
