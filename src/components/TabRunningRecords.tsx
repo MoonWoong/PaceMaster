@@ -1,14 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Papa from 'papaparse';
 import {
   Activity,
   Heart,
   TrendingUp,
   Award,
-  Upload,
   ChevronDown,
   ChevronRight,
-  FileSpreadsheet,
   Trash2,
   Sparkles,
   Zap,
@@ -27,7 +24,9 @@ import {
   Save,
   Footprints,
   List,
+  FileSpreadsheet,
 } from 'lucide-react';
+import Papa from 'papaparse';
 import {
   RunningRecords,
   RunningGoals,
@@ -61,9 +60,9 @@ import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
 import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
 import { TrainingShoeModal } from './TrainingShoeModal';
 import { TrainingCalendarView } from './TrainingCalendarView';
-import { CsvWorkoutUploadModal, ParsedCsvUploadItem } from './CsvWorkoutUploadModal';
 import { ShoeMileageAnalyticsCard } from './ShoeMileageAnalyticsCard';
 import { GoalProgressBarSection } from './GoalProgressBarSection';
+import { CsvWorkoutUploadModal } from './CsvWorkoutUploadModal';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -110,9 +109,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 }) => {
   // Session Shoe Modal State
   const [shoeModalSession, setShoeModalSession] = useState<TrainingSession | null>(null);
-  // CSV Upload & Memo Modal State
-  const [pendingCsvItems, setPendingCsvItems] = useState<ParsedCsvUploadItem[]>([]);
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
   // Shoe Analytics Toggle State
   const [showShoeAnalytics, setShowShoeAnalytics] = useState<boolean>(false);
   // Running Records State
@@ -145,8 +141,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   // Share Modal State
   const [sharingSession, setSharingSession] = useState<TrainingSession | null>(null);
 
-  // CSV Upload parsing error / status
-  const [csvStatus, setCsvStatus] = useState<string>('');
+  // CSV Workout Multi-upload Modal State
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [pendingCsvItems, setPendingCsvItems] = useState<Omit<TrainingSession, 'id' | 'createdAt'>[]>([]);
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
 
   // Weekly Training Plan Customization State
   const [customTrainingDays, setCustomTrainingDays] = useState<DayOfWeek[]>(
@@ -474,12 +472,28 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   ]);
 
   // Helper to parse filename into date and training title
-  // Example filename: "20260924_10km 빌드업 런.csv" or "2026-09-24_템포런.csv"
+  // Example filename: "20260924_10km 빌드업 런.csv", "2026-09-24_템포런.csv", "2025.10.12_10km 인터벌.csv"
   const parseFilename = (fileName: string): { dateStr: string; sessionTitle: string } => {
-    // Remove .csv extension
     const baseName = fileName.replace(/\.[^/.]+$/, '').trim();
-    const underscoreIndex = baseName.indexOf('_');
 
+    // Check if filename starts with YYYY-MM-DD or YYYYMMDD or YYYY.MM.DD followed by underscore or space
+    const standardMatch = baseName.match(/^(\d{4})[-._](\d{2})[-._](\d{2})[_\s-]+(.+)$/);
+    if (standardMatch) {
+      return {
+        dateStr: `${standardMatch[1]}-${standardMatch[2]}-${standardMatch[3]}`,
+        sessionTitle: standardMatch[4].trim() || '가민 임포트 훈련',
+      };
+    }
+
+    const eightDigitMatch = baseName.match(/^(\d{4})(\d{2})(\d{2})[_\s-]+(.+)$/);
+    if (eightDigitMatch) {
+      return {
+        dateStr: `${eightDigitMatch[1]}-${eightDigitMatch[2]}-${eightDigitMatch[3]}`,
+        sessionTitle: eightDigitMatch[4].trim() || '가민 임포트 훈련',
+      };
+    }
+
+    const underscoreIndex = baseName.indexOf('_');
     if (underscoreIndex !== -1) {
       const prefix = baseName.substring(0, underscoreIndex).trim();
       const titlePart = baseName.substring(underscoreIndex + 1).trim();
@@ -637,606 +651,195 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     return clean;
   };
 
-  // Helper to parse date string into strict YYYY-MM-DD
-  const parseDateToYyyyMmDd = (raw: string): string => {
-    if (!raw) return '';
-    const clean = raw.trim();
-
-    // 1. Matches YYYY-MM-DD, YYYY.MM.DD, YYYY/MM/DD, YYYY년 M월 D일
-    const ymdMatch = clean.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})/);
-    if (ymdMatch) {
-      const year = ymdMatch[1];
-      const month = ymdMatch[2].padStart(2, '0');
-      const day = ymdMatch[3].padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    // 2. Matches YYYYMMDD (8 digits)
-    const compactMatch = clean.match(/^(\d{4})(\d{2})(\d{2})/);
-    if (compactMatch) {
-      return `${compactMatch[1]}-${compactMatch[2]}-${compactMatch[3]}`;
-    }
-
-    // 3. Matches MM/DD/YYYY or M/D/YYYY
-    const mdyMatch = clean.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
-    if (mdyMatch) {
-      const month = mdyMatch[1].padStart(2, '0');
-      const day = mdyMatch[2].padStart(2, '0');
-      const year = mdyMatch[3];
-      return `${year}-${month}-${day}`;
-    }
-
-    // 4. Fallback to JS Date parse
-    const parsed = new Date(clean);
-    if (!isNaN(parsed.getTime())) {
-      const y = parsed.getFullYear();
-      const m = (parsed.getMonth() + 1).toString().padStart(2, '0');
-      const d = parsed.getDate().toString().padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-
-    return '';
-  };
-
-  // Helper to parse CSV file (Supports both: 1) Garmin Activities List where 1 row = 1 workout session, and 2) Single-activity Lap breakdown)
-  const parseCsvFile = (file: File): Promise<Omit<TrainingSession, 'id' | 'createdAt'>[]> => {
+  // Helper to parse a single CSV file with PapaParse
+  const parseSingleCsvFile = (file: File): Promise<Omit<TrainingSession, 'id' | 'createdAt'>[]> => {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           try {
-            const rawRows = results.data as Record<string, string>[];
-            if (!rawRows || rawRows.length === 0) {
-              return reject(new Error(`${file.name}: CSV 파일에 유효한 데이터가 없습니다.`));
+            const data = (results.data as Record<string, any>[]).filter((row) => {
+              return Object.values(row).some(
+                (val) => val !== null && val !== undefined && String(val).trim() !== ''
+              );
+            });
+
+            if (data.length === 0) {
+              resolve([]);
+              return;
             }
 
-            // Filter out completely blank rows
-            const rows = rawRows.filter((r) =>
-              Object.values(r).some((v) => v !== null && v !== undefined && String(v).trim() !== '')
+            // Extract date and title from filename
+            const { dateStr: fileDate, sessionTitle: fileTitle } = parseFilename(file.name);
+
+            // Check if the CSV is a multi-activity list (each row is a separate activity with '제목' or '활동 유형' column)
+            const firstRow = data[0];
+            const hasActivityTypeCol = Object.keys(firstRow).some((k) =>
+              /활동\s*유형|activity\s*type/i.test(k)
             );
-
-            if (rows.length === 0) {
-              return reject(new Error(`${file.name}: 유효한 데이터 행이 없습니다.`));
-            }
-
-            const firstRow = rows[0] || {};
-            const headers = Object.keys(firstRow);
-
-            // Check if this CSV is an Activity List (where each row is one training session)
-            // 1. Has explicit '제목' (Title) column (as requested by user: 데이터중 '제목'이 훈련 제목이야)
-            const hasTitleColumn = headers.some((h) => {
-              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
-              return (
-                norm === '제목' ||
-                norm === 'title' ||
-                norm === '활동명' ||
-                norm === '활동이름' ||
-                norm === '세션명' ||
-                norm === '훈련명' ||
-                norm === 'activityname'
+            const hasMultiDateRows =
+              data.length > 2 &&
+              data.some(
+                (r, i) =>
+                  i > 0 &&
+                  getRowValue(r, ['날짜', 'date', '일자']) !==
+                    getRowValue(data[0], ['날짜', 'date', '일자'])
               );
-            });
 
-            // 2. Has activity type column like '활동 유형' / 'Activity Type'
-            const hasActivityTypeColumn = headers.some((h) => {
-              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
-              return (
-                norm === '활동유형' ||
-                norm === 'activitytype' ||
-                norm === '종목' ||
-                norm === 'sport'
-              );
-            });
-
-            // 3. Check for lap sequences 1, 2, 3...
-            const hasLapHeader = headers.some((h) => {
-              const norm = h.toLowerCase().replace(/[\s()_\[\]]/g, '');
-              return norm === '랩' || norm === 'lap' || norm === '구간' || norm === '스텝';
-            });
-
-            const hasLapSequence =
-              hasLapHeader &&
-              rows.slice(0, 3).some((r, i) => {
-                const val = getRowValue(r, ['랩', 'Lap', '구간', '스텝']).replace(/\D/g, '');
-                return val === String(i + 1);
-              });
-
-            // 4. Check for distinct dates
-            const distinctDates = new Set<string>();
-            rows.forEach((r) => {
-              const d = getRowValue(r, [
-                '날짜',
-                'Date',
-                '활동 일시',
-                '활동일시',
-                '시작 시간',
-                '시작시간',
-                'Start Time',
-                'Activity Date',
-              ]);
-              const parsedD = parseDateToYyyyMmDd(d);
-              if (parsedD) distinctDates.add(parsedD);
-            });
-
-            const isActivityList =
-              hasTitleColumn ||
-              hasActivityTypeColumn ||
-              (distinctDates.size > 1 && !hasLapSequence) ||
-              (!hasLapSequence && distinctDates.size >= 1 && rows.length > 1);
-
-            if (isActivityList) {
-              // MODE A: Garmin Activity List CSV (1 row = 1 workout session)
-              const sessionResults: Omit<TrainingSession, 'id' | 'createdAt'>[] = [];
-              const fileMeta = parseFilename(file.name);
-
-              rows.forEach((row, rowIdx) => {
-                // Check if row has at least some meaningful data
-                const rawTitle = getRowValue(row, [
-                  '제목',
-                  'Title',
-                  '활동명',
-                  '활동 명',
-                  '활동이름',
-                  '세션명',
-                  '훈련명',
-                  'Activity Name',
-                  'Workout Name',
-                  'Name',
-                ]);
-
-                const rawDate = getRowValue(row, [
-                  '날짜',
-                  '일자',
-                  'Date',
-                  '활동 일시',
-                  '활동일시',
-                  '시작 시간',
-                  '시작시간',
-                  'Start Time',
-                  'Activity Date',
-                  'Date/Time',
-                  'Timestamp',
-                ]);
-
-                const parsedDate = parseDateToYyyyMmDd(rawDate);
-                const rawDistance = getRowValue(row, [
-                  '거리',
-                  '거리 (km)',
-                  '거리(km)',
-                  '거리 km',
-                  'Distance',
-                  'Distance (km)',
-                  '총 거리',
-                  '총거리',
-                ]);
-                const distanceKm = parseDistanceKm(rawDistance);
-
-                const rawTime = getRowValue(row, [
-                  '시간',
-                  'Time',
-                  '이동 시간',
-                  '이동시간',
-                  '경과 시간',
-                  '경과시간',
-                  'Duration',
-                  'Elapsed Time',
-                  'Moving Time',
-                  '총 시간',
-                ]);
-                const finalTime = normalizeTimeString(rawTime);
-
-                // If completely empty row (no title, no date, 0 distance, 0 time), skip
-                if (!rawTitle && !parsedDate && distanceKm <= 0 && (!finalTime || finalTime === '00:00:00')) {
-                  return;
-                }
-
-                // Title: Prioritize '제목' as user requested
-                let title = rawTitle.trim();
-                if (!title) {
-                  const activityType = getRowValue(row, ['활동 유형', '활동유형', 'Activity Type', 'Type']);
-                  if (distanceKm > 0) {
-                    title = `${distanceKm.toFixed(1)}km ${activityType || '러닝 훈련'}`;
-                  } else {
-                    title = activityType ? `${activityType} 세션` : `가민 훈련 ${rowIdx + 1}`;
+            if (hasActivityTypeCol && hasMultiDateRows) {
+              const multiSessions: Omit<TrainingSession, 'id' | 'createdAt'>[] = [];
+              for (const row of data) {
+                const titleVal =
+                  getRowValue(row, ['제목', 'title', '활동명', '이름', 'name']) || fileTitle;
+                const rawDate = getRowValue(row, ['날짜', 'date', '일자', '시간', 'start time']);
+                let itemDate = fileDate;
+                if (rawDate) {
+                  const m = rawDate.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+                  if (m) {
+                    itemDate = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
                   }
                 }
-
-                // Date: Fallback to file name date or today if missing
-                const date = parsedDate || fileMeta.dateStr || new Date().toISOString().split('T')[0];
-
-                // Pace
-                let paceVal = formatPace(
-                  getRowValue(row, [
-                    '평균 페이스',
-                    '평균 페이스 (min/km)',
-                    '평균 페이스 min/km',
-                    '평균페이스',
-                    'Avg Pace',
-                    'Avg Pace (min/km)',
-                    'Pace',
-                  ])
+                const distKm = parseDistanceKm(getRowValue(row, ['거리', 'distance', '총 거리']));
+                const timeStr = normalizeTimeString(
+                  getRowValue(row, ['시간', 'time', '경과 시간', '이동 시간'])
                 );
-                if (!paceVal || paceVal === "0'00\"") {
-                  const totalSecs = timeToSeconds(finalTime);
-                  if (totalSecs > 0 && distanceKm > 0) {
-                    paceVal = secondsToPace(totalSecs / distanceKm);
-                  } else {
-                    paceVal = "5'00\"";
-                  }
+                const paceStr =
+                  formatPace(getRowValue(row, ['평균 페이스', 'avg pace', 'pace'])) || "5'00\"";
+                const avgHr = parseHeartRate(getRowValue(row, ['평균 심박수', 'avg hr', 'hr']));
+                const maxHr = parseHeartRate(getRowValue(row, ['최대 심박수', 'max hr']));
+                const cals = parseHeartRate(getRowValue(row, ['칼로리', 'calories']));
+
+                if (distKm > 0 || timeStr !== '00:00:00') {
+                  multiSessions.push({
+                    date: itemDate,
+                    title: titleVal,
+                    totalDistanceKm: distKm,
+                    totalTime: timeStr,
+                    avgPace: paceStr,
+                    avgHr,
+                    maxHr: maxHr > 0 ? maxHr : avgHr,
+                    laps: [],
+                    notes: cals > 0 ? `소모 칼로리: ${cals} kcal` : '',
+                  });
                 }
-
-                // Heart Rate
-                const avgHr =
-                  parseHeartRate(
-                    getRowValue(row, [
-                      '평균 심박수',
-                      '평균 심박',
-                      '평균심박',
-                      'Avg HR',
-                      'Avg Heart Rate',
-                      '평균 심박수 (bpm)',
-                      '평균 심박 (bpm)',
-                    ])
-                  ) || 148;
-
-                const maxHr =
-                  parseHeartRate(
-                    getRowValue(row, [
-                      '최대 심박수',
-                      '최대 심박',
-                      '최대심박',
-                      'Max HR',
-                      'Max Heart Rate',
-                      '최고 심박수',
-                      '최고 심박',
-                    ])
-                  ) || (avgHr > 0 ? avgHr + 15 : 165);
-
-                // Notes / Memo
-                let notes = getRowValue(row, [
-                  '메모',
-                  '훈련 메모',
-                  '훈련메모',
-                  '설명',
-                  '비고',
-                  'Notes',
-                  'Note',
-                  'Description',
-                  'Comments',
-                  'Comment',
-                ]);
-
-                // Also check if there's sport/activity type details (e.g. 트랙 러닝, 야외 달리기, 런닝머신)
-                const activityType = getRowValue(row, ['활동 유형', '활동유형', 'Activity Type', 'Type']);
-                if (
-                  activityType &&
-                  activityType !== '달리기' &&
-                  activityType !== '러닝' &&
-                  activityType !== 'Running'
-                ) {
-                  if (notes) {
-                    notes = `[${activityType}] ${notes}`;
-                  } else {
-                    notes = `종목: ${activityType}`;
-                  }
-                }
-
-                sessionResults.push({
-                  date,
-                  title,
-                  totalDistanceKm: distanceKm,
-                  totalTime: finalTime || '00:30:00',
-                  avgPace: paceVal,
-                  avgHr,
-                  maxHr,
-                  notes: notes || '',
-                  laps: [
-                    {
-                      lap: '1',
-                      time: finalTime || '00:30:00',
-                      cumulativeTime: finalTime || '00:30:00',
-                      distanceKm,
-                      avgPace: paceVal,
-                      avgGap: paceVal,
-                      avgHr,
-                      maxHr,
-                    },
-                  ],
-                });
-              });
-
-              if (sessionResults.length === 0) {
-                return reject(new Error(`${file.name}: 파싱 가능한 유효한 훈련 행이 없습니다.`));
               }
-
-              // Sort chronologically by date descending
-              sessionResults.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-              return resolve(sessionResults);
+              resolve(multiSessions);
+              return;
             }
 
-            // MODE B: Single Activity Lap Breakdown CSV (existing logic)
-            // 1. Identify Summary Row (총계 / 요약 / Summary / Total)
-            // Look from bottom to top as summary is typically the last row in Garmin exports
-            let summaryRow: Record<string, string> | null = null;
-            let summaryRowIndex = -1;
+            // Standard Garmin Workout Lap CSV file (one workout with multiple lap rows)
+            const laps: TrainingLap[] = [];
+            let summaryRow: Record<string, any> | null = null;
+            let cumSec = 0;
 
-            for (let i = rows.length - 1; i >= 0; i--) {
-              const row = rows[i];
-              const lapVal = getRowValue(row, ['랩', 'Lap', '구간', '스텝', 'Step', 'Laps']).trim();
-              const isLast = i === rows.length - 1;
+            data.forEach((row) => {
+              const splitVal = getRowValue(row, ['구간', 'split', 'lap', '랩']);
+              const isSummary =
+                splitVal.includes('요약') ||
+                splitVal.toLowerCase().includes('summary') ||
+                splitVal.includes('합계') ||
+                splitVal.includes('전체');
 
-              // Explicit summary keywords in lap column
-              if (/(총계|요약|합계|전체|summary|total|totals|overall)/i.test(lapVal)) {
+              if (isSummary) {
                 summaryRow = row;
-                summaryRowIndex = i;
-                break;
+                return;
               }
 
-              // In Garmin, the last row sometimes has an empty lap string or non-numeric while having total distance/time
-              if (isLast) {
-                const dist = parseDistanceKm(
-                  getRowValue(row, ['거리 km', '거리km', '거리 (km)', '거리(km)', '거리', 'Distance', 'Distance (km)'])
-                );
-                const time = getRowValue(row, ['시간', 'Time', '누적 시간', 'Cumulative Time']);
-                if ((!lapVal || isNaN(Number(lapVal))) && (dist > 0 || time)) {
-                  summaryRow = row;
-                  summaryRowIndex = i;
-                  break;
-                }
-              }
-            }
-
-            // Candidate lap rows: all rows except the summary row
-            const candidateRows = rows.filter((_, idx) => idx !== summaryRowIndex);
-
-            // 2. Handle composite interval / range rows (e.g. Lap 1-3 vs Lap 1, 2, 3)
-            const singleLapNums = new Set<number>();
-            candidateRows.forEach((row) => {
-              const lapStr = getRowValue(row, ['랩', 'Lap', '구간', '스텝', 'Step', 'Laps']).trim();
-              const singleMatch = lapStr.match(/^(?:Lap|랩|구간|스텝)?\s*(\d+)$/i);
-              if (singleMatch) {
-                singleLapNums.add(parseInt(singleMatch[1], 10));
-              }
-            });
-
-            // Filter candidate rows to remove duplicate range group rows
-            const lapRows = candidateRows.filter((row) => {
-              const lapStr = getRowValue(row, ['랩', 'Lap', '구간', '스텝', 'Step', 'Laps']).trim();
-              const rangeMatch = lapStr.match(/(?:Lap|랩|구간|스텝|반복)?\s*(\d+)\s*[-~]\s*(\d+)/i);
-              if (rangeMatch) {
-                const start = parseInt(rangeMatch[1], 10);
-                const end = parseInt(rangeMatch[2], 10);
-                let hasChildLaps = false;
-                for (let n = start; n <= end; n++) {
-                  if (singleLapNums.has(n)) {
-                    hasChildLaps = true;
-                    break;
-                  }
-                }
-                if (hasChildLaps) {
-                  return false; // exclude redundant group summary row
-                }
-              }
-              return true;
-            });
-
-            // 3. Parse individual laps
-            const parsedLaps: TrainingLap[] = [];
-            let lapsDistSum = 0;
-            let lapsPeakHr = 0;
-            let lapsHrSum = 0;
-            let lapsHrCount = 0;
-            let runningSeconds = 0;
-
-            lapRows.forEach((row, idx) => {
-              const rawLap = getRowValue(row, ['랩', 'Lap', '구간', '스텝', 'Step', 'Laps']) || `${idx + 1}`;
-              const cleanLapNum = rawLap.replace(/^(?:Lap|랩|구간|스텝)\s*/i, '').trim();
-
-              const timeVal = getRowValue(row, ['시간', 'Time', '이동 시간', '경과 시간']) || '05:00';
-              const rawCumVal = getRowValue(row, ['누적 시간', '누적시간', 'Cumulative Time', 'Total Time']);
-
-              const lapSecs = timeToSeconds(timeVal);
-              runningSeconds += lapSecs;
-              const cumVal = rawCumVal
-                ? normalizeTimeString(rawCumVal)
-                : normalizeTimeString(
-                    `${Math.floor(runningSeconds / 60)}:${(runningSeconds % 60).toString().padStart(2, '0')}`
-                  );
-
-              const distVal =
-                parseDistanceKm(
-                  getRowValue(row, ['거리 km', '거리km', '거리 (km)', '거리(km)', '거리', 'Distance', 'Distance (km)'])
-                ) || 1.0;
-
-              let paceVal = formatPace(
-                getRowValue(row, ['평균 페이스 min/km', '평균 페이스', '평균페이스', 'Avg Pace', 'Avg Pace (min/km)'])
+              const lapDist = parseDistanceKm(getRowValue(row, ['거리', 'distance', '구간 거리']));
+              const lapTime = normalizeTimeString(
+                getRowValue(row, ['시간', 'time', '구간 시간', '이동 시간'])
               );
-              if (!paceVal && distVal > 0 && lapSecs > 0) {
-                paceVal = secondsToPace(lapSecs / distVal);
+              const lapPace = formatPace(getRowValue(row, ['평균 페이스', 'avg pace', 'pace']));
+              const lapHr = parseHeartRate(getRowValue(row, ['평균 심박수', 'avg hr', 'hr']));
+              const lapMaxHr = parseHeartRate(getRowValue(row, ['최대 심박수', 'max hr']));
+
+              if (lapDist > 0 || lapTime !== '00:00:00') {
+                const lapNum = parseInt(splitVal.replace(/[^\d]/g, ''), 10) || laps.length + 1;
+                cumSec += timeToSeconds(lapTime);
+                const cumH = Math.floor(cumSec / 3600);
+                const cumM = Math.floor((cumSec % 3600) / 60);
+                const cumS = cumSec % 60;
+                const cumTimeStr = `${cumH.toString().padStart(2, '0')}:${cumM.toString().padStart(2, '0')}:${cumS.toString().padStart(2, '0')}`;
+
+                laps.push({
+                  lap: lapNum,
+                  distanceKm: lapDist,
+                  time: lapTime,
+                  cumulativeTime: cumTimeStr,
+                  avgPace: lapPace || "5'00\"",
+                  avgHr: lapHr,
+                  maxHr: lapMaxHr > 0 ? lapMaxHr : lapHr,
+                });
               }
-
-              const gapVal =
-                formatPace(
-                  getRowValue(row, ['평균 GAP min/km', '평균 GAP', 'Avg GAP'])
-                ) || paceVal;
-
-              const hrVal = parseHeartRate(
-                getRowValue(row, ['평균 심박 bpm', '평균 심박', '평균심박', 'Avg HR', 'Avg Heart Rate'])
-              );
-
-              const maxHrVal =
-                parseHeartRate(
-                  getRowValue(row, ['최대심박 bpm', '최대 심박 bpm', '최대심박', '최대 심박', 'Max HR', 'Max Heart Rate'])
-                ) || hrVal;
-
-              lapsDistSum += distVal;
-              if (hrVal > 0) {
-                lapsHrSum += hrVal;
-                lapsHrCount += 1;
-              }
-              if (maxHrVal > lapsPeakHr) {
-                lapsPeakHr = maxHrVal;
-              }
-
-              parsedLaps.push({
-                lap: cleanLapNum || `${idx + 1}`,
-                time: timeVal,
-                cumulativeTime: cumVal,
-                distanceKm: Math.round(distVal * 100) / 100,
-                avgPace: paceVal || "5'00\"",
-                avgGap: gapVal,
-                avgHr: hrVal || 150,
-                maxHr: maxHrVal || hrVal || 165,
-              });
             });
 
-            // 4. Extract or compute Summary Information (총계 정보 우선 반영)
-            let finalDistanceKm = 0;
-            let finalTime = '00:00:00';
-            let finalAvgPace = "5'00\"";
-            let finalAvgHr = 150;
-            let finalMaxHr = lapsPeakHr || 165;
+            // Calculate overall session aggregates
+            let totalDist = 0;
+            let totalTime = '00:00:00';
+            let avgPace = "5'00\"";
+            let avgHr = 0;
+            let maxHr = 0;
+            let totalCalories = 0;
 
             if (summaryRow) {
-              const sumDist = parseDistanceKm(
-                getRowValue(summaryRow, ['거리 km', '거리km', '거리 (km)', '거리(km)', '거리', 'Distance', 'Distance (km)'])
-              );
-              finalDistanceKm = sumDist > 0 ? sumDist : Math.round(lapsDistSum * 100) / 100;
+              totalDist = parseDistanceKm(getRowValue(summaryRow, ['거리', 'distance']));
+              totalTime = normalizeTimeString(getRowValue(summaryRow, ['시간', 'time', '경과 시간']));
+              avgPace = formatPace(getRowValue(summaryRow, ['평균 페이스', 'avg pace'])) || avgPace;
+              avgHr = parseHeartRate(getRowValue(summaryRow, ['평균 심박수', 'avg hr']));
+              maxHr = parseHeartRate(getRowValue(summaryRow, ['최대 심박수', 'max hr']));
+              totalCalories = parseHeartRate(getRowValue(summaryRow, ['칼로리', 'calories']));
+            }
 
-              const sumTime = getRowValue(summaryRow, [
-                '누적 시간',
-                '누적시간',
-                'Cumulative Time',
-                'Total Time',
-                '시간',
-                'Time',
-                '경과 시간',
-                '이동 시간',
-              ]);
-              finalTime = sumTime
-                ? normalizeTimeString(sumTime)
-                : parsedLaps[parsedLaps.length - 1]?.cumulativeTime || '00:50:00';
+            if (totalDist === 0 && laps.length > 0) {
+              totalDist = Math.round(laps.reduce((acc, l) => acc + l.distanceKm, 0) * 100) / 100;
+            }
 
-              let sumPace = formatPace(
-                getRowValue(summaryRow, [
-                  '평균 페이스 min/km',
-                  '평균 페이스',
-                  '평균페이스',
-                  'Avg Pace',
-                  'Avg Pace (min/km)',
-                  'Pace',
-                ])
-              );
-              if (!sumPace || sumPace === "0'00\"") {
-                const totalSecs = timeToSeconds(finalTime);
-                if (totalSecs > 0 && finalDistanceKm > 0) {
-                  sumPace = secondsToPace(totalSecs / finalDistanceKm);
-                } else if (parsedLaps.length > 0) {
-                  sumPace = parsedLaps[0].avgPace;
-                }
+            if (totalTime === '00:00:00' && laps.length > 0) {
+              const totalSec = laps.reduce((acc, l) => acc + timeToSeconds(l.time), 0);
+              const hrs = Math.floor(totalSec / 3600);
+              const mins = Math.floor((totalSec % 3600) / 60);
+              const secs = totalSec % 60;
+              totalTime = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+
+            if ((!avgPace || avgPace === "5'00\"") && totalDist > 0) {
+              const totalSec = timeToSeconds(totalTime);
+              if (totalSec > 0) {
+                avgPace = secondsToPace(totalSec / totalDist);
               }
-              finalAvgPace = sumPace || "5'00\"";
+            }
 
-              const sumAvgHr = parseHeartRate(
-                getRowValue(summaryRow, ['평균 심박 bpm', '평균 심박', '평균심박', 'Avg HR', 'Avg Heart Rate'])
-              );
-              if (sumAvgHr > 0) {
-                finalAvgHr = sumAvgHr;
-              } else if (lapsHrCount > 0) {
-                finalAvgHr = Math.round(lapsHrSum / lapsHrCount);
+            if (avgHr === 0 && laps.length > 0) {
+              const validHrLaps = laps.filter((l) => (l.avgHr || 0) > 0);
+              if (validHrLaps.length > 0) {
+                const sumHr = validHrLaps.reduce((acc, l) => acc + (l.avgHr || 0), 0);
+                avgHr = Math.round(sumHr / validHrLaps.length);
               }
-
-              const sumMaxHr = parseHeartRate(
-                getRowValue(summaryRow, ['최대심박 bpm', '최대 심박 bpm', '최대심박', '최대 심박', 'Max HR', 'Max Heart Rate'])
-              );
-              finalMaxHr = Math.max(sumMaxHr || 0, lapsPeakHr || 0) || 165;
-            } else {
-              finalDistanceKm = Math.round(lapsDistSum * 100) / 100;
-              finalTime = parsedLaps[parsedLaps.length - 1]?.cumulativeTime || '00:50:00';
-              const totalSecs = timeToSeconds(finalTime);
-              finalAvgPace =
-                totalSecs > 0 && finalDistanceKm > 0
-                  ? secondsToPace(totalSecs / finalDistanceKm)
-                  : parsedLaps[0]?.avgPace || "5'00\"";
-              finalAvgHr = lapsHrCount > 0 ? Math.round(lapsHrSum / lapsHrCount) : 150;
-              finalMaxHr = lapsPeakHr || 165;
             }
 
-            if (parsedLaps.length === 0 && finalDistanceKm > 0) {
-              parsedLaps.push({
-                lap: '1',
-                time: finalTime,
-                cumulativeTime: finalTime,
-                distanceKm: finalDistanceKm,
-                avgPace: finalAvgPace,
-                avgGap: finalAvgPace,
-                avgHr: finalAvgHr,
-                maxHr: finalMaxHr,
-              });
+            if (maxHr === 0 && laps.length > 0) {
+              maxHr = Math.max(...laps.map((l) => l.maxHr || 0));
             }
 
-            const { dateStr, sessionTitle } = parseFilename(file.name);
-            const displayTitle = sessionTitle.includes('km')
-              ? sessionTitle
-              : `${sessionTitle} (${finalDistanceKm.toFixed(2)}km)`;
+            const rowTitle = getRowValue(firstRow, ['제목', 'title', '활동명']);
+            const finalTitle =
+              fileTitle && fileTitle !== '가민 임포트 훈련' ? fileTitle : rowTitle || fileTitle;
 
-            const candidateDateKeys = [
-              '날짜',
-              '일자',
-              'Date',
-              '활동 일시',
-              '활동일시',
-              '시작 시간',
-              '시작시간',
-              'Start Time',
-              'Activity Date',
-              'Date/Time',
-              'Timestamp',
-            ];
-            const rawDateFromCsv =
-              (summaryRow ? getRowValue(summaryRow, candidateDateKeys) : '') ||
-              (candidateRows[0] ? getRowValue(candidateRows[0], candidateDateKeys) : '');
+            const session: Omit<TrainingSession, 'id' | 'createdAt'> = {
+              date: fileDate,
+              title: finalTitle,
+              totalDistanceKm: totalDist,
+              totalTime,
+              avgPace,
+              avgHr,
+              maxHr: maxHr > 0 ? maxHr : avgHr,
+              laps,
+              notes: totalCalories > 0 ? `소모 칼로리: ${totalCalories} kcal` : '',
+            };
 
-            let effectiveDate = dateStr;
-            if (rawDateFromCsv) {
-              const parsedDate = parseDateToYyyyMmDd(rawDateFromCsv);
-              if (parsedDate) effectiveDate = parsedDate;
-            }
-
-            const candidateMemoKeys = [
-              '메모',
-              '훈련메모',
-              '훈련 메모',
-              '메모란',
-              '비고',
-              '일지',
-              '노트',
-              'Notes',
-              'Note',
-              'Memo',
-              'Description',
-              'Comments',
-              'Comment',
-            ];
-            const rawNoteFromCsv =
-              (summaryRow ? getRowValue(summaryRow, candidateMemoKeys) : '') ||
-              (candidateRows[0] ? getRowValue(candidateRows[0], candidateMemoKeys) : '');
-
-            resolve([
-              {
-                date: effectiveDate,
-                title: displayTitle,
-                totalDistanceKm: finalDistanceKm,
-                totalTime: finalTime,
-                avgPace: finalAvgPace,
-                avgHr: finalAvgHr,
-                maxHr: finalMaxHr,
-                notes: rawNoteFromCsv || '',
-                laps: parsedLaps,
-              },
-            ]);
-          } catch (err: any) {
+            resolve([session]);
+          } catch (err) {
             reject(err);
           }
         },
@@ -1247,84 +850,45 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     });
   };
 
-  // Handle CSV File Upload (Single Activity List CSV e.g. 2025 whole year, OR multi-file lap CSVs)
+  // Handle Multi-file CSV Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-
-    const files = Array.from(fileList);
-    setCsvStatus(`⏳ ${files.length}개 CSV 파일 파싱 및 데이터 분석 중...`);
-
-    const parsedItems: ParsedCsvUploadItem[] = [];
-    const errors: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        const sessionList = await parseCsvFile(file);
-        sessionList.forEach((sessionData, subIdx) => {
-          parsedItems.push({
-            id: `csv-${Date.now()}-${i}-${subIdx}`,
-            fileName: files.length > 1 ? `${file.name} #${subIdx + 1}` : file.name,
-            date: sessionData.date,
-            title: sessionData.title,
-            totalDistanceKm: sessionData.totalDistanceKm,
-            totalTime: sessionData.totalTime,
-            avgPace: sessionData.avgPace,
-            avgHr: sessionData.avgHr,
-            maxHr: sessionData.maxHr,
-            notes: sessionData.notes || '',
-            laps: sessionData.laps,
-          });
-        });
-      } catch (err: any) {
-        console.error(`Failed to process ${file.name}`, err);
-        errors.push(`${file.name}: ${err.message || '파싱 오류'}`);
-      }
-    }
-
-    if (errors.length > 0) {
-      setCsvStatus(`⚠️ ${errors.length}개 파일 파싱 실패: ${errors[0]}`);
-      setTimeout(() => setCsvStatus(''), 6000);
-    } else {
-      setCsvStatus(`✅ 총 ${parsedItems.length}개 훈련 세션 파싱 완료! 모달에서 확인 후 등록하세요.`);
-      setTimeout(() => setCsvStatus(''), 4000);
-    }
-
-    if (parsedItems.length > 0) {
-      setPendingCsvItems(parsedItems);
-      setIsCsvModalOpen(true);
-    }
-
-    // Reset input
-    e.target.value = '';
-  };
-
-  // Save Batch CSV Sessions with Custom Memos & Shoes
-  const handleSaveBatchCsvSessions = async (
-    items: Omit<TrainingSession, 'id' | 'createdAt'>[]
-  ) => {
-    if (!items || items.length === 0) return;
-
-    setCsvStatus(`⏳ ${items.length}개 훈련 세션 및 메모 등록 저장 중...`);
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     try {
-      if (onAddBatchTrainingSessions) {
-        await onAddBatchTrainingSessions(items);
-      } else {
-        for (const item of items) {
-          await onAddTrainingSession(item);
-        }
+      setIsUploadingCsv(true);
+      const parsedResults = await Promise.all(files.map((f) => parseSingleCsvFile(f)));
+      const allSessions = parsedResults
+        .flat()
+        .filter((s) => s.totalDistanceKm > 0 || s.totalTime !== '00:00:00');
+
+      if (allSessions.length === 0) {
+        alert('CSV 파일에서 유효한 훈련 기록을 찾을 수 없습니다.');
+        return;
       }
 
-      setCsvStatus(`✅ 총 ${items.length}개 훈련 세션과 훈련 메모가 성공적으로 등록되었습니다!`);
-      setTimeout(() => setCsvStatus(''), 5000);
-      setIsCsvModalOpen(false);
-      setPendingCsvItems([]);
-    } catch (err: any) {
-      console.error('Failed to save batch CSV sessions', err);
-      setCsvStatus(`❌ 저장 실패: ${err.message || '저장 중 오류가 발생했습니다.'}`);
-      throw err;
+      // Sort descending by date
+      allSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setPendingCsvItems(allSessions);
+      setIsCsvModalOpen(true);
+    } catch (err) {
+      console.error('CSV Parsing Error:', err);
+      alert('CSV 파일 파싱 중 오류가 발생했습니다. 파일 형식을 확인해주세요.');
+    } finally {
+      setIsUploadingCsv(false);
+      e.target.value = '';
+    }
+  };
+
+  // Save CSV items from modal
+  const handleSaveCsvItems = async (items: Omit<TrainingSession, 'id' | 'createdAt'>[]) => {
+    if (onAddBatchTrainingSessions) {
+      await onAddBatchTrainingSessions(items);
+    } else {
+      for (const item of items) {
+        await onAddTrainingSession(item);
+      }
     }
   };
 
@@ -1722,27 +1286,41 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         )}
       </section>
 
-      {/* 3. 훈련 기록 (CSV 업로드) */}
+      {/* 3. 훈련 기록 관리 */}
       <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
-              <FileSpreadsheet className="w-5 h-5" />
+            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+              <Activity className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                <span>훈련 기록 관리 (가민 CSV 연동)</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
+                <span>훈련 기록 관리</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
                   {trainingSessions.length}회 기록
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                가민/스트라바 등에서 추출한 CSV 파일을 업로드하면 랩별 페이스·심박수를 분석합니다.
+                등록된 러닝 훈련 세션의 페이스·심박수 및 연도·월별 기록을 관리합니다.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* CSV File Upload Input (다중 파일 지원, 날짜_훈련제목 형식) */}
+            <label className="px-3.5 py-2 text-xs font-semibold text-slate-950 bg-blue-400 hover:bg-blue-300 rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>{isUploadingCsv ? 'CSV 분석 중...' : '가민 CSV 다중 업로드'}</span>
+              <input
+                type="file"
+                accept=".csv"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={isUploadingCsv}
+              />
+            </label>
+
             {/* Clear All Sessions Button (visible when sessions exist) */}
             {trainingSessions.length > 0 && (
               <button
@@ -1750,8 +1328,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   const ok = await verifyRunnerSecurityKey('등록된 모든 훈련 기록 초기화 및 전체 삭제');
                   if (ok && onClearAllTrainingSessions) {
                     await onClearAllTrainingSessions();
-                    setCsvStatus('모든 훈련 기록이 성공적으로 삭제되었습니다.');
-                    setTimeout(() => setCsvStatus(''), 3000);
                   }
                 }}
                 className="px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
@@ -1773,46 +1349,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 <span>오늘의 훈련 직접 기록</span>
               </button>
             )}
-
-            {/* CSV File Upload Input */}
-            <label className="px-4 py-2 text-xs font-semibold text-slate-950 bg-blue-400 hover:bg-blue-300 rounded-xl transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
-              <Upload className="w-3.5 h-3.5" />
-              <span>가민 CSV 업로드 (2025 연간 일괄 / 다중 파일)</span>
-              <input
-                type="file"
-                multiple
-                accept=".csv,text/csv"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
           </div>
         </div>
 
-        {/* CSV Format Notice */}
-        <div className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 mb-5 text-xs text-slate-300 flex items-start gap-2.5">
-          <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="leading-relaxed space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-white">가민 CSV 스마트 업로드 지원:</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">
-                1) 2025년 등 연간 활동 목록 단일 CSV (1행=1훈련, '제목' 컬럼 자동 인식)
-              </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-                2) 개별 훈련 랩(Lap) 상세 분석 CSV 다중 파일
-              </span>
+        {/* CSV Multi-file Upload Format Tip Banner */}
+        <div className="p-3.5 rounded-xl bg-blue-950/30 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs mb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg flex-shrink-0">📁</span>
+            <div className="text-slate-300 keep-all">
+              <strong className="text-blue-300">가민 CSV 다중 파일 업로드 지원:</strong> 여러 개의 훈련 파일을 한 번에 선택할 수 있으며, 파일명이 <code className="text-cyan-300 font-mono font-bold bg-slate-900 px-1.5 py-0.5 rounded">날짜_훈련제목.csv</code> (예: <span className="text-emerald-300 font-mono">2025-10-12_10km빌드업.csv</span>) 형식인 경우 날짜와 훈련명이 자동 지정됩니다.
             </div>
-            <p className="text-slate-400 text-[11px] keep-all">
-              가민에서 내려받은 CSV 파일(첫 줄 헤더)을 올리면 <strong className="text-cyan-300 font-medium">'제목'</strong>을 훈련 제목으로 자동 인식하고, 일자별 거리·시간·페이스·심박수를 읽어 <strong className="text-emerald-300 font-medium">연도/월별 아코디언 및 히트맵</strong>에 날짜별로 즉시 자동 분류·등록합니다.
-            </p>
           </div>
         </div>
-
-        {csvStatus && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs">
-            {csvStatus}
-          </div>
-        )}
 
         {/* View Mode Switcher: 리스트 보기 vs 달력 보기 */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/60 border border-white/10 mb-4">
@@ -2182,47 +1730,44 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         thresholdHr={Number(thresholdHr) || 172}
       />
 
-      {/* AI 다음 주 맞춤 훈련 강도 추천 & 루틴 제안 (회복 / 유지 / 강화) */}
+      {/* AI 다음 주 맞춤 훈련 강도 추천 (회복 / 유지 / 강화) */}
       <TrainingIntensityRecommender
         sessions={trainingSessions}
         vdot={currentVDOT}
         targetRaceCourse={evalSelectedDistance}
         shoes={shoes}
-        onApplyRoutine={async (routineDays, settings) => {
-          await onSaveWeeklyPlan(routineDays, settings);
-        }}
       />
 
       {/* 4. 일자별 주간훈련 상세계획표 */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-white/10 shadow-xl overflow-hidden w-full max-w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 min-w-0 w-full">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 flex-shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 flex-wrap">
                 <span>일자별 주간 맞춤 훈련 상세계획표</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium whitespace-nowrap">
                   AI Periodization
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 keep-all">
                 훈련 요일과 포인트(스피드·장거리) 훈련 요일을 직접 지정하여 AI 맞춤 플랜을 생성합니다.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
             <button
               onClick={() => setIsCustomizingPlan((prev) => !prev)}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
             >
               <span>{isCustomizingPlan ? '설정 패널 접기' : '훈련 요일/포인트 설정'}</span>
             </button>
             <button
               onClick={handleGenerateWeeklyPlan}
-              className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2"
+              className="px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <Sparkles className="w-4 h-4" />
               <span>AI 맞춤 계획표 생성</span>
@@ -2231,18 +1776,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* Shoe Rotation Guidance Banner */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-5">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">👟</span>
-            <div>
+        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-5 min-w-0 w-full">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl flex-shrink-0">👟</span>
+            <div className="min-w-0">
               <span className="font-bold text-emerald-300">스마트 러닝화 로테이션 추천 시스템: </span>
-              <span className="text-slate-300">
+              <span className="text-slate-300 keep-all">
                 훈련 강도(스피드/장거리/조깅)에 맞추고, 자주 안 신은 신발을 골고루 돌려 신도록 배정하여 미드솔 수명을 보존하고 부상을 예방합니다.
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-            <span className="text-[11px] text-slate-400 font-mono">
+            <span className="text-[11px] text-slate-400 font-mono whitespace-nowrap">
               보유 신발: <strong className="text-white">{shoes.length}켤레</strong>
             </span>
             <button
@@ -2254,7 +1799,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   setShowShoeAnalytics((prev) => !prev);
                 }
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-cyan-500/10"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shadow-cyan-500/10 whitespace-nowrap"
               title="내 정보의 보유 러닝화 로테이션 & 마일리지 수명 관리 섹션으로 이동"
             >
               <Footprints className="w-3.5 h-3.5" />
@@ -2291,7 +1836,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               <label className="block text-xs font-semibold text-slate-300 mb-2">
                 1️⃣ 주간 훈련 요일 선택 (복수 선택):
               </label>
-              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 w-full min-w-0">
                 {(['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'] as DayOfWeek[]).map((day) => {
                   const isSelected = customTrainingDays.includes(day);
                   const isSpeed = customSpeedDay === day;
@@ -2312,19 +1857,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                           setCustomTrainingDays((prev) => [...prev, day]);
                         }
                       }}
-                      className={`py-2 px-1 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 ${
+                      className={`py-2 px-0.5 sm:px-1 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 min-w-0 overflow-hidden ${
                         isSelected
                           ? 'bg-emerald-500/20 border-emerald-400/50 text-white font-bold shadow-sm shadow-emerald-500/20'
                           : 'bg-slate-800/40 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
                       }`}
                     >
-                      <span className="text-xs sm:text-sm">{day.replace('요일', '')}</span>
-                      <span className="text-[10px] hidden sm:inline font-normal">
+                      <span className="text-xs sm:text-sm font-bold truncate">{day.replace('요일', '')}</span>
+                      <span className="text-[10px] hidden sm:inline font-normal truncate">
                         {isSelected ? '훈련' : '휴식'}
                       </span>
                       {(isSpeed || isLongRun) && (
                         <span
-                          className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                          className={`text-[8px] sm:text-[9px] px-1 py-0.2 rounded font-mono truncate max-w-full ${
                             isSpeed
                               ? 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
                               : 'bg-purple-500/30 text-purple-300 border border-purple-500/40'
@@ -2512,33 +2057,33 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </div>
 
             {/* 4 Stat Metric Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 min-w-0">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 min-w-0">
                 <div className="text-[10px] text-slate-400 keep-all">최근 4주 평균 마일리지</div>
-                <div className="text-base sm:text-lg font-black text-white font-athletic mt-0.5">
+                <div className="text-base sm:text-lg font-black text-white font-athletic mt-0.5 truncate">
                   {runnerStateAnalysis.avgWeeklyMileage4Weeks}{' '}
                   <span className="text-xs font-normal text-slate-400">km/주</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
+                <div className="text-[10px] text-slate-400 mt-1 truncate">
                   피크 주간: <span className="text-slate-300 font-semibold">{runnerStateAnalysis.peakWeeklyDistance}km</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 min-w-0">
                 <div className="text-[10px] text-slate-400 keep-all">직전 주간 마일리지 (Acute)</div>
-                <div className="text-base sm:text-lg font-black text-cyan-300 font-athletic mt-0.5">
+                <div className="text-base sm:text-lg font-black text-cyan-300 font-athletic mt-0.5 truncate">
                   {runnerStateAnalysis.lastWeekDistance}{' '}
                   <span className="text-xs font-normal text-slate-400">km</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
+                <div className="text-[10px] text-slate-400 mt-1 truncate">
                   월~일: <span className="text-cyan-300 font-mono font-semibold">{runnerStateAnalysis.lastWeekLabel || '지난주'}</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-white/5 min-w-0">
                 <div className="text-[10px] text-slate-400 keep-all">ACWR (운동 부하 비율)</div>
                 <div
-                  className={`text-base sm:text-lg font-black font-athletic mt-0.5 ${
+                  className={`text-base sm:text-lg font-black font-athletic mt-0.5 truncate ${
                     runnerStateAnalysis.acwr > 1.35
                       ? 'text-rose-400'
                       : runnerStateAnalysis.acwr < 0.75
@@ -2548,22 +2093,24 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 >
                   {runnerStateAnalysis.acwr}{' '}
                   <span className="text-[10px] font-normal text-slate-400 font-sans">
-                    (적정: 0.8~1.3)
+                    (0.8~1.3)
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 whitespace-nowrap">
+                <div className="text-[10px] text-slate-400 mt-1 truncate">
                   부상 안전도: <span className="text-emerald-300 font-semibold">{runnerStateAnalysis.fatigueRisk}</span>
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30 bg-emerald-950/20">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30 bg-emerald-950/20 min-w-0">
                 <div className="text-[10px] text-emerald-400 font-semibold keep-all">AI 권장 주간 총 볼륨</div>
-                <div className="text-base sm:text-lg font-black text-emerald-300 font-athletic mt-0.5">
+                <div className="text-base sm:text-lg font-black text-emerald-300 font-athletic mt-0.5 truncate">
                   {runnerStateAnalysis.recommendedWeeklyKm}{' '}
                   <span className="text-xs font-normal text-slate-400">km</span>
                 </div>
-                <div className="text-[10px] text-slate-300 mt-1 whitespace-nowrap">
-                  LSD: <span className="text-purple-300 font-semibold">{runnerStateAnalysis.longRunRecommendedKm}km</span> / 스피드: <span className="text-rose-300 font-semibold">{runnerStateAnalysis.speedVolumeRecommendedKm}km</span>
+                <div className="text-[10px] text-slate-300 mt-1 flex flex-wrap gap-x-1.5 gap-y-0.5 leading-tight">
+                  <span>LSD: <strong className="text-purple-300 font-semibold">{runnerStateAnalysis.longRunRecommendedKm}km</strong></span>
+                  <span>/</span>
+                  <span>스피드: <strong className="text-rose-300 font-semibold">{runnerStateAnalysis.speedVolumeRecommendedKm}km</strong></span>
                 </div>
               </div>
             </div>
@@ -2660,14 +2207,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             return (
               <div
                 key={idx}
-                className={`glass-card rounded-xl p-4 border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                className={`glass-card rounded-xl p-3.5 sm:p-5 border transition-all flex flex-col xl:flex-row xl:items-start justify-between gap-4 min-w-0 w-full overflow-hidden ${
                   dayPlan.isCompleted
                     ? 'bg-gradient-to-r from-emerald-950/25 via-slate-900/90 to-slate-900/95 border-emerald-500/40 shadow-md shadow-emerald-950/20'
                     : 'border-white/10 hover:border-white/20'
                 }`}
               >
-                {/* Day & Type */}
-                <div className="flex items-center gap-3">
+                {/* Day & Type & Details */}
+                <div className="flex items-start gap-3 flex-1 min-w-0 w-full">
                   <div className="w-14 sm:w-16 text-center py-2 px-1 rounded-xl bg-slate-900 border border-white/10 flex-shrink-0">
                     <div className="text-[10px] text-slate-400 font-mono">{dayPlan.dayShort}</div>
                     <div className="text-xs sm:text-sm font-bold text-white">{dayPlan.day}</div>
@@ -2678,8 +2225,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     )}
                   </div>
 
-                  <div>
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="flex-1 min-w-0 w-full">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
                       <span
                         className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border ${
                           typeBadgeColors[dayPlan.type]
@@ -2716,20 +2263,20 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                     {/* Granular Split Pacing Stages (빌드업주 / 포인트 훈련 세부 구간표) */}
                     {dayPlan.stages && dayPlan.stages.length > 0 && (
-                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 min-w-0 w-full">
                         {dayPlan.stages.map((stg, sIdx) => (
                           <div
                             key={sIdx}
-                            className="p-2.5 rounded-lg bg-slate-950/70 border border-emerald-500/20 text-xs flex flex-col justify-between gap-1 shadow-sm"
+                            className="p-2.5 rounded-lg bg-slate-950/70 border border-emerald-500/20 text-xs flex flex-col justify-between gap-1 shadow-sm min-w-0"
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-white text-[11px] whitespace-nowrap">{stg.step}</span>
-                              <span className="text-[10px] text-emerald-400 font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-bold text-white text-[11px] truncate">{stg.step}</span>
+                              <span className="text-[10px] text-emerald-400 font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 whitespace-nowrap flex-shrink-0">
                                 {stg.pace}/km
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-[10px] text-cyan-300">
-                              <span className="whitespace-nowrap">{stg.zone}</span>
+                              <span className="truncate">{stg.zone}</span>
                               <span className="text-slate-400 whitespace-nowrap">{stg.distanceKm}km</span>
                             </div>
                             <div className="text-[10px] text-slate-400 leading-tight border-t border-white/5 pt-1 mt-0.5 keep-all">
@@ -2742,15 +2289,15 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                     {/* Recommended Running Shoe & Rotation Rationale (기록된 훈련은 추천 신발 박스 제외) */}
                     {dayPlan.type !== '휴식' && !dayPlan.isCompleted && (
-                      <div className="mt-3 p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-sm">
-                        <div className="flex items-start gap-2.5 min-w-0">
+                      <div className="mt-3 p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-sm min-w-0 w-full">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
                           <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
                             <span className="text-base">👟</span>
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap">추천 러닝화:</span>
-                              <strong className="text-emerald-300 font-bold truncate">
+                              <strong className="text-emerald-300 font-bold truncate max-w-[200px]">
                                 {dayPlan.recommendedShoe?.shoeName || (shoes.length > 0 ? shoes[0].name : '보유 러닝화 미등록')}
                               </strong>
                               {dayPlan.recommendedShoe?.category && (
@@ -2779,7 +2326,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                         {/* Quick switch to another owned shoe */}
                         {shoes.length > 0 && (
-                          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+                          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0 max-w-full">
                             <select
                               value={dayPlan.recommendedShoe?.shoeName || ''}
                               onChange={async (e) => {
@@ -2803,7 +2350,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                 );
                                 await onSaveWeeklyPlan(updatedPlan, weeklyPlanSettings);
                               }}
-                              className="bg-slate-900 border border-white/10 hover:border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400 cursor-pointer"
+                              className="bg-slate-900 border border-white/10 hover:border-emerald-500/40 rounded-lg px-2 py-1 text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400 cursor-pointer max-w-[180px] sm:max-w-[200px] truncate"
                             >
                               <option value="">러닝화 직접 변경...</option>
                               {shoes.map((s) => (
@@ -2820,34 +2367,34 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 </div>
 
                 {/* Metrics */}
-                <div className="flex items-center gap-4 self-end md:self-center border-t md:border-t-0 pt-2 md:pt-0 border-white/5 w-full md:w-auto justify-between md:justify-end flex-shrink-0">
-                  <div className="text-left md:text-right whitespace-nowrap">
-                    <div className="text-[10px] text-slate-400">
+                <div className="flex items-center gap-3 sm:gap-5 self-stretch xl:self-center border-t xl:border-t-0 pt-2.5 xl:pt-0 border-white/5 w-full xl:w-auto justify-between xl:justify-end flex-shrink-0 min-w-0 bg-slate-950/40 xl:bg-transparent p-2.5 xl:p-0 rounded-xl">
+                  <div className="text-left sm:text-center xl:text-right min-w-[65px]">
+                    <div className="text-[10px] text-slate-400 whitespace-nowrap">
                       {dayPlan.isCompleted ? '실제 주행거리' : '목표 거리'}
                     </div>
-                    <div className={`text-sm font-extrabold font-athletic ${
+                    <div className={`text-sm font-extrabold font-athletic whitespace-nowrap ${
                       dayPlan.isCompleted ? 'text-cyan-300 text-base' : 'text-white'
                     }`}>
                       {dayPlan.distanceKm > 0 ? `${dayPlan.distanceKm} km` : '0 km'}
                     </div>
                   </div>
 
-                  <div className="text-left md:text-right whitespace-nowrap">
-                    <div className="text-[10px] text-slate-400">
+                  <div className="text-left sm:text-center xl:text-right min-w-[65px]">
+                    <div className="text-[10px] text-slate-400 whitespace-nowrap">
                       {dayPlan.isCompleted ? '실제 평균페이스' : '목표 페이스'}
                     </div>
-                    <div className={`text-sm font-extrabold font-athletic ${
+                    <div className={`text-sm font-extrabold font-athletic whitespace-nowrap ${
                       dayPlan.isCompleted ? 'text-emerald-300 text-base' : 'text-emerald-400'
                     }`}>
                       {dayPlan.targetPace}
                     </div>
                   </div>
 
-                  <div className="text-left md:text-right whitespace-nowrap">
-                    <div className="text-[10px] text-slate-400">
+                  <div className="text-left sm:text-center xl:text-right min-w-[65px]">
+                    <div className="text-[10px] text-slate-400 whitespace-nowrap">
                       {dayPlan.isCompleted ? '실제 심박/상태' : '목표 심박존'}
                     </div>
-                    <div className="text-xs font-semibold text-cyan-300">
+                    <div className="text-xs font-semibold text-cyan-300 whitespace-nowrap">
                       {dayPlan.targetZone}
                     </div>
                   </div>
@@ -2858,8 +2405,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* Weekly Total Plan Summary Footer Bar */}
-        <div className="mt-4 p-4 rounded-xl bg-slate-900/90 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-300">
+        <div className="mt-4 p-4 rounded-xl bg-slate-900/90 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs min-w-0 w-full">
+          <div className="flex items-center gap-2 text-slate-300 min-w-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span className="keep-all">
               이번 주간 총 계획 거리:{' '}
@@ -2872,16 +2419,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 whitespace-nowrap">
-            <span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+            <span className="whitespace-nowrap">
               스피드: <strong className="text-rose-300">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
-            <span>
+            <span className="whitespace-nowrap">
               장거리(LSD): <strong className="text-purple-300">{activePlan.find(d => d.type === 'LSD')?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
-            <span>
+            <span className="whitespace-nowrap">
               유산소/회복: <strong className="text-cyan-300">
                 {Math.round(activePlan.filter(d => d.type === '조깅' || d.type === '회복주').reduce((acc, d) => acc + d.distanceKm, 0) * 10) / 10}km
               </strong>
@@ -2889,6 +2436,21 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Garmin Multi-file CSV Upload Modal */}
+      {isCsvModalOpen && (
+        <CsvWorkoutUploadModal
+          isOpen={isCsvModalOpen}
+          parsedItems={pendingCsvItems}
+          shoes={shoes}
+          existingSessions={trainingSessions}
+          onSave={handleSaveCsvItems}
+          onClose={() => {
+            setIsCsvModalOpen(false);
+            setPendingCsvItems([]);
+          }}
+        />
+      )}
 
       {/* Training Share & Image Export Modal */}
       {sharingSession && (
@@ -2912,21 +2474,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             }
           }}
           onClose={() => setShoeModalSession(null)}
-        />
-      )}
-
-      {/* CSV Workout Upload & Memo Input Modal */}
-      {isCsvModalOpen && (
-        <CsvWorkoutUploadModal
-          isOpen={isCsvModalOpen}
-          parsedItems={pendingCsvItems}
-          shoes={shoes}
-          existingSessions={trainingSessions}
-          onClose={() => {
-            setIsCsvModalOpen(false);
-            setPendingCsvItems([]);
-          }}
-          onSaveBatch={handleSaveBatchCsvSessions}
         />
       )}
     </div>
