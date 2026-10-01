@@ -319,15 +319,12 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
-                <span>연간 러닝 활동 잔디밭 히트맵</span>
+                <span>연간 러닝 활동 히트맵</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold border border-emerald-300">
                   Annual Contribution
                 </span>
               </h3>
             </div>
-            <p className="text-xs text-stone-600 mt-0.5">
-              1년간 트랙과 로드에서 달린 날과 거리를 싱그러운 잔디밭 형태로 시각화하여 러닝 루틴의 연속성을 보여줍니다.
-            </p>
           </div>
         </div>
 

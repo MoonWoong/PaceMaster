@@ -9,8 +9,6 @@ import { FirebaseConfigModal } from './components/FirebaseConfigModal';
 import { PaceCalculatorModal } from './components/PaceCalculatorModal';
 import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
-import { DailyInsightCard } from './components/DailyInsightCard';
-import { RunningPerformanceSummaryCard } from './components/RunningPerformanceSummaryCard';
 import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
 import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
@@ -347,28 +345,7 @@ export default function App() {
           onUpdateRace={handleUpdateRace}
         />
 
-        {/* 2. Cumulative Running Performance AI Summary (Strengths & Areas for Improvement) */}
-        <RunningPerformanceSummaryCard
-          sessions={trainingSessions}
-          records={runningRecords}
-          goals={runningGoals}
-          races={races}
-          isAppLoading={isLoading}
-          onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
-          onNavigateToRecords={() => setActiveTab('running_records')}
-        />
-
-        {/* 3. Today's AI Running Insight & Condition Diagnosis */}
-        <DailyInsightCard
-          sessions={trainingSessions}
-          races={races}
-          records={runningRecords}
-          goals={runningGoals}
-          isAppLoading={isLoading}
-          onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
-        />
-
-        {/* 4. Dashboard 7-Day Distance Bar Chart */}
+        {/* 2. Dashboard 7-Day Distance Bar Chart */}
         <WeeklyDistanceBarChart
           sessions={trainingSessions}
           onNavigateToRecords={() => setActiveTab('running_records')}
@@ -450,7 +427,7 @@ export default function App() {
         {/* Footer */}
         <footer className="w-full text-center py-6 text-xs text-stone-600 border-t border-emerald-900/15">
           <p className="mb-1 font-semibold text-emerald-950">
-            PaceMaster · 2027 경주마라톤 정조준 & 싱그러운 봄 트랙 러닝 대시보드
+            PaceMaster · 2027 경주마라톤 정조준 러닝 대시보드
           </p>
           <p className="text-[11px] text-stone-500">
             Firebase Firestore Multi-device Cloud Sync Ready · Gyeongju Marathon Heritage Edition

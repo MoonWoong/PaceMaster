@@ -2242,12 +2242,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               </div>
             </div>
 
-            {/* Target Race Data Weighting Diagnosis Section (사용자 명시 참가 대회 데이터 강도 & 중요도 가중치 정밀 진단) */}
+            {/* Target Race Data Weighting Diagnosis Section (참가 대회 데이터 강도 & 테이퍼링 정밀 진단) */}
             {runnerStateAnalysis.raceWeightDetail && (() => {
               const rDetail = runnerStateAnalysis.raceWeightDetail;
-              const matchedRace = races.find(
-                (r) => r.id === rDetail.raceId || r.name === rDetail.raceName
-              );
 
               return (
                 <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-amber-50/60 to-rose-50/80 border border-emerald-300 shadow-2xs space-y-2.5">
@@ -2262,57 +2259,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       </strong>
                     </div>
 
-                    {/* Interactive 1-Click Priority Switcher */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-stone-600 font-semibold">중요도 선택:</span>
-                      {(['A', 'B', 'C'] as const).map((p) => {
-                        const isCurrent =
-                          p === 'A'
-                            ? rDetail.importanceGrade.includes('A')
-                            : p === 'B'
-                            ? rDetail.importanceGrade.includes('B')
-                            : rDetail.importanceGrade.includes('C');
-
-                        return (
-                          <button
-                            key={p}
-                            type="button"
-                            disabled={!onUpdateRace || !matchedRace}
-                            onClick={async () => {
-                              if (onUpdateRace && matchedRace) {
-                                await onUpdateRace({
-                                  ...matchedRace,
-                                  priority: p,
-                                  importance:
-                                    p === 'A'
-                                      ? 'A-Race (메인 목표)'
-                                      : p === 'B'
-                                      ? 'B-Race (중간 점검)'
-                                      : 'C-Race (연습 대회)',
-                                });
-                              }
-                            }}
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border cursor-pointer ${
-                              isCurrent
-                                ? p === 'A'
-                                  ? 'bg-emerald-800 text-white border-emerald-900 shadow-xs'
-                                  : p === 'B'
-                                  ? 'bg-amber-700 text-white border-amber-800 shadow-xs'
-                                  : 'bg-stone-800 text-white border-stone-900 shadow-xs'
-                                : 'bg-white/80 text-stone-700 border-stone-300 hover:bg-white'
-                            }`}
-                            title={
-                              p === 'A'
-                                ? 'A-Race: 최우선 메인 목표 (전력 피킹 & 2~3주 정밀 테이퍼링)'
-                                : p === 'B'
-                                ? 'B-Race: 중간 점검 레이스 (미니 테이퍼링)'
-                                : 'C-Race: 연습/훈련 대회 (테이퍼링 최소화, 평소 마일리지 유지)'
-                            }
-                          >
-                            {p}-Race
-                          </button>
-                        );
-                      })}
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-900 border border-rose-300">
                         목표 강도: {rDetail.paceIntensityLevel} ({rDetail.targetRacePace}/km)
                       </span>
@@ -2331,12 +2278,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   )}
 
                   <div className="text-[11px] text-stone-700 leading-relaxed keep-all">
-                    💡 <strong>가중치 분석 로직:</strong> 최근 4주 누적 기록(평균 {runnerStateAnalysis.avgWeeklyMileage4Weeks}km, ACWR {runnerStateAnalysis.acwr})뿐만 아니라, 
-                    선택된 대회 중요도(<strong>{rDetail.importanceGrade}</strong>)와 목표 페이스 강도(<strong>{rDetail.paceIntensityLevel}</strong>)를 복합 연산하여 
+                    💡 <strong>가중치 분석 로직:</strong> 최근 4주 누적 기록(평균 {runnerStateAnalysis.avgWeeklyMileage4Weeks}km, ACWR {runnerStateAnalysis.acwr})과 
+                    목표 페이스 강도(<strong>{rDetail.paceIntensityLevel}</strong>)를 복합 연산하여 
                     주간 총 권장 볼륨({runnerStateAnalysis.recommendedWeeklyKm}km)과 감량폭({rDetail.taperingVolumeCutPct > 0 ? `-${rDetail.taperingVolumeCutPct}%` : '감량 없이 100% 가동'}), 
                     포인트 세션(LSD {runnerStateAnalysis.longRunRecommendedKm}km / 스피드 {runnerStateAnalysis.speedVolumeRecommendedKm}km)의 거리와 강도가 맞춤 산출되었습니다.
                     <span className="text-stone-500 block pt-0.5">
-                      * 목표 강도와 중요도가 낮다면 조기 감량으로 인한 심폐 엔진 저하를 막기 위해 테이퍼링을 최소화하고 훈련 흐름을 유지합니다.
+                      * 목표 강도와 일정이 감안되어, 조기 감량으로 인한 심폐 엔진 저하를 막고 안전한 테이퍼링 및 훈련 흐름을 유지합니다.
                     </span>
                   </div>
                 </div>

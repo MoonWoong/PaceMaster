@@ -162,22 +162,13 @@ export function getTodayDateStr(): string {
 }
 
 /**
- * Combined and deduplicated list of upcoming marathon races
+ * Combined and deduplicated list of upcoming marathon races strictly from live scraped MarathonGo data
  * Filtered to exclude past events (>= today)
  */
 function buildCombinedRaces(): MarathonEvent[] {
   const todayStr = getTodayDateStr();
   const seenTitles = new Set<string>();
   const combined: MarathonEvent[] = [];
-
-  // Add premier curated races first
-  for (const r of PREMIER_MARATHON_RACES) {
-    if (r.date >= todayStr) {
-      const key = normalizeTitle(r.title);
-      seenTitles.add(key);
-      combined.push(r);
-    }
-  }
 
   // Add scraped live races from MarathonGo
   const typedScraped = (SCRAPED_RACES_DATA as MarathonEvent[]) || [];

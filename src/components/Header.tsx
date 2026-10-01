@@ -1,20 +1,36 @@
-import React from 'react';
-import { Flame, Activity, ShieldCheck, Database, Award } from 'lucide-react';
-import { getDbConnectionStatus } from '../lib/firebase';
+import React, { useMemo } from 'react';
+import { Flame, Award, Calendar } from 'lucide-react';
 import { RegisteredRace } from '../types';
+import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import { WeatherProvider, WeatherWidget, ThreeDayWeatherForecast } from './WeatherWidget';
 
 interface HeaderProps {
   currentVDOT: number;
   races?: RegisteredRace[];
-  onOpenDbConfig: () => void;
+  onOpenDbConfig?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentVDOT,
-  onOpenDbConfig,
+  races = [],
 }) => {
-  const dbStatus = getDbConnectionStatus();
+  // Find nearest upcoming race by date (날짜가 가장 가까운 참가대회)
+  const nearestUpcomingRace = useMemo(() => {
+    if (!races || races.length === 0) return null;
+    const todayStr = getTodayDateStr();
+    const upcoming = races
+      .filter((r) => r.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (upcoming.length === 0) {
+      const past = [...races].sort((a, b) => b.date.localeCompare(a.date));
+      return { race: past[0], dDay: calculateDDay(past[0].date), isPast: true };
+    }
+
+    // 날짜가 가장 가까운 참가대회 우선 반환
+    const nearest = upcoming[0];
+    return { race: nearest, dDay: calculateDDay(nearest.date), isPast: false };
+  }, [races]);
 
   return (
     <WeatherProvider>
@@ -35,9 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
                   2027 경주마라톤 GOAL
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-stone-600 font-medium keep-all">
-                싱그러운 봄 트랙 러닝 · 2027 경주 벚꽃 & 국제 마라톤 맞춤 훈련 대시보드
-              </p>
             </div>
           </div>
 
@@ -45,6 +58,32 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Real-time Weather & Temperature Widget */}
             <WeatherWidget />
+
+            {/* Nearest Upcoming Race D-Day Badge */}
+            {nearestUpcomingRace ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 text-white border border-rose-700/60 shadow-sm flex-shrink-0">
+                <Calendar className="w-4 h-4 text-amber-300 flex-shrink-0" />
+                <div className="text-left whitespace-nowrap">
+                  <div className="text-[10px] text-rose-200 font-medium leading-none flex items-center gap-1">
+                    <span className="truncate max-w-[85px] sm:max-w-[120px]">{nearestUpcomingRace.race.name}</span>
+                    <span>·</span>
+                    <span>{nearestUpcomingRace.race.course}</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-extrabold text-amber-300 font-athletic mt-0.5 flex items-center gap-1.5">
+                    <span>{nearestUpcomingRace.dDay.text}</span>
+                    <span className="text-[10px] text-rose-300 font-mono font-normal">({nearestUpcomingRace.race.date})</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 shadow-xs flex-shrink-0">
+                <Calendar className="w-4 h-4 text-rose-700 flex-shrink-0" />
+                <div className="text-left whitespace-nowrap">
+                  <div className="text-[10px] text-stone-500 font-medium leading-none">목표 대회</div>
+                  <div className="text-xs font-bold text-rose-900 font-athletic mt-0.5">D-Day 카운터</div>
+                </div>
+              </div>
+            )}
 
             {/* VDOT Badge with Gyeongju Marathon burgundy & gold tone */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50/90 border border-rose-200/80 shadow-sm flex-shrink-0">
@@ -58,36 +97,13 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* DB Status Button */}
-            <button
-              onClick={onOpenDbConfig}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all flex-shrink-0 whitespace-nowrap cursor-pointer ${
-                dbStatus.isCloud
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                  : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-900'
-              }`}
-              title="클라우드 Firestore DB 설정 열기"
-            >
-              <Database className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <span className="hidden sm:inline">
-                {dbStatus.isCloud ? 'Firestore 연동됨' : 'DB 연동 설정'}
-              </span>
-            </button>
-
-            {/* Security Badge */}
-            <div
-              className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-emerald-50/70 border border-emerald-200 text-emerald-800 text-xs flex-shrink-0 whitespace-nowrap font-medium"
-              title="데이터 변경 시 보안 키 확인"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <span className="text-[11px] hidden sm:inline">보안 모드 ON</span>
-            </div>
           </div>
         </div>
 
-        {/* 3-Day Weather Forecast Summary below Current Weather for Training Planning */}
-        <ThreeDayWeatherForecast />
+        {/* 3-Day Weather Forecast Summary: Visible on PC/Tablet (md:block), Hidden on Mobile */}
+        <div className="hidden md:block">
+          <ThreeDayWeatherForecast />
+        </div>
       </header>
     </WeatherProvider>
   );

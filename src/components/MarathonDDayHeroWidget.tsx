@@ -54,8 +54,8 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
       return { race: past[0], isPast: true, dDayInfo: calculateDDay(past[0].date) };
     }
 
-    // Priority: explicitly marked target race, else nearest upcoming
-    const chosen = upcoming.find((r) => r.isTarget) || upcoming[0];
+    // Priority: Nearest upcoming race (가장 가까운 참가대회부터 우선 선정)
+    const chosen = upcoming[0];
     const dDayInfo = calculateDDay(chosen.date);
 
     return { race: chosen, isPast: false, dDayInfo };

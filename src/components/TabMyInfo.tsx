@@ -76,14 +76,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const [newShoeCategory, setNewShoeCategory] = useState<ShoeCategory>('데일리');
   const [newShoeMileage, setNewShoeMileage] = useState('0');
   const [newShoeMaxMileage, setNewShoeMaxMileage] = useState('600');
-  const [newShoeSize, setNewShoeSize] = useState('270');
+  const [newShoeSize, setNewShoeSize] = useState('');
 
   // Editing Shoe Full Details State
   const [editingShoe, setEditingShoe] = useState<RunningShoe | null>(null);
   const [editShoeName, setEditShoeName] = useState<string>('');
   const [editShoeBrand, setEditShoeBrand] = useState<string>('Nike');
   const [editShoeCategory, setEditShoeCategory] = useState<ShoeCategory>('데일리');
-  const [editShoeSize, setEditShoeSize] = useState<string>('270');
+  const [editShoeSize, setEditShoeSize] = useState<string>('');
   const [editMileage, setEditMileage] = useState<string>('0');
   const [editMaxMileage, setEditMaxMileage] = useState<string>('600');
 
@@ -152,7 +152,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setNewShoeName('');
     setNewShoeMileage('0');
     setNewShoeMaxMileage('600');
-    setNewShoeSize('270');
+    setNewShoeSize('');
     setIsShoeModalOpen(false);
   };
 
@@ -162,7 +162,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setEditShoeName(shoe.name);
     setEditShoeBrand(shoe.brand);
     setEditShoeCategory(shoe.category);
-    setEditShoeSize(shoe.size || '270');
+    setEditShoeSize(shoe.size || '');
     setEditMileage(shoe.mileage.toString());
     setEditMaxMileage((shoe.maxMileage || (shoe.category === '레이싱' ? 300 : 600)).toString());
   };
@@ -1303,7 +1303,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     type="text"
                     value={newShoeSize}
                     onChange={(e) => setNewShoeSize(e.target.value)}
-                    placeholder="270"
+                    placeholder="직접 입력 (선택)"
                     className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
                   />
                 </div>
@@ -1601,7 +1601,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     type="text"
                     value={editShoeSize}
                     onChange={(e) => setEditShoeSize(e.target.value)}
-                    placeholder="270"
+                    placeholder="직접 입력 (선택)"
                     className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-900 focus:border-emerald-600"
                   />
                 </div>

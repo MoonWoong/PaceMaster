@@ -73,12 +73,9 @@ export const TabsNav: React.FC<TabsNavProps> = ({
             <span className="text-emerald-900 font-bold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
               {activeTab === 'my_info' && '내 신체 스펙 & 러닝화 보관함'}
               {activeTab === 'running_records' && '러닝 기록 분석 & 맞춤 훈련 계획'}
-              {activeTab === 'marathon_races' && '2026-2027 전국 마라톤 대회 일정 & 경주마라톤'}
+              {activeTab === 'marathon_races' && '전국 마라톤 대회 일정'}
             </span>
           </div>
-          <span className="text-[10px] text-emerald-800 hidden sm:inline font-mono font-semibold whitespace-nowrap">
-            클릭하여 탭 전환
-          </span>
         </div>
 
         {/* Tab Buttons Row - Active tab bottom blends seamlessly into body background */}

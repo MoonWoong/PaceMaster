@@ -32,7 +32,7 @@ export function generateHeuristicDailyInsight(params: {
   const upcomingRaces = races
     .filter((r) => r.date >= todayStr)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const targetRace = upcomingRaces.find((r) => r.isTarget) || upcomingRaces[0];
+  const targetRace = upcomingRaces[0];
 
   let dDayText = '';
   let daysLeft = 999;

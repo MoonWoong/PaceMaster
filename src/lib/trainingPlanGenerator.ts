@@ -191,18 +191,21 @@ export function analyzeTargetRaceForTrainingPlan(
   const now = new Date();
   const todayMs = now.getTime();
 
-  // Find target or nearest upcoming race (prioritize explicit isTarget or 2027 Gyeongju Marathon)
+  // Find nearest upcoming race (가장 가까운 대회부터 우선 정렬하여 중요도 및 강도 분석)
   const upcomingRaces = races
     .filter((r) => {
       const raceDate = new Date(r.date);
       return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
     })
-    .sort((a, b) => {
-      const aTarget = a.isTarget || a.priority === 'A' || a.name.includes('경주') ? 1 : 0;
-      const bTarget = b.isTarget || b.priority === 'A' || b.name.includes('경주') ? 1 : 0;
-      if (aTarget !== bTarget) return bTarget - aTarget;
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (upcomingRaces.length === 0) {
+    const pastRaces = [...races].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    if (pastRaces.length === 0) return null;
+    upcomingRaces.push(pastRaces[0]);
+  }
 
   if (upcomingRaces.length === 0) return null;
 
@@ -581,14 +584,19 @@ export function analyzeRunnerState(
     lastWeekSunday.getDate()
   ).padStart(2, '0')}(일)`;
 
-  // Evaluate Target Race Plan & Weighting
+  // Evaluate Target Race Plan & Weighting (가장 가까운 참가대회부터 중요도, 강도 분석)
   const targetRacePlan = analyzeTargetRaceForTrainingPlan(races, goals, targetRaceCourse);
-  const targetRace = races.find((r) => r.isTarget) || (races.length > 0 ? races[0] : null);
+  const matchedTargetRace = targetRacePlan
+    ? races.find((r) => r.id === targetRacePlan.raceId || (r.name === targetRacePlan.raceName && r.date === targetRacePlan.raceDate))
+    : [...races].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+  const targetRace = matchedTargetRace;
 
-  let importanceGrade: RaceWeightDetail['importanceGrade'] = 'A-Race (메인 목표)';
-  let importanceWeight = 1.25;
+  let importanceGrade: RaceWeightDetail['importanceGrade'] =
+    targetRacePlan?.importanceGrade || 'A-Race (메인 목표)';
+  let importanceWeight =
+    targetRacePlan?.racePriority === 'C' ? 1.0 : targetRacePlan?.racePriority === 'B' ? 1.1 : 1.25;
 
-  if (targetRace) {
+  if (targetRace && !targetRacePlan) {
     if (targetRace.priority === 'C' || targetRace.importance?.includes('C')) {
       importanceGrade = 'C-Race (연습 대회)';
       importanceWeight = 1.0;
@@ -1663,13 +1671,21 @@ export function enrichWeeklyPlanWithActualSessions(
     totalTargetWeeklyKm = Math.max(minSafeVol, rawTaperVol);
   }
 
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
   const remainingKm = Math.max(0, Math.round((totalTargetWeeklyKm - completedKmThisWeek) * 10) / 10);
 
-  const uncompletedRunningDays = plan.filter(
-    (d, i) => !completedDayIndices.includes(i) && d.type !== '휴식'
-  );
-  const originalRemainingSum = Math.round(
-    uncompletedRunningDays.reduce((sum, d) => sum + (d.distanceKm || 0), 0) * 10
+  // Future or today uncompleted running days (not in the past, not completed, not rest)
+  const futureRunningDays = plan.filter((d, i) => {
+    const dayDate = new Date(currentWeekMonday.getTime() + i * 24 * 60 * 60 * 1000);
+    const dayDateStart = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()).getTime();
+    const isPast = dayDateStart < todayStart;
+    return !isPast && !completedDayIndices.includes(i) && d.type !== '휴식';
+  });
+
+  const futurePlannedSum = Math.round(
+    futureRunningDays.reduce((sum, d) => sum + (d.distanceKm || 0), 0) * 10
   ) / 10;
 
   return plan.map((pDay, idx) => {
@@ -1678,6 +1694,9 @@ export function enrichWeeklyPlanWithActualSessions(
     const m = String(dayDate.getMonth() + 1).padStart(2, '0');
     const d = String(dayDate.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
+
+    const dayDateStart = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()).getTime();
+    const isPastDay = dayDateStart < todayStart;
 
     const sessionForDay = thisWeekSessions.find((s) => {
       if (s.date === dateStr) return true;
@@ -1724,7 +1743,36 @@ export function enrichWeeklyPlanWithActualSessions(
       };
     }
 
-    // 2. Uncompleted Rest Day
+    // 2. Past Day with NO training record -> Automatically convert to Rest / Missed
+    if (isPastDay) {
+      if (pDay.type === '휴식') {
+        return {
+          ...pDay,
+          dateStr,
+          isCompleted: false,
+          title: '휴식 및 컨디셔닝 (경과)',
+          description: '계획된 휴식일이 경과되었습니다. 근육 피로를 풀고 컨디션을 안정적으로 유지합니다.',
+        };
+      }
+
+      // Past unlogged running day: Convert to Rest/Missed to prevent impossible training load spikes
+      return {
+        ...pDay,
+        dateStr,
+        isCompleted: false,
+        type: '휴식',
+        title: `[훈련 미실시] 휴식 / 누락 전환 (${pDay.type})`,
+        distanceKm: 0,
+        targetPace: '-',
+        targetZone: '휴식 (비가동)',
+        intensity: '낮음',
+        stages: undefined,
+        recommendedShoe: undefined,
+        description: `해당 요일(${pDay.day})은 러닝 기록이 없어 '휴식(누락)'으로 자동 전환되었습니다. 지난 미실시 훈련량을 남은 요일에 무리하게 몰아서 보충하지 않도록 남은 기간 부하를 안전하게 재조율했습니다.`,
+      };
+    }
+
+    // 3. Today or Future Planned Rest Day
     if (pDay.type === '휴식') {
       return {
         ...pDay,
@@ -1733,19 +1781,37 @@ export function enrichWeeklyPlanWithActualSessions(
       };
     }
 
-    // 3. Uncompleted Running Day -> Dynamically tuned if this week already has completed runs
+    // 4. Today or Future Uncompleted Running Day -> Dynamically re-analyzed with safe load caps
     let adjustedDist = pDay.distanceKm;
     let adjustedDesc = pDay.description;
     let adjustedTitle = pDay.title;
     let adjustedStages = pDay.stages ? [...pDay.stages] : undefined;
 
-    if (completedKmThisWeek > 0 && originalRemainingSum > 0 && remainingKm > 0) {
+    if (futurePlannedSum > 0) {
+      // Calculate safe scale factor:
+      // Even if past days were missed, NEVER spike training load beyond +12% (prevent injury)
+      // And don't drop below 85% if regular volume is desired
+      const rawScale = remainingKm > 0 ? remainingKm / futurePlannedSum : 1.0;
+      const safeScale = Math.min(1.12, Math.max(0.85, rawScale));
+
       adjustedDist = Math.max(
         4.0,
-        Math.round(((pDay.distanceKm / originalRemainingSum) * remainingKm) * 10) / 10
+        Math.round((pDay.distanceKm * safeScale) * 10) / 10
       );
-      if (!adjustedDesc.includes('실훈련 반영')) {
-        adjustedDesc = `[이번 주 실훈련(${completedKmThisWeek}km) 소화 반영 맞춤] 주간 잔여 권장 볼륨 ${remainingKm}km에 맞추어 목표 거리(${adjustedDist}km)와 세부 구간이 자동 재조율되었습니다. ${pDay.description}`;
+
+      // Safe upper caps based on workout type
+      if (pDay.type === '조깅') {
+        adjustedDist = Math.min(12.0, adjustedDist);
+      } else if (pDay.type === '템포런') {
+        adjustedDist = Math.min(12.0, adjustedDist);
+      } else if (pDay.type === '회복주') {
+        adjustedDist = Math.min(7.0, adjustedDist);
+      } else if (pDay.type === 'LSD') {
+        adjustedDist = Math.min(22.0, adjustedDist);
+      }
+
+      if (!adjustedDesc.includes('안전 부하 재분석')) {
+        adjustedDesc = `[남은 기간 안전 부하 재분석] 지난 요일 누락으로 인한 급격한 훈련 부하 쏠림과 부상을 방지하기 위해, 남은 요일의 권장 거리(${adjustedDist}km)를 과도한 증량 없이 안전 한도(+12% 이내)로 균형 있게 배치했습니다. ${pDay.description}`;
       }
     }
 

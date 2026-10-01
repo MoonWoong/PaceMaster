@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sun,
   CloudSun,
@@ -507,16 +508,15 @@ export const WeatherWidget: React.FC = () => {
         </div>
       </button>
 
-      {/* Popover / Modal: Mobile uses centered overlay modal; Desktop uses anchored popover */}
-      {isPopoverOpen && currentWeather && (
-        <>
-          {/* Mobile Centered Modal Overlay (prevents any viewport cut-off) */}
+      {/* Popover / Modal: Portaled directly to document.body so backdrop-filter in Header cannot clip it! */}
+      {isPopoverOpen && currentWeather && typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs sm:hidden animate-in fade-in duration-150"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-150"
             onClick={() => setIsPopoverOpen(false)}
           >
             <div
-              className="w-full max-w-sm max-h-[90vh] overflow-y-auto p-4 rounded-2xl bg-white border border-stone-200 shadow-2xl"
+              className="w-full max-w-sm sm:max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain p-4 sm:p-5 rounded-2xl bg-white border border-stone-200 shadow-2xl text-stone-800 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <WeatherPopupCard
@@ -532,25 +532,10 @@ export const WeatherWidget: React.FC = () => {
                 onClose={() => setIsPopoverOpen(false)}
               />
             </div>
-          </div>
-
-          {/* Desktop Anchored Popover */}
-          <div className="hidden sm:block absolute right-0 top-full mt-2 w-96 p-4 rounded-2xl bg-white/95 backdrop-blur-xl border border-stone-200 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
-            <WeatherPopupCard
-              currentWeather={currentWeather}
-              dailyForecast={dailyForecast}
-              locationName={locationName}
-              lastUpdated={lastUpdated}
-              isLoading={isLoading}
-              fetchWeather={fetchWeather}
-              config={config}
-              IconComponent={IconComponent}
-              gearAdvice={gearAdvice}
-              onClose={() => setIsPopoverOpen(false)}
-            />
-          </div>
-        </>
-      )}
+          </div>,
+          document.body
+        )
+      }
     </div>
   );
 };
@@ -685,7 +670,7 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
         </div>
       )}
 
-      {/* Quick 3-Day Forecast mini summary in popover */}
+      {/* Quick 3-Day Forecast mini summary in popover: Shown on both mobile and PC */}
       {dailyForecast.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-stone-200">
           <div className="text-[10px] font-bold text-stone-600 flex items-center gap-1">
