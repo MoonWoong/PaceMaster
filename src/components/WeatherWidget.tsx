@@ -512,11 +512,11 @@ export const WeatherWidget: React.FC = () => {
       {isPopoverOpen && currentWeather && typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-150"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-2.5 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto"
             onClick={() => setIsPopoverOpen(false)}
           >
             <div
-              className="w-full max-w-sm sm:max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain p-4 sm:p-5 rounded-2xl bg-white border border-stone-200 shadow-2xl text-stone-800 my-auto"
+              className="w-full max-w-sm sm:max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200 shadow-2xl text-stone-800 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <WeatherPopupCard

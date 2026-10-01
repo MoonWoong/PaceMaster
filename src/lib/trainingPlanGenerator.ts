@@ -178,38 +178,15 @@ export function synchronizeWorkoutDistanceTitleStages(
 }
 
 /**
- * Analyzes registered upcoming races & running goals to determine the runner's periodization phase
- * and target race pace for smart periodized training plan generation.
+ * Analyzes a single registered race against goals and periodization
  */
-export function analyzeTargetRaceForTrainingPlan(
-  races: RegisteredRace[] = [],
+export function analyzeSingleRacePlan(
+  targetRace: RegisteredRace,
   goals?: RunningGoals,
   targetCourseFallback: string = '풀코스'
-): TargetRacePlanAnalysis | null {
-  if (!races || races.length === 0) return null;
-
+): TargetRacePlanAnalysis {
   const now = new Date();
   const todayMs = now.getTime();
-
-  // Find nearest upcoming race (가장 가까운 대회부터 우선 정렬하여 중요도 및 강도 분석)
-  const upcomingRaces = races
-    .filter((r) => {
-      const raceDate = new Date(r.date);
-      return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  if (upcomingRaces.length === 0) {
-    const pastRaces = [...races].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    if (pastRaces.length === 0) return null;
-    upcomingRaces.push(pastRaces[0]);
-  }
-
-  if (upcomingRaces.length === 0) return null;
-
-  const targetRace = upcomingRaces[0];
   const raceDate = new Date(targetRace.date);
   const diffDays = Math.max(0, Math.ceil((raceDate.getTime() - todayMs) / (1000 * 60 * 60 * 24)));
   const diffWeeks = Math.ceil(diffDays / 7);
@@ -282,7 +259,6 @@ export function analyzeTargetRaceForTrainingPlan(
       : 'A-Race (메인 목표)';
 
   // Determine Periodization Phase and Fine-Grained Tapering Modulation based on D-Day, Importance (A/B/C) & Pace Intensity
-  // 핵심 원칙: 목표 강도가 낮고 중요도도 낮다면(C-Race & 완주 페이스) 불필요한 장기 테이퍼링을 대폭 줄이고 훈련 볼륨을 유지합니다.
   let periodizationPhase: TargetRacePlanAnalysis['periodizationPhase'];
   let phaseDescription = '';
   let strategicAdvice = '';
@@ -532,6 +508,54 @@ export function analyzeTargetRaceForTrainingPlan(
     isRaceThisWeek,
     raceDayOfWeek,
   };
+}
+
+/**
+ * Analyzes ALL upcoming registered races, sorted chronologically from nearest date to farthest.
+ * Each race is evaluated with its importance (A/B/C) and goal pace intensity.
+ */
+export function analyzeAllUpcomingRacesForTrainingPlan(
+  races: RegisteredRace[] = [],
+  goals?: RunningGoals,
+  targetCourseFallback: string = '풀코스'
+): TargetRacePlanAnalysis[] {
+  if (!races || races.length === 0) return [];
+
+  const now = new Date();
+  const todayMs = now.getTime();
+
+  // Find upcoming races strictly sorted by proximity (가장 가까운 대회부터 우선 정렬)
+  const upcomingRaces = [...races]
+    .filter((r) => {
+      const raceDate = new Date(r.date);
+      return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (upcomingRaces.length === 0) {
+    const pastRaces = [...races].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    if (pastRaces.length > 0) {
+      upcomingRaces.push(pastRaces[0]);
+    }
+  }
+
+  return upcomingRaces.map((race) => analyzeSingleRacePlan(race, goals, targetCourseFallback));
+}
+
+/**
+ * Analyzes registered upcoming races & running goals to determine the runner's periodization phase
+ * and target race pace for smart periodized training plan generation.
+ * (가장 가까운 참가대회부터 우선 추출하여 중요도 및 강도 분석)
+ */
+export function analyzeTargetRaceForTrainingPlan(
+  races: RegisteredRace[] = [],
+  goals?: RunningGoals,
+  targetCourseFallback: string = '풀코스'
+): TargetRacePlanAnalysis | null {
+  const allAnalyses = analyzeAllUpcomingRacesForTrainingPlan(races, goals, targetCourseFallback);
+  return allAnalyses.length > 0 ? allAnalyses[0] : null;
 }
 
 /**

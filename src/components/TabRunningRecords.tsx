@@ -54,6 +54,7 @@ import {
   analyzeRunnerState,
   enrichWeeklyPlanWithActualSessions,
   analyzeTargetRaceForTrainingPlan,
+  analyzeAllUpcomingRacesForTrainingPlan,
   TargetRacePlanAnalysis,
   DayOfWeek,
   PlanCustomOptions,
@@ -423,10 +424,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     });
   };
 
-  // Target Race Schedule & Goal Pace Intensity Analysis
-  const targetRaceAnalysis = useMemo<TargetRacePlanAnalysis | null>(() => {
-    return analyzeTargetRaceForTrainingPlan(races, goals, evalSelectedDistance);
+  // Target Race Schedule & Goal Pace Intensity Analysis (가장 가까운 대회부터 우선 정렬)
+  const allUpcomingRacesAnalysis = useMemo<TargetRacePlanAnalysis[]>(() => {
+    return analyzeAllUpcomingRacesForTrainingPlan(races, goals, evalSelectedDistance);
   }, [races, goals, evalSelectedDistance]);
+
+  const [selectedAnalyzedRaceIndex, setSelectedAnalyzedRaceIndex] = useState<number>(0);
+
+  // Active race analysis: default to closest upcoming race (index 0)
+  const activeRaceIndex = selectedAnalyzedRaceIndex < allUpcomingRacesAnalysis.length ? selectedAnalyzedRaceIndex : 0;
+  const targetRaceAnalysis = allUpcomingRacesAnalysis.length > 0 ? allUpcomingRacesAnalysis[activeRaceIndex] : null;
 
   // Handle Weekly Plan Regenerate with Custom Options
   const handleGenerateWeeklyPlan = async () => {
@@ -1799,6 +1806,29 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         {/* Target Race Schedule & Goal Pace Intensity Analysis Banner */}
         {targetRaceAnalysis && (
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-50/80 via-amber-50/50 to-emerald-50/80 border border-emerald-300 shadow-sm mb-5 space-y-3 text-stone-800 animate-fadeIn">
+            {/* Multi-race selector tabs: sorted closest to farthest */}
+            {allUpcomingRacesAnalysis.length > 1 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-stone-200/70 mb-2">
+                <span className="text-[11px] font-bold text-stone-600 whitespace-nowrap">대회별 강도분석 (가까운 순):</span>
+                {allUpcomingRacesAnalysis.map((r, idx) => (
+                  <button
+                    key={r.raceId || idx}
+                    type="button"
+                    onClick={() => setSelectedAnalyzedRaceIndex(idx)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 border ${
+                      activeRaceIndex === idx
+                        ? 'bg-rose-900 text-white border-rose-950 shadow-2xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:border-emerald-400'
+                    }`}
+                  >
+                    <span>{idx === 0 ? '🥇 1순위 (가장 가까운 대회)' : `${idx + 1}순위 대회`}</span>
+                    <span className="font-mono text-[11px] opacity-90">D-{r.dDayDays}일</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/10">{r.importanceGrade.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200/80 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl shadow-xs">
@@ -2286,6 +2316,42 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       * 목표 강도와 일정이 감안되어, 조기 감량으로 인한 심폐 엔진 저하를 막고 안전한 테이퍼링 및 훈련 흐름을 유지합니다.
                     </span>
                   </div>
+
+                  {/* Multi-race roadmap list (closest first) */}
+                  {allUpcomingRacesAnalysis.length > 1 && (
+                    <div className="pt-2 border-t border-emerald-200/70 space-y-1.5">
+                      <div className="text-[11px] font-bold text-stone-800 flex items-center justify-between">
+                        <span>📋 참가 예정 대회 순서별 중요도 & 강도 로드맵 (가까운 순):</span>
+                        <span className="text-[10px] text-stone-500 font-normal">총 {allUpcomingRacesAnalysis.length}개 대회</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">
+                        {allUpcomingRacesAnalysis.map((r, i) => (
+                          <div
+                            key={r.raceId || i}
+                            onClick={() => setSelectedAnalyzedRaceIndex(i)}
+                            className={`p-2 rounded-lg border text-[11px] transition-all cursor-pointer ${
+                              i === 0
+                                ? 'bg-emerald-100/70 border-emerald-300 font-medium'
+                                : 'bg-white/80 border-stone-200 hover:border-emerald-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between font-bold text-stone-900">
+                              <span className="flex items-center gap-1">
+                                <span>{i === 0 ? '🥇 1순위 (현재 연동)' : `${i + 1}순위`}</span>
+                              </span>
+                              <span className="text-rose-800 font-mono">D-{r.dDayDays}일</span>
+                            </div>
+                            <div className="truncate text-stone-800 font-semibold">{r.raceName} ({r.course})</div>
+                            <div className="text-[10px] text-stone-600 flex items-center gap-1.5 mt-0.5">
+                              <span className="px-1.5 py-0.2 rounded bg-stone-100 font-medium text-stone-700">{r.importanceGrade.split(' ')[0]}</span>
+                              <span>· {r.paceIntensityLevel.split(' ')[0]}</span>
+                              <span>· {r.periodizationPhase.split(' ')[0]}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

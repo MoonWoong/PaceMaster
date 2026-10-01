@@ -163,18 +163,18 @@ export function getTodayDateStr(): string {
 
 /**
  * Combined and deduplicated list of upcoming marathon races strictly from live scraped MarathonGo data
- * Filtered to exclude past events (>= today)
+ * Filtered to strictly exclude all past events (date >= today)
  */
 function buildCombinedRaces(): MarathonEvent[] {
   const todayStr = getTodayDateStr();
   const seenTitles = new Set<string>();
   const combined: MarathonEvent[] = [];
 
-  // Add scraped live races from MarathonGo
+  // Add scraped live races from MarathonGo (strictly today and future only)
   const typedScraped = (SCRAPED_RACES_DATA as MarathonEvent[]) || [];
   for (const r of typedScraped) {
     if (r.date >= todayStr) {
-      const key = normalizeTitle(r.title);
+      const key = `${normalizeTitle(r.title)}_${r.date}`;
       if (!seenTitles.has(key)) {
         seenTitles.add(key);
         combined.push(r);
@@ -188,17 +188,21 @@ function buildCombinedRaces(): MarathonEvent[] {
 
 export const MOCK_MARATHON_RACES: MarathonEvent[] = buildCombinedRaces();
 
+export interface MarathonFilterOptions {
+  selectedRegions: string[];
+  selectedCourses: string[];
+  selectedDays: string[];
+  searchQuery: string;
+  scopeFilter?: '전체' | '국내' | '해외';
+  statusFilter?: '전체' | '접수중' | '접수예정';
+}
+
 /**
- * Filter marathon races excluding past dates and applying criteria
+ * Filter marathon races strictly excluding past dates (< today) and applying criteria
  */
 export function getFilteredMarathons(
   races: MarathonEvent[],
-  filters: {
-    selectedRegions: string[];
-    selectedCourses: string[];
-    selectedDays: string[];
-    searchQuery: string;
-  },
+  filters: MarathonFilterOptions,
   referenceDateStr?: string
 ): MarathonEvent[] {
   const todayDefault = getTodayDateStr();
@@ -206,8 +210,12 @@ export function getFilteredMarathons(
   const [ry, rm, rd] = refClean.split('-').map(Number);
   const refDate = new Date(ry, (rm || 1) - 1, rd || 1, 0, 0, 0, 0);
 
+  const hasSearch = Boolean(filters.searchQuery && filters.searchQuery.trim().length > 0);
+  const scope = filters.scopeFilter || '국내'; // Default to domestic like MarathonGo domestic schedule
+  const status = filters.statusFilter || '전체';
+
   return races.filter((race) => {
-    // 1. Exclude past dates
+    // 1. Strictly exclude past dates (< today)
     const raceClean = race.date.split('T')[0];
     const [ry2, rm2, rd2] = raceClean.split('-').map(Number);
     const raceDate = new Date(ry2, (rm2 || 1) - 1, rd2 || 1, 0, 0, 0, 0);
@@ -215,7 +223,20 @@ export function getFilteredMarathons(
       return false;
     }
 
-    // 2. Region filter
+    // 2. Scope filter (국내 vs 해외)
+    if (scope === '국내') {
+      if (race.isOverseas || race.region === '해외') return false;
+    } else if (scope === '해외') {
+      if (!race.isOverseas && race.region !== '해외') return false;
+    }
+
+    // 3. Status filter
+    if (status !== '전체') {
+      if (status === '접수중' && race.status !== '접수중') return false;
+      if (status === '접수예정' && race.status !== '접수예정') return false;
+    }
+
+    // 4. Region filter
     if (
       filters.selectedRegions.length > 0 &&
       !filters.selectedRegions.includes(race.region)
@@ -223,7 +244,7 @@ export function getFilteredMarathons(
       return false;
     }
 
-    // 3. Course filter
+    // 5. Course filter
     if (filters.selectedCourses.length > 0) {
       const hasCourse = race.courses.some((c) =>
         filters.selectedCourses.includes(c)
@@ -231,7 +252,7 @@ export function getFilteredMarathons(
       if (!hasCourse) return false;
     }
 
-    // 4. Day of week filter
+    // 6. Day of week filter
     if (
       filters.selectedDays.length > 0 &&
       !filters.selectedDays.includes(race.dayOfWeek)
@@ -239,12 +260,13 @@ export function getFilteredMarathons(
       return false;
     }
 
-    // 5. Search query
-    if (filters.searchQuery.trim()) {
+    // 7. Search query (matches title, location, host)
+    if (hasSearch) {
       const query = filters.searchQuery.toLowerCase().trim();
       const matchTitle = race.title.toLowerCase().includes(query);
       const matchLoc = race.location.toLowerCase().includes(query);
-      if (!matchTitle && !matchLoc) return false;
+      const matchHost = (race.host || '').toLowerCase().includes(query);
+      if (!matchTitle && !matchLoc && !matchHost) return false;
     }
 
     return true;

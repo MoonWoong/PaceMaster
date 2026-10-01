@@ -194,10 +194,12 @@ export interface MarathonEvent {
   id: string;
   title: string;
   date: string; // YYYY-MM-DD
-  dayOfWeek: '토요일' | '일요일';
-  region: '서울' | '경기/인천' | '강원' | '충청/대전' | '전라/광주' | '경상/대구/부산' | '제주';
+  dayOfWeek: string;
+  region: '서울' | '경기/인천' | '강원' | '충청/대전' | '전라/광주' | '경상/대구/부산' | '제주' | '해외' | string;
   courses: ('풀' | '하프' | '10K' | '5K')[];
   location: string;
   websiteUrl: string;
   status: '접수중' | '접수예정' | '마감임박' | '접수마감';
+  isOverseas?: boolean;
+  host?: string;
 }
