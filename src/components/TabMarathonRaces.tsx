@@ -54,13 +54,32 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
     '제주',
   ];
   const courses = ['풀', '하프', '10K', '5K'];
-  const days = ['토요일', '일요일'];
+  const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
 
   // Dynamic counts for upcoming races
   const counts = useMemo(() => {
     const domestic = races.filter((r) => !r.isOverseas && r.region !== '해외').length;
     const overseas = races.filter((r) => r.isOverseas || r.region === '해외').length;
     return { domestic, overseas, total: races.length };
+  }, [races]);
+
+  // Real-time day distribution counts
+  const dayCounts = useMemo(() => {
+    const map: Record<string, number> = {
+      월요일: 0,
+      화요일: 0,
+      수요일: 0,
+      목요일: 0,
+      금요일: 0,
+      토요일: 0,
+      일요일: 0,
+    };
+    races.forEach((r) => {
+      if (map[r.dayOfWeek] !== undefined) {
+        map[r.dayOfWeek]++;
+      }
+    });
+    return map;
   }, [races]);
 
   // Toggle helpers
@@ -80,6 +99,18 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
     setSelectedDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
     );
+  };
+
+  const selectWeekendOnly = () => {
+    setSelectedDays(['토요일', '일요일']);
+  };
+
+  const selectWeekdayOnly = () => {
+    setSelectedDays(['월요일', '화요일', '수요일', '목요일', '금요일']);
+  };
+
+  const selectMondayOnly = () => {
+    setSelectedDays(['월요일']);
   };
 
   const resetFilters = () => {
@@ -267,7 +298,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="대회명, 개최 장소, 주관사 검색 (예: 서울, JTBC, 춘천, 동아, 경주, 보스턴)..."
+              placeholder="대회명, 개최 장소, 요일(월/화/수/목/금/토/일), 주관사 검색 (예: 월요일, 서울, JTBC, 춘천, 동아, 경주, 보스턴)..."
               className="w-full pl-9 pr-4 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-emerald-500"
             />
           </div>
@@ -354,50 +385,98 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
             </div>
           </div>
 
-          {/* 3. 요일별 필터 (Day of Week Checkboxes) */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-stone-200">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+          {/* 3. 요일별 필터 (Day of Week Checkboxes - Includes Monday and all 7 days) */}
+          <div className="pt-2 border-t border-stone-200">
+            <div className="text-xs font-semibold text-stone-700 mb-2 flex items-center justify-between flex-wrap gap-2">
+              <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-rose-800" />
-                <span>개최 요일:</span>
+                <span>개최 요일 선택 (월~일 전 요일 지원)</span>
               </span>
-              <div className="flex items-center gap-2">
-                {days.map((day) => {
-                  const isChecked = selectedDays.includes(day);
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => toggleDay(day)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-                        isChecked
-                          ? 'bg-rose-900 text-white font-bold border-rose-900 shadow-2xs'
-                          : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-500 shadow-2xs'
-                      }`}
-                    >
-                      {isChecked ? (
-                        <CheckSquare className="w-3.5 h-3.5" />
-                      ) : (
-                        <Square className="w-3.5 h-3.5 text-stone-400" />
-                      )}
-                      <span>{day}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Quick Selection Shortcuts */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={selectWeekendOnly}
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 transition-colors cursor-pointer"
+                  >
+                    주말(토/일)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectWeekdayOnly}
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 transition-colors cursor-pointer"
+                  >
+                    평일(월~금)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectMondayOnly}
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors cursor-pointer"
+                    title="월요일 대회만 필터링합니다"
+                  >
+                    월요일({dayCounts['월요일'] || 0})
+                  </button>
+                </div>
+
+                {selectedDays.length > 0 && (
+                  <button
+                    onClick={() => setSelectedDays([])}
+                    className="text-[11px] text-stone-500 hover:text-stone-900 font-medium cursor-pointer ml-1"
+                  >
+                    선택 해제
+                  </button>
+                )}
+                {(selectedRegions.length > 0 ||
+                  selectedCourses.length > 0 ||
+                  selectedDays.length > 0 ||
+                  searchQuery) && (
+                  <button
+                    onClick={resetFilters}
+                    className="text-xs text-rose-800 hover:text-rose-950 font-bold flex items-center gap-1 transition-colors cursor-pointer ml-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>전체 초기화</span>
+                  </button>
+                )}
               </div>
             </div>
 
-            {(selectedRegions.length > 0 ||
-              selectedCourses.length > 0 ||
-              selectedDays.length > 0 ||
-              searchQuery) && (
-              <button
-                onClick={resetFilters}
-                className="text-xs text-rose-800 hover:text-rose-950 font-bold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>필터 초기화</span>
-              </button>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {days.map((day) => {
+                const isChecked = selectedDays.includes(day);
+                const count = dayCounts[day] || 0;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => toggleDay(day)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
+                      isChecked
+                        ? 'bg-rose-900 text-white font-bold border-rose-900 shadow-2xs'
+                        : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-500 shadow-2xs'
+                    }`}
+                  >
+                    {isChecked ? (
+                      <CheckSquare className="w-3.5 h-3.5" />
+                    ) : (
+                      <Square className="w-3.5 h-3.5 text-stone-400" />
+                    )}
+                    <span>{day}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                        isChecked
+                          ? 'bg-rose-950 text-amber-300'
+                          : count > 0
+                          ? 'bg-stone-100 text-stone-600'
+                          : 'bg-stone-50 text-stone-400'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>

@@ -1,17 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Header } from './components/Header';
 import { TabsNav, TabKey } from './components/TabsNav';
 import { TabMyInfo } from './components/TabMyInfo';
 import { TabRunningRecords } from './components/TabRunningRecords';
-import { TabMarathonRaces } from './components/TabMarathonRaces';
 import { SecurityPromptModal } from './components/SecurityPromptModal';
-import { FirebaseConfigModal } from './components/FirebaseConfigModal';
-import { PaceCalculatorModal } from './components/PaceCalculatorModal';
 import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
-import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
+import { DataBackupSection } from './components/DataBackupSection';
+
+// Code Splitting: Lazy-loaded heavy modules (Marathon Database, Modals, Pace Calculator)
+const TabMarathonRaces = React.lazy(() =>
+  import('./components/TabMarathonRaces').then((m) => ({ default: m.TabMarathonRaces }))
+);
+const PaceCalculatorModal = React.lazy(() =>
+  import('./components/PaceCalculatorModal').then((m) => ({ default: m.PaceCalculatorModal }))
+);
+const FirebaseConfigModal = React.lazy(() =>
+  import('./components/FirebaseConfigModal').then((m) => ({ default: m.FirebaseConfigModal }))
+);
+const TodayWorkoutLoggerModal = React.lazy(() =>
+  import('./components/TodayWorkoutLoggerModal').then((m) => ({ default: m.TodayWorkoutLoggerModal }))
+);
 
 import {
   PhysicalInfo,
@@ -315,6 +326,26 @@ export default function App() {
     }
   };
 
+  const handleRestoreSuccess = (data: {
+    physicalInfo: PhysicalInfo;
+    shoes: RunningShoe[];
+    races: RegisteredRace[];
+    runningRecords: RunningRecords;
+    runningGoals: RunningGoals;
+    trainingSessions: TrainingSession[];
+    weeklyPlan?: WeeklyPlanDay[];
+    weeklyPlanSettings?: WeeklyPlanSettings;
+  }) => {
+    if (data.physicalInfo) setPhysicalInfo(data.physicalInfo);
+    if (data.shoes) setShoes(data.shoes);
+    if (data.races) setRaces(data.races);
+    if (data.runningRecords) setRunningRecords(data.runningRecords);
+    if (data.runningGoals) setRunningGoals(data.runningGoals);
+    if (data.trainingSessions) setTrainingSessions(data.trainingSessions);
+    if (data.weeklyPlan) setWeeklyPlan(data.weeklyPlan);
+    if (data.weeklyPlanSettings) setWeeklyPlanSettings(data.weeklyPlanSettings);
+  };
+
   const bestVdotCalc = estimateBestVDOT(runningRecords);
   const currentVDOT = bestVdotCalc.vdot;
 
@@ -411,11 +442,21 @@ export default function App() {
               )}
 
               {activeTab === 'marathon_races' && (
-                <TabMarathonRaces
-                  onRegisterRaceToMyList={async (race) => {
-                    await handleAddRace(race);
-                  }}
-                />
+                <Suspense
+                  fallback={
+                    <div className="py-20 text-center space-y-3">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-2" />
+                      <p className="text-sm font-bold text-stone-700">전국 마라톤 대회 DB를 불러오는 중입니다...</p>
+                      <p className="text-xs text-stone-500">최신 다가오는 대회 일정 및 코스 정보를 동기화합니다.</p>
+                    </div>
+                  }
+                >
+                  <TabMarathonRaces
+                    onRegisterRaceToMyList={async (race) => {
+                      await handleAddRace(race);
+                    }}
+                  />
+                </Suspense>
               )}
             </>
           )}
@@ -423,6 +464,19 @@ export default function App() {
 
         {/* Annual Running Activity Heatmap (GitHub Grass Contribution Graph) */}
         <AnnualRunningHeatmap sessions={trainingSessions} />
+
+        {/* Data Loss Prevention: Local JSON Export & Import Section */}
+        <DataBackupSection
+          physicalInfo={physicalInfo}
+          shoes={shoes}
+          races={races}
+          runningRecords={runningRecords}
+          runningGoals={runningGoals}
+          trainingSessions={trainingSessions}
+          weeklyPlan={weeklyPlan}
+          weeklyPlanSettings={weeklyPlanSettings}
+          onRestoreSuccess={handleRestoreSuccess}
+        />
 
         {/* Footer */}
         <footer className="w-full text-center py-6 text-xs text-stone-600 border-t border-emerald-900/15">
@@ -440,30 +494,38 @@ export default function App() {
 
       {/* Target Pace Calculator Modal */}
       {isPaceCalcOpen && (
-        <PaceCalculatorModal
-          isOpen={isPaceCalcOpen}
-          onClose={() => setIsPaceCalcOpen(false)}
-          currentVDOT={currentVDOT}
-        />
+        <Suspense fallback={null}>
+          <PaceCalculatorModal
+            isOpen={isPaceCalcOpen}
+            onClose={() => setIsPaceCalcOpen(false)}
+            currentVDOT={currentVDOT}
+          />
+        </Suspense>
       )}
 
       {/* Firebase Database Config Modal */}
-      <FirebaseConfigModal
-        isOpen={isDbModalOpen}
-        onClose={() => setIsDbModalOpen(false)}
-      />
+      {isDbModalOpen && (
+        <Suspense fallback={null}>
+          <FirebaseConfigModal
+            isOpen={isDbModalOpen}
+            onClose={() => setIsDbModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Today's Workout Session Logger & Integrated Analytics Modal */}
       {isTodayWorkoutModalOpen && (
-        <TodayWorkoutLoggerModal
-          isOpen={isTodayWorkoutModalOpen}
-          onClose={() => setIsTodayWorkoutModalOpen(false)}
-          onSaveSession={handleAddTrainingSession}
-          existingSessions={trainingSessions}
-          records={runningRecords}
-          goals={runningGoals}
-          shoes={shoes}
-        />
+        <Suspense fallback={null}>
+          <TodayWorkoutLoggerModal
+            isOpen={isTodayWorkoutModalOpen}
+            onClose={() => setIsTodayWorkoutModalOpen(false)}
+            onSaveSession={handleAddTrainingSession}
+            existingSessions={trainingSessions}
+            records={runningRecords}
+            goals={runningGoals}
+            shoes={shoes}
+          />
+        </Suspense>
       )}
     </div>
   );

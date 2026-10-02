@@ -260,13 +260,17 @@ export function getFilteredMarathons(
       return false;
     }
 
-    // 7. Search query (matches title, location, host)
+    // 7. Search query (matches title, location, host, day of week)
     if (hasSearch) {
       const query = filters.searchQuery.toLowerCase().trim();
       const matchTitle = race.title.toLowerCase().includes(query);
       const matchLoc = race.location.toLowerCase().includes(query);
       const matchHost = (race.host || '').toLowerCase().includes(query);
-      if (!matchTitle && !matchLoc && !matchHost) return false;
+      const matchDay =
+        race.dayOfWeek.toLowerCase().includes(query) ||
+        (query.length === 1 && race.dayOfWeek.startsWith(query)) ||
+        (query.endsWith('요') && race.dayOfWeek.startsWith(query.slice(0, 1)));
+      if (!matchTitle && !matchLoc && !matchHost && !matchDay) return false;
     }
 
     return true;

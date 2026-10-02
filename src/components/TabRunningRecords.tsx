@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import {
   Activity,
   Heart,
@@ -61,14 +61,18 @@ import {
 } from '../lib/trainingPlanGenerator';
 import { attachShoeRecommendationsToPlan } from '../lib/shoeRecommender';
 import { verifyRunnerSecurityKey } from '../lib/security';
-import { TrainingShareModal } from './TrainingShareModal';
+const TrainingShareModal = React.lazy(() =>
+  import('./TrainingShareModal').then((m) => ({ default: m.TrainingShareModal }))
+);
 import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
 import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
 import { TrainingShoeModal } from './TrainingShoeModal';
 import { TrainingCalendarView } from './TrainingCalendarView';
 import { ShoeMileageAnalyticsCard } from './ShoeMileageAnalyticsCard';
 import { GoalProgressBarSection } from './GoalProgressBarSection';
-import { CsvWorkoutUploadModal } from './CsvWorkoutUploadModal';
+const CsvWorkoutUploadModal = React.lazy(() =>
+  import('./CsvWorkoutUploadModal').then((m) => ({ default: m.CsvWorkoutUploadModal }))
+);
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -2693,27 +2697,40 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
       {/* Garmin Multi-file CSV Upload Modal */}
       {isCsvModalOpen && (
-        <CsvWorkoutUploadModal
-          isOpen={isCsvModalOpen}
-          parsedItems={pendingCsvItems}
-          shoes={shoes}
-          existingSessions={trainingSessions}
-          onSave={handleSaveCsvItems}
-          onClose={() => {
-            setIsCsvModalOpen(false);
-            setPendingCsvItems([]);
-          }}
-        />
+        <Suspense fallback={null}>
+          <CsvWorkoutUploadModal
+            isOpen={isCsvModalOpen}
+            parsedItems={pendingCsvItems}
+            shoes={shoes}
+            existingSessions={trainingSessions}
+            onSave={handleSaveCsvItems}
+            onClose={() => {
+              setIsCsvModalOpen(false);
+              setPendingCsvItems([]);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Training Share & Image Export Modal */}
       {sharingSession && (
-        <TrainingShareModal
-          session={sharingSession}
-          vdot={currentVDOT}
-          runnerTierName={runnerTier.label}
-          onClose={() => setSharingSession(null)}
-        />
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center">
+              <div className="bg-stone-900 border border-emerald-500/40 rounded-2xl p-6 text-center text-white space-y-2">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500" />
+                <p className="text-xs text-stone-300">캔버스 이미지 생성기를 불러오는 중입니다...</p>
+              </div>
+            </div>
+          }
+        >
+          <TrainingShareModal
+            session={sharingSession}
+            vdot={currentVDOT}
+            runnerTierName={runnerTier.label}
+            onClose={() => setSharingSession(null)}
+          />
+        </Suspense>
       )}
 
       {/* Training Shoe Input & Selector Modal */}

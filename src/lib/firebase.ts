@@ -414,6 +414,25 @@ export async function getRaces(): Promise<RegisteredRace[]> {
   return local.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
+export async function setAllRaces(racesList: RegisteredRace[]): Promise<void> {
+  const sorted = [...racesList].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  setLocalItem('races', sorted);
+
+  if (firestoreInstance) {
+    try {
+      const snap = await getDocs(collection(firestoreInstance, 'races'));
+      for (const d of snap.docs) {
+        await deleteDoc(doc(firestoreInstance, 'races', d.id));
+      }
+      for (const race of sorted) {
+        await setDoc(doc(firestoreInstance, 'races', race.id), cleanFirestoreData(race, false));
+      }
+    } catch (e) {
+      console.error('Firestore setAllRaces failed', e);
+    }
+  }
+}
+
 export async function addRace(race: Omit<RegisteredRace, 'id'>): Promise<RegisteredRace> {
   const newRace: RegisteredRace = {
     ...race,
@@ -619,6 +638,31 @@ export async function addBatchTrainingSessions(
   }
 
   return createdSessions;
+}
+
+export async function setAllTrainingSessions(sessionsList: TrainingSession[]): Promise<void> {
+  const sorted = [...sessionsList].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  setLocalItem('training_sessions', sorted);
+
+  if (firestoreInstance) {
+    try {
+      const snap = await getDocs(collection(firestoreInstance, 'training_sessions'));
+      for (const d of snap.docs) {
+        await deleteDoc(doc(firestoreInstance, 'training_sessions', d.id));
+      }
+      const CHUNK_SIZE = 400;
+      for (let i = 0; i < sorted.length; i += CHUNK_SIZE) {
+        const chunk = sorted.slice(i, i + CHUNK_SIZE);
+        const batch = writeBatch(firestoreInstance);
+        for (const s of chunk) {
+          batch.set(doc(firestoreInstance, 'training_sessions', s.id), cleanFirestoreData(s, false));
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error('Firestore setAllTrainingSessions failed', e);
+    }
+  }
 }
 
 export async function updateTrainingSession(
