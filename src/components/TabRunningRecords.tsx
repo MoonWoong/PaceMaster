@@ -504,79 +504,114 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   ]);
 
   // Helper to parse filename into date and training title
-  // Example filename: "20260924_10km 빌드업 런.csv", "2026-09-24_템포런.csv", "2025.10.12_10km 인터벌.csv"
+  // Example filename: "20260924_10km 빌드업 런.csv", "2026-09-24_템포런.csv", "2025.10.12_10km 인터벌.csv", "2026.10.02.csv"
   const parseFilename = (fileName: string): { dateStr: string; sessionTitle: string } => {
     const baseName = fileName.replace(/\.[^/.]+$/, '').trim();
 
-    // Check if filename starts with YYYY-MM-DD or YYYYMMDD or YYYY.MM.DD followed by underscore or space
-    const standardMatch = baseName.match(/^(\d{4})[-._](\d{2})[-._](\d{2})[_\s-]+(.+)$/);
-    if (standardMatch) {
+    // 1. Matches YYYY.MM.DD, YYYY-MM-DD, YYYY_MM_DD with optional title (e.g. "2026.10.02", "2026-10-02_조깅", "2026.10.02 (1)")
+    const dotOrDashMatch = baseName.match(/^(\d{4})[-._](\d{1,2})[-._](\d{1,2})(?:[_\s-]+(.*))?$/);
+    if (dotOrDashMatch) {
+      const year = dotOrDashMatch[1];
+      const month = dotOrDashMatch[2].padStart(2, '0');
+      const day = dotOrDashMatch[3].padStart(2, '0');
+      const rawTitle = (dotOrDashMatch[4] || '').trim();
+      const cleanTitle = rawTitle.replace(/^\(\d+\)$/, '').trim();
       return {
-        dateStr: `${standardMatch[1]}-${standardMatch[2]}-${standardMatch[3]}`,
-        sessionTitle: standardMatch[4].trim() || '가민 임포트 훈련',
+        dateStr: `${year}-${month}-${day}`,
+        sessionTitle: cleanTitle || '가민 임포트 훈련',
       };
     }
 
-    const eightDigitMatch = baseName.match(/^(\d{4})(\d{2})(\d{2})[_\s-]+(.+)$/);
+    // 2. Matches 8-digit YYYYMMDD with optional title (e.g. "20261002", "20261002_훈련")
+    const eightDigitMatch = baseName.match(/^(\d{4})(\d{2})(\d{2})(?:[_\s-]+(.*))?$/);
     if (eightDigitMatch) {
+      const year = eightDigitMatch[1];
+      const month = eightDigitMatch[2];
+      const day = eightDigitMatch[3];
+      const rawTitle = (eightDigitMatch[4] || '').trim();
+      const cleanTitle = rawTitle.replace(/^\(\d+\)$/, '').trim();
       return {
-        dateStr: `${eightDigitMatch[1]}-${eightDigitMatch[2]}-${eightDigitMatch[3]}`,
-        sessionTitle: eightDigitMatch[4].trim() || '가민 임포트 훈련',
+        dateStr: `${year}-${month}-${day}`,
+        sessionTitle: cleanTitle || '가민 임포트 훈련',
       };
     }
 
+    // 3. Search for any date pattern embedded anywhere in filename (e.g. "garmin_2026-10-02_morning", "activity_2026.10.02")
+    const embeddedMatch = baseName.match(/(\d{4})[-._](\d{1,2})[-._](\d{1,2})/);
+    if (embeddedMatch) {
+      const year = embeddedMatch[1];
+      const month = embeddedMatch[2].padStart(2, '0');
+      const day = embeddedMatch[3].padStart(2, '0');
+      const cleanTitle = baseName
+        .replace(/(\d{4})[-._](\d{1,2})[-._](\d{1,2})/, '')
+        .replace(/^[_\s-]+|[_\s-]+$/g, '')
+        .replace(/^\(\d+\)$/, '')
+        .trim();
+      return {
+        dateStr: `${year}-${month}-${day}`,
+        sessionTitle: cleanTitle || '가민 임포트 훈련',
+      };
+    }
+
+    // 4. Fallback if underscore separated
     const underscoreIndex = baseName.indexOf('_');
     if (underscoreIndex !== -1) {
       const prefix = baseName.substring(0, underscoreIndex).trim();
       const titlePart = baseName.substring(underscoreIndex + 1).trim();
-
-      // Check if prefix is 8-digit YYYYMMDD
       if (/^\d{8}$/.test(prefix)) {
-        const year = prefix.substring(0, 4);
-        const month = prefix.substring(4, 6);
-        const day = prefix.substring(6, 8);
         return {
-          dateStr: `${year}-${month}-${day}`,
+          dateStr: `${prefix.substring(0, 4)}-${prefix.substring(4, 6)}-${prefix.substring(6, 8)}`,
           sessionTitle: titlePart || '가민 임포트 훈련',
         };
       }
-
-      // Check if prefix is already YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(prefix)) {
         return {
           dateStr: prefix,
           sessionTitle: titlePart || '가민 임포트 훈련',
         };
       }
-
-      return {
-        dateStr: new Date().toISOString().split('T')[0],
-        sessionTitle: titlePart || baseName,
-      };
     }
 
-    // Fallback if no underscore
+    // 5. Default fallback to current local date
+    const now = new Date();
+    const localYear = now.getFullYear();
+    const localMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const localDay = String(now.getDate()).padStart(2, '0');
     return {
-      dateStr: new Date().toISOString().split('T')[0],
+      dateStr: `${localYear}-${localMonth}-${localDay}`,
       sessionTitle: baseName || '가민 임포트 훈련',
     };
   };
 
-  // Helper to extract value by multiple possible keys (case-insensitive, whitespace trimmed)
+  // Helper to extract value by multiple possible keys (case-insensitive, whitespace trimmed, unit stripped)
   const getRowValue = (row: Record<string, any>, candidateKeys: string[]): string => {
+    // 1. Direct exact key check
     for (const k of candidateKeys) {
       if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
         return String(row[k]).trim();
       }
     }
-    const normalizedRowKeys = Object.keys(row).map((k) => ({
-      raw: k,
-      norm: k.toLowerCase().replace(/[\s()_\[\]]/g, ''),
-    }));
+    // 2. Normalized row keys (and unit stripped)
+    const normalizedRowKeys = Object.keys(row).map((k) => {
+      const lower = k.toLowerCase().replace(/[\s()_\[\]]/g, '');
+      const stripped = lower.replace(/(?:bpm|min\/km|보\/분|ms|w\/kg|kcal|w|c|m|km)$/i, '');
+      return {
+        raw: k,
+        norm: lower,
+        stripped,
+      };
+    });
     for (const k of candidateKeys) {
       const targetNorm = k.toLowerCase().replace(/[\s()_\[\]]/g, '');
+      const targetStripped = targetNorm.replace(/(?:bpm|min\/km|보\/분|ms|w\/kg|kcal|w|c|m|km)$/i, '');
       const found = normalizedRowKeys.find(
-        (rk) => rk.norm === targetNorm || rk.norm.includes(targetNorm)
+        (rk) =>
+          rk.norm === targetNorm ||
+          rk.stripped === targetStripped ||
+          rk.norm.includes(targetNorm) ||
+          rk.stripped.includes(targetStripped) ||
+          targetNorm.includes(rk.norm) ||
+          targetStripped.includes(rk.stripped)
       );
       if (
         found &&
@@ -732,15 +767,45 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     itemDate = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
                   }
                 }
-                const distKm = parseDistanceKm(getRowValue(row, ['거리', 'distance', '총 거리']));
+                const distKm = parseDistanceKm(
+                  getRowValue(row, ['거리 km', '거리', 'distance', '총 거리'])
+                );
                 const timeStr = normalizeTimeString(
                   getRowValue(row, ['시간', 'time', '경과 시간', '이동 시간'])
                 );
                 const paceStr =
-                  formatPace(getRowValue(row, ['평균 페이스', 'avg pace', 'pace'])) || "5'00\"";
-                const avgHr = parseHeartRate(getRowValue(row, ['평균 심박수', 'avg hr', 'hr']));
-                const maxHr = parseHeartRate(getRowValue(row, ['최대 심박수', 'max hr']));
-                const cals = parseHeartRate(getRowValue(row, ['칼로리', 'calories']));
+                  formatPace(
+                    getRowValue(row, ['평균 페이스 min/km', '평균 페이스', 'avg pace', 'pace'])
+                  ) || "5'00\"";
+                const avgHr = parseHeartRate(
+                  getRowValue(row, [
+                    '평균 심박 bpm',
+                    '평균 심박',
+                    '평균심박',
+                    '평균 심박수',
+                    'avg hr',
+                    'avg heart rate',
+                    '심박',
+                    'hr',
+                    'bpm',
+                  ])
+                );
+                const maxHr = parseHeartRate(
+                  getRowValue(row, [
+                    '최대심박 bpm',
+                    '최대심박',
+                    '최대 심박',
+                    '최대 심박수',
+                    'max hr',
+                    'max heart rate',
+                    '최고 심박',
+                    '최고심박',
+                    'peak hr',
+                  ])
+                );
+                const cals = parseHeartRate(
+                  getRowValue(row, ['칼로리 C', '칼로리', 'calories', '소모 칼로리'])
+                );
 
                 if (distKm > 0 || timeStr !== '00:00:00') {
                   multiSessions.push({
@@ -778,13 +843,45 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 return;
               }
 
-              const lapDist = parseDistanceKm(getRowValue(row, ['거리', 'distance', '구간 거리']));
+              const lapDist = parseDistanceKm(
+                getRowValue(row, ['거리 km', '거리', 'distance', '구간 거리', '총 거리'])
+              );
               const lapTime = normalizeTimeString(
                 getRowValue(row, ['시간', 'time', '구간 시간', '이동 시간'])
               );
-              const lapPace = formatPace(getRowValue(row, ['평균 페이스', 'avg pace', 'pace']));
-              const lapHr = parseHeartRate(getRowValue(row, ['평균 심박수', 'avg hr', 'hr']));
-              const lapMaxHr = parseHeartRate(getRowValue(row, ['최대 심박수', 'max hr']));
+              const lapPace = formatPace(
+                getRowValue(row, ['평균 페이스 min/km', '평균 페이스', 'avg pace', 'pace'])
+              );
+              const lapGap = formatPace(
+                getRowValue(row, ['평균 GAP min/km', '평균 gap', 'gap'])
+              );
+              const lapHr = parseHeartRate(
+                getRowValue(row, [
+                  '평균 심박 bpm',
+                  '평균 심박',
+                  '평균심박',
+                  '평균 심박수',
+                  'avg hr',
+                  'avg heart rate',
+                  '심박',
+                  'heart rate',
+                  'hr',
+                  'bpm',
+                ])
+              );
+              const lapMaxHr = parseHeartRate(
+                getRowValue(row, [
+                  '최대심박 bpm',
+                  '최대심박',
+                  '최대 심박',
+                  '최대 심박수',
+                  'max hr',
+                  'max heart rate',
+                  '최고 심박',
+                  '최고심박',
+                  'peak hr',
+                ])
+              );
 
               if (lapDist > 0 || lapTime !== '00:00:00') {
                 const lapNum = parseInt(splitVal.replace(/[^\d]/g, ''), 10) || laps.length + 1;
@@ -800,6 +897,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   time: lapTime,
                   cumulativeTime: cumTimeStr,
                   avgPace: lapPace || "5'00\"",
+                  avgGap: lapGap || undefined,
                   avgHr: lapHr,
                   maxHr: lapMaxHr > 0 ? lapMaxHr : lapHr,
                 });
@@ -815,12 +913,46 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             let totalCalories = 0;
 
             if (summaryRow) {
-              totalDist = parseDistanceKm(getRowValue(summaryRow, ['거리', 'distance']));
-              totalTime = normalizeTimeString(getRowValue(summaryRow, ['시간', 'time', '경과 시간']));
-              avgPace = formatPace(getRowValue(summaryRow, ['평균 페이스', 'avg pace'])) || avgPace;
-              avgHr = parseHeartRate(getRowValue(summaryRow, ['평균 심박수', 'avg hr']));
-              maxHr = parseHeartRate(getRowValue(summaryRow, ['최대 심박수', 'max hr']));
-              totalCalories = parseHeartRate(getRowValue(summaryRow, ['칼로리', 'calories']));
+              totalDist = parseDistanceKm(
+                getRowValue(summaryRow, ['거리 km', '거리', 'distance', '총 거리'])
+              );
+              totalTime = normalizeTimeString(
+                getRowValue(summaryRow, ['시간', 'time', '경과 시간', '이동 시간'])
+              );
+              avgPace =
+                formatPace(
+                  getRowValue(summaryRow, ['평균 페이스 min/km', '평균 페이스', 'avg pace'])
+                ) || avgPace;
+              avgHr = parseHeartRate(
+                getRowValue(summaryRow, [
+                  '평균 심박 bpm',
+                  '평균 심박',
+                  '평균심박',
+                  '평균 심박수',
+                  'avg hr',
+                  'avg heart rate',
+                  '심박',
+                  'heart rate',
+                  'hr',
+                  'bpm',
+                ])
+              );
+              maxHr = parseHeartRate(
+                getRowValue(summaryRow, [
+                  '최대심박 bpm',
+                  '최대심박',
+                  '최대 심박',
+                  '최대 심박수',
+                  'max hr',
+                  'max heart rate',
+                  '최고 심박',
+                  '최고심박',
+                  'peak hr',
+                ])
+              );
+              totalCalories = parseHeartRate(
+                getRowValue(summaryRow, ['칼로리 C', '칼로리', 'calories', '소모 칼로리'])
+              );
             }
 
             if (totalDist === 0 && laps.length > 0) {
@@ -915,10 +1047,21 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
   // Save CSV items from modal
   const handleSaveCsvItems = async (items: Omit<TrainingSession, 'id' | 'createdAt'>[]) => {
+    // Enrich with shoeName if shoeId exists and shoeName is missing
+    const enriched = items.map((item) => {
+      if (item.shoeId && !item.shoeName) {
+        const found = shoes.find((sh) => sh.id === item.shoeId);
+        if (found) {
+          return { ...item, shoeName: found.name };
+        }
+      }
+      return item;
+    });
+
     if (onAddBatchTrainingSessions) {
-      await onAddBatchTrainingSessions(items);
+      await onAddBatchTrainingSessions(enriched);
     } else {
-      for (const item of items) {
+      for (const item of enriched) {
         await onAddTrainingSession(item);
       }
     }
@@ -1586,21 +1729,30 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                         </span>
 
                                         {/* Running Shoe Indicator & Quick Selector Modal Trigger */}
-                                        <button
-                                          type="button"
-                                          onClick={() => setShoeModalSession(session)}
-                                          className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-                                            session.shoeName
-                                              ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100 font-semibold'
-                                              : 'bg-stone-100 text-stone-600 border-stone-200 hover:text-stone-900 hover:border-emerald-300 hover:bg-stone-200'
-                                          }`}
-                                          title="착용 러닝화 입력 / 선택 (마일리지 연동 없음)"
-                                        >
-                                          <span>👟</span>
-                                          <span className="font-medium">
-                                            {session.shoeName ? session.shoeName : '+ 러닝화 입력'}
-                                          </span>
-                                        </button>
+                                        {(() => {
+                                          const displayShoe =
+                                            session.shoeName ||
+                                            (session.shoeId
+                                              ? shoes.find((sh) => sh.id === session.shoeId)?.name
+                                              : undefined);
+                                          return (
+                                            <button
+                                              type="button"
+                                              onClick={() => setShoeModalSession(session)}
+                                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                                                displayShoe
+                                                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100 font-semibold'
+                                                  : 'bg-stone-100 text-stone-600 border-stone-200 hover:text-stone-900 hover:border-emerald-300 hover:bg-stone-200'
+                                              }`}
+                                              title="착용 러닝화 입력 / 선택"
+                                            >
+                                              <span>👟</span>
+                                              <span className="font-medium">
+                                                {displayShoe ? displayShoe : '+ 러닝화 입력'}
+                                              </span>
+                                            </button>
+                                          );
+                                        })()}
                                       </div>
                                       <h4 className="text-sm font-bold text-stone-900 keep-all">
                                         {session.title}
@@ -2308,6 +2460,29 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     <div className="p-2 rounded-lg bg-emerald-100/70 border border-emerald-300 text-[11px] text-emerald-950 font-medium flex items-center gap-1.5">
                       <span className="font-bold text-emerald-800">🎯 테이퍼링 맞춤 조율:</span>
                       <span>{rDetail.taperScaleNote}</span>
+                    </div>
+                  )}
+
+                  {/* Easy Run Cruise Load Physiological Insight Card */}
+                  {rDetail.isEasyRunCruiseLoad && (
+                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-amber-100/70 border-2 border-emerald-400/80 text-xs text-emerald-950 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center gap-2 font-bold text-emerald-900 text-xs sm:text-sm">
+                        <Sparkles className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                        <span>🌿 평소 이지런 연장 부하 (Zone 2 Easy Cruise) 맞춤 테이퍼링 진단</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-700 text-white font-mono">
+                          감량 배제 (0~5%)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-800 leading-relaxed keep-all">
+                        {rDetail.easyRunCruiseNote ||
+                          `10km 6’00” 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 2~3km 늘어난 가벼운 유산소 부하입니다. 젖산 축적과 근육 피로가 거의 없으므로 무리한 조기 감량(-20~30%)은 오히려 심폐 리듬을 잃게 만듭니다. 따라서 주간 마일리지 100%를 온전히 유지하며, 전날 가벼운 3~4km 리듬 조깅 또는 휴식만으로 최상의 컨디션을 맞춥니다.`}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-emerald-800 font-semibold border-t border-emerald-300/60">
+                        <span>💡 권장 주말/주초 전략:</span>
+                        <span className="text-stone-700 font-normal">
+                          대회 전날(일요일) 3~4km 가벼운 조깅 또는 휴식 ➡️ 월요일 10km 편안한 유산소 완주 ➡️ 화요일 가벼운 리커버리 후 정상 훈련 복귀
+                        </span>
+                      </div>
                     </div>
                   )}
 

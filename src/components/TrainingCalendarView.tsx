@@ -396,10 +396,12 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                                 </span>
                                 <span className="font-mono shrink-0">{s.avgPace}</span>
                               </div>
-                              {s.shoeName && (
+                              {(s.shoeName || (s.shoeId && shoes.find((sh) => sh.id === s.shoeId))) && (
                                 <div className="text-[9px] text-stone-600 truncate opacity-90 mt-0.5 flex items-center gap-0.5 font-medium">
                                   <span>👟</span>
-                                  <span className="truncate">{s.shoeName}</span>
+                                  <span className="truncate">
+                                    {s.shoeName || shoes.find((sh) => sh.id === s.shoeId)?.name}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -495,19 +497,28 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
                         </span>
 
                         {/* Shoe Tag or Selector Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => onOpenShoeModal(session)}
-                          className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                            session.shoeName
-                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200 font-semibold'
-                              : 'bg-white text-stone-600 border-stone-300 hover:text-stone-900 hover:border-emerald-500'
-                          }`}
-                          title="훈련 착용 러닝화 선택 / 변경"
-                        >
-                          <span>👟</span>
-                          <span>{session.shoeName || '+ 러닝화 지정'}</span>
-                        </button>
+                        {(() => {
+                          const displayShoe =
+                            session.shoeName ||
+                            (session.shoeId
+                              ? shoes.find((sh) => sh.id === session.shoeId)?.name
+                              : undefined);
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => onOpenShoeModal(session)}
+                              className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                                displayShoe
+                                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200 font-semibold'
+                                  : 'bg-white text-stone-600 border-stone-300 hover:text-stone-900 hover:border-emerald-500'
+                              }`}
+                              title="훈련 착용 러닝화 선택 / 변경"
+                            >
+                              <span>👟</span>
+                              <span>{displayShoe || '+ 러닝화 지정'}</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                       <h5 className="text-sm sm:text-base font-bold text-stone-900">
                         {session.title}

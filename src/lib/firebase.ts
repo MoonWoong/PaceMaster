@@ -172,6 +172,19 @@ const DEFAULT_RACES: RegisteredRace[] = [
     importance: 'B-Race (중간 점검)',
     createdAt: '2026-08-10',
   },
+  {
+    id: 'race-3',
+    name: '2026 한경서울마라톤 (월요 10K)',
+    date: '2026-10-05',
+    course: '10K',
+    location: '서울 여의도 한강공원',
+    websiteUrl: 'https://marathongo.co.kr',
+    isTarget: false,
+    targetTime: '01:00:00',
+    priority: 'C',
+    importance: 'C-Race (연습 대회)',
+    createdAt: '2026-09-20',
+  },
 ];
 
 const DEFAULT_RECORDS: RunningRecords = {

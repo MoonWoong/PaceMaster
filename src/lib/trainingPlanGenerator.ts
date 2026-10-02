@@ -17,7 +17,7 @@ export interface TargetRacePlanAnalysis {
   courseDistKm: number;
   racePriority: 'A' | 'B' | 'C';
   importanceGrade: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)';
-  paceIntensityLevel: '고강도 목표 (High)' | '중상 강도 (Moderate-High)' | '중강도 (Moderate)' | '안정 완주 (Endurance)';
+  paceIntensityLevel: '고강도 목표 (High)' | '중상 강도 (Moderate-High)' | '중강도 (Moderate)' | '안정 완주 (Endurance)' | '이지런 연장 부하 (Easy Cruise)';
   taperingVolumeCutPct: number; // e.g. 12, 20, 35, 55
   taperingIntensityStrategy: string;
   taperingSpeedRepNote: string;
@@ -28,6 +28,8 @@ export interface TargetRacePlanAnalysis {
   strategicAdvice: string;
   isRaceThisWeek: boolean;
   raceDayOfWeek?: DayOfWeek;
+  isEasyRunCruiseLoad?: boolean; // 10km 6'00" 페이스 등 평소 이지런 연장 부하 여부
+  easyRunCruiseNote?: string; // 이지런 연장 부하 맞춤 설명
 }
 
 export interface PlanCustomOptions {
@@ -242,6 +244,17 @@ export function analyzeSingleRacePlan(
   const isRaceThisWeek = raceDate >= currentWeekMonday && raceDate <= currentWeekSunday;
   const dayNameList: DayOfWeek[] = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const raceDayOfWeek = dayNameList[raceDate.getDay()];
+  const isMondayRace = raceDayOfWeek === '월요일';
+
+  // Check if this is an Easy Run Cruise Load (평소 이지런 연장 부하 - 예: 10km 6'00" 페이스 등)
+  // 조건: 12km 이하(5k~10k) 코스이면서 목표 페이스가 약 5:45~6:00+ (>= 345초) 수준의 이지런/조깅 완주 부하
+  const is10kOrLess = courseDistKm <= 12;
+  const isPaceAround6MinOrEasy = targetPaceRawSec >= 345;
+  const isEasyRunCruiseLoad = is10kOrLess && isPaceAround6MinOrEasy;
+
+  if (isEasyRunCruiseLoad) {
+    paceIntensityLevel = '이지런 연장 부하 (Easy Cruise)';
+  }
 
   // Extract user-selected race priority (A, B, C)
   const racePriority: 'A' | 'B' | 'C' =
@@ -267,11 +280,31 @@ export function analyzeSingleRacePlan(
   let taperingSpeedRepNote = '';
   let taperingLsdDistKm = courseDistKm >= 40 ? 26 : courseDistKm >= 20 ? 18 : 12;
   let taperScaleNote = '';
+  let easyRunCruiseNote = '';
 
   if (diffDays <= 7 || isRaceThisWeek) {
     periodizationPhase = '대회 직전 조정기 (Race Week)';
 
-    if (racePriority === 'C') {
+    if (isEasyRunCruiseLoad) {
+      if (isMondayRace) {
+        taperingVolumeCutPct = 0; // 월요일 10km 6'00 페이스는 감량 배제(0%), 100% 정상 마일리지 가동!
+        taperingLsdDistKm = Math.max(courseDistKm, 14);
+        taperingSpeedRepNote = '가벼운 4~5km 조깅 및 코호흡';
+        taperScaleNote = '월요일 10km 6’00 페이스 ➡️ 평소 이지런 연장 부하(Zone 2) 반영: 테이퍼링 감량 배제(0%) & 정상 마일리지 100% 가동';
+        taperingIntensityStrategy = `[월요일 10km 6’00 이지런 연장 부하 분석] 6’00 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 2~3km 늘어난 가벼운 부하입니다. 젖산 축적과 근육 피로가 거의 없으므로 무리한 사전 감량(20~30%)은 오히려 심폐 지구력 리듬을 잃게 만듭니다. 따라서 주간 볼륨 100%를 온전히 유지하며, 전날(일요일) 3~4km 가벼운 조깅 또는 휴식만으로 최상의 컨디션을 맞춥니다.`;
+        phaseDescription = `대회 D-${diffDays}일(월요일 이지런 연장 레이스): 평소 이지런 연장선으로 감량 없이 100% 정상 마일리지를 가동합니다. (${taperScaleNote})`;
+        strategicAdvice = `월요일 10km 6’00 대회는 평소 주말 이지런의 자연스러운 연장선입니다. 일요일에 무리한 LSD 대신 3~4km 가벼운 조깅이나 휴식으로 다리를 가볍게 하고, 월요일 대회를 주초 상쾌한 유산소 크루즈주로 완주하세요. 화요일 가벼운 리커버리 후 수요일부터 정상 포인트 훈련으로 즉시 복귀할 수 있습니다.`;
+      } else {
+        taperingVolumeCutPct = 5;
+        taperingLsdDistKm = Math.max(courseDistKm, 14);
+        taperingSpeedRepNote = '가벼운 4~5km 조깅 및 코호흡';
+        taperScaleNote = '10km 6’00 페이스 ➡️ 평소 이지런 연장 부하(Zone 2) 반영: 감량 최소화(-5%) & 정상 마일리지 95~100% 가동';
+        taperingIntensityStrategy = `[10km 6’00 이지런 연장 부하] 6’00 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 2~3km 늘어난 가벼운 부하입니다. 과도한 조기 감량을 배제하고 주간 볼륨(95~100%)을 온전히 유지하며 대회 전날 가벼운 3~4km 리듬 조깅만 소화합니다.`;
+        phaseDescription = `대회 D-${diffDays}일(이지런 연장 완주주): 주간 마일리지 95~100% 유지 단계입니다. (${taperScaleNote})`;
+        strategicAdvice = `10km 6’00 대회는 평소 이지런보다 거리가 살짝 늘어난 유산소 부하입니다. 별도의 과도한 테이퍼링 감량이 불필요하며, 정상 마일리지를 소화하며 편안한 유산소 완주 리듬을 즐기세요.`;
+      }
+      easyRunCruiseNote = `💡 러너 분석 반영: 10km 6’00 페이스는 평소 이지런보다 거리가 살짝 늘어난 유산소(Zone 2) 부하입니다. 젖산 축적 및 근육 손상이 미미하므로 무리한 조기 감량(20~30%) 없이 주간 마일리지를 95~100% 온전히 유지합니다.`;
+    } else if (racePriority === 'C') {
       if (paceIntensityLevel === '안정 완주 (Endurance)') {
         taperingVolumeCutPct = 12; // 최소 감량!
         taperingLsdDistKm = isRaceThisWeek ? courseDistKm : Math.min(courseDistKm, 16);
@@ -347,7 +380,16 @@ export function analyzeSingleRacePlan(
   } else if (diffDays <= 21) {
     const isWeek2 = diffDays <= 14;
 
-    if (racePriority === 'C') {
+    if (isEasyRunCruiseLoad) {
+      periodizationPhase = isWeek2 ? '목표 페이스 특화기 (Peak)' : '스피드/지구력 빌드업기 (Build)';
+      taperingVolumeCutPct = 0;
+      taperingLsdDistKm = courseDistKm >= 20 ? 18 : 14;
+      taperScaleNote = '10km 6’00 이지런 연장 부하 ➡️ 2~3주 전 조기 감량 배제(0%), 정상 마일리지 100% 빌드업 지속';
+      taperingIntensityStrategy = `[이지런 연장 부하 감량 배제] 10km 6’00 페이스는 평소 이지런 수준의 유산소 부하이므로 2~3주 전 테이퍼링 감량을 완전히 배제하고 100% 마일리지를 지속합니다.`;
+      phaseDescription = `대회 D-${diffDays}일(이지런 연장 대비): 조기 감량 없이 100% 정상 마일리지를 지속합니다. (${taperScaleNote})`;
+      strategicAdvice = `평소와 동일하게 주간 마일리지를 충실히 소화하며 편안한 유산소 베이스를 쌓으세요.`;
+      easyRunCruiseNote = `💡 러너 분석 반영: 10km 6’00 페이스는 평소 이지런보다 거리가 살짝 늘어난 유산소(Zone 2) 부하입니다. 조기 감량 없이 100% 정상 마일리지를 지속합니다.`;
+    } else if (racePriority === 'C') {
       if (isWeek2) {
         if (paceIntensityLevel === '안정 완주 (Endurance)' || paceIntensityLevel === '중강도 (Moderate)') {
           // No tapering for C-race with low/moderate intensity!
@@ -507,6 +549,8 @@ export function analyzeSingleRacePlan(
     strategicAdvice,
     isRaceThisWeek,
     raceDayOfWeek,
+    isEasyRunCruiseLoad,
+    easyRunCruiseNote,
   };
 }
 
@@ -660,7 +704,10 @@ export function analyzeRunnerState(
           targetRacePace: targetRacePlan.targetRacePace,
           taperingVolumeCutPct: targetRacePlan.taperingVolumeCutPct,
           taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
-          weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}) 대비: ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 테이퍼링 -${targetRacePlan.taperingVolumeCutPct}%` : ''})`,
+          taperScaleNote: targetRacePlan.taperScaleNote,
+          weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}) 대비: ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 테이퍼링 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 정상 가동'})`,
+          isEasyRunCruiseLoad: targetRacePlan.isEasyRunCruiseLoad,
+          easyRunCruiseNote: targetRacePlan.easyRunCruiseNote,
         }
       : undefined;
 
@@ -894,6 +941,8 @@ export function analyzeRunnerState(
       taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
       taperScaleNote: targetRacePlan.taperScaleNote,
       weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}): ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 감량 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 볼륨 가동'}${targetRacePlan.taperScaleNote ? ` · ${targetRacePlan.taperScaleNote}` : ''})`,
+      isEasyRunCruiseLoad: targetRacePlan.isEasyRunCruiseLoad,
+      easyRunCruiseNote: targetRacePlan.easyRunCruiseNote,
     };
 
     mileageAdjustmentNote = `[참가 대회 가중치 & 테이퍼링 정밀 조율] ${targetRacePlan.raceName} (${importanceGrade}, ${targetRacePlan.paceIntensityLevel}) 대비: ${targetRacePlan.taperScaleNote || `${targetRacePlan.periodizationPhase} 반영`}. 주간 볼륨 ${targetWeeklyVolume}km 세팅. ${mileageAdjustmentNote}`;

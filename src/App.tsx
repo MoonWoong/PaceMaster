@@ -243,16 +243,24 @@ export default function App() {
   const handleAddTrainingSession = async (
     sessionData: Omit<TrainingSession, 'id' | 'createdAt'>
   ) => {
-    const created = await addTrainingSession(sessionData);
+    let finalSession = { ...sessionData };
+    if (finalSession.shoeId && !finalSession.shoeName) {
+      const targetShoe = shoes.find((s) => s.id === finalSession.shoeId);
+      if (targetShoe) {
+        finalSession.shoeName = targetShoe.name;
+      }
+    }
+
+    const created = await addTrainingSession(finalSession);
     setTrainingSessions((prev) => [created, ...prev]);
 
     // Automatically accumulate shoe mileage if shoe is linked
-    if (sessionData.shoeId) {
-      const targetShoe = shoes.find((s) => s.id === sessionData.shoeId);
+    if (finalSession.shoeId) {
+      const targetShoe = shoes.find((s) => s.id === finalSession.shoeId);
       if (targetShoe) {
         const updatedShoe: RunningShoe = {
           ...targetShoe,
-          mileage: Math.round(((targetShoe.mileage || 0) + (sessionData.totalDistanceKm || 0)) * 100) / 100,
+          mileage: Math.round(((targetShoe.mileage || 0) + (finalSession.totalDistanceKm || 0)) * 100) / 100,
         };
         await handleUpdateShoe(updatedShoe);
       }
@@ -264,7 +272,18 @@ export default function App() {
   ) => {
     if (!sessionsData || sessionsData.length === 0) return;
 
-    const createdList = await addBatchTrainingSessions(sessionsData);
+    // Ensure all sessions with shoeId have shoeName populated
+    const enrichedSessions = sessionsData.map((s) => {
+      if (s.shoeId && !s.shoeName) {
+        const targetShoe = shoes.find((sh) => sh.id === s.shoeId);
+        if (targetShoe) {
+          return { ...s, shoeName: targetShoe.name };
+        }
+      }
+      return s;
+    });
+
+    const createdList = await addBatchTrainingSessions(enrichedSessions);
     setTrainingSessions((prev) => {
       const combined = [...createdList, ...prev];
       return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -272,7 +291,7 @@ export default function App() {
 
     // Accumulate shoe mileage across all sessions in the batch
     const mileageMap: Record<string, number> = {};
-    for (const s of sessionsData) {
+    for (const s of enrichedSessions) {
       if (s.shoeId && s.totalDistanceKm > 0) {
         mileageMap[s.shoeId] = (mileageMap[s.shoeId] || 0) + s.totalDistanceKm;
       }

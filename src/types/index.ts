@@ -128,6 +128,8 @@ export interface RaceWeightDetail {
   taperingLsdDistKm: number;
   taperScaleNote?: string;
   weightedGuidance: string;
+  isEasyRunCruiseLoad?: boolean; // 10km 6'00" 페이스 등 평소 이지런 연장 부하 여부
+  easyRunCruiseNote?: string; // 이지런 연장 부하에 따른 테이퍼링 감량 배제/최소화 과학적 근거 설명
 }
 
 export interface RunnerStateAnalysis {

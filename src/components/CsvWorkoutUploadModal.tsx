@@ -53,21 +53,37 @@ export const CsvWorkoutUploadModal: React.FC<CsvWorkoutUploadModalProps> = ({
     return Math.round(items.reduce((sum, item) => sum + (item.totalDistanceKm || 0), 0) * 10) / 10;
   }, [items]);
 
+  // Snapshot initial existing sessions on modal open so newly saved items don't trigger a false duplicate alarm
+  const initialExistingSessionsRef = React.useRef<TrainingSession[]>(existingSessions);
+  React.useEffect(() => {
+    if (isOpen && !isSaving && !saveSuccess) {
+      initialExistingSessionsRef.current = existingSessions;
+    }
+  }, [isOpen, isSaving, saveSuccess]);
+
   // Check duplicate sessions by matching date & close distance (+-0.2km)
+  // When saving or saveSuccess is active, suppress warnings to prevent false-positive flash
   const duplicateSet = useMemo(() => {
     const dupIndices = new Set<number>();
-    if (!existingSessions || existingSessions.length === 0) return dupIndices;
+    if (saveSuccess || isSaving) return dupIndices;
+
+    const baseline = initialExistingSessionsRef.current;
+    if (!baseline || baseline.length === 0) return dupIndices;
 
     items.forEach((item, idx) => {
-      const match = existingSessions.some(
-        (es) => es.date === item.date && Math.abs((es.totalDistanceKm || 0) - (item.totalDistanceKm || 0)) < 0.2
+      if (!item.date || (item.totalDistanceKm || 0) <= 0.2) return;
+      const match = baseline.some(
+        (es) =>
+          es.date === item.date &&
+          (es.totalDistanceKm || 0) > 0.2 &&
+          Math.abs((es.totalDistanceKm || 0) - (item.totalDistanceKm || 0)) < 0.2
       );
       if (match) {
         dupIndices.add(idx);
       }
     });
     return dupIndices;
-  }, [items, existingSessions]);
+  }, [items, isSaving, saveSuccess]);
 
   // Handle single item field update
   const handleUpdateItem = (
@@ -82,19 +98,34 @@ export const CsvWorkoutUploadModal: React.FC<CsvWorkoutUploadModalProps> = ({
     });
   };
 
+  // Handle single item shoe update (stores both shoeId AND shoeName)
+  const handleUpdateShoe = (index: number, shoeId: string) => {
+    const chosenShoe = shoes.find((s) => s.id === shoeId);
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        shoeId: shoeId || undefined,
+        shoeName: chosenShoe ? chosenShoe.name : undefined,
+      };
+      return updated;
+    });
+  };
+
   // Handle delete item
   const handleDeleteItem = (index: number) => {
     setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Apply batch shoe to all sessions
+  // Apply batch shoe to all sessions (stores both shoeId AND shoeName)
   const handleApplyShoeToAll = (shoeId: string) => {
     setSelectedShoeId(shoeId);
-    if (!shoeId) return;
+    const chosenShoe = shoes.find((s) => s.id === shoeId);
     setItems((prev) =>
       prev.map((item) => ({
         ...item,
-        shoeId: shoeId,
+        shoeId: shoeId || undefined,
+        shoeName: chosenShoe ? chosenShoe.name : undefined,
       }))
     );
   };
@@ -109,9 +140,20 @@ export const CsvWorkoutUploadModal: React.FC<CsvWorkoutUploadModalProps> = ({
     const ok = await verifyRunnerSecurityKey(`가민 CSV 훈련 ${items.length}건 일괄 등록`);
     if (!ok) return;
 
+    // Ensure all items with shoeId also have shoeName populated
+    const finalizedItems = items.map((item) => {
+      if (item.shoeId && !item.shoeName) {
+        const found = shoes.find((s) => s.id === item.shoeId);
+        if (found) {
+          return { ...item, shoeName: found.name };
+        }
+      }
+      return item;
+    });
+
     try {
       setIsSaving(true);
-      await onSave(items);
+      await onSave(finalizedItems);
       setSaveSuccess(true);
       setTimeout(() => {
         onClose();
@@ -287,7 +329,7 @@ export const CsvWorkoutUploadModal: React.FC<CsvWorkoutUploadModalProps> = ({
                       {shoes.length > 0 && (
                         <select
                           value={item.shoeId || ''}
-                          onChange={(e) => handleUpdateItem(idx, 'shoeId', e.target.value)}
+                          onChange={(e) => handleUpdateShoe(idx, e.target.value)}
                           className="bg-white border border-stone-300 rounded-lg px-2 py-1 text-xs text-stone-700 focus:outline-none focus:border-emerald-500 max-w-[150px] truncate shadow-2xs"
                           title="훈련 시 착용한 러닝화 지정"
                         >
