@@ -243,20 +243,38 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     return analyzeRunnerState(trainingSessions, evalSelectedDistance, new Date(), races, goals);
   }, [trainingSessions, evalSelectedDistance, races, goals]);
 
-  // Helper to get Monday-Sunday Week Range string for a given date
-  // e.g. "2026.09.21 (월) ~ 09.27 (일)"
-  const getMondayToSundayWeekInfo = (dateStr: string): { weekKey: string; weekLabel: string; mondayDate: Date } => {
-    const d = new Date(dateStr);
-    const day = d.getDay(); // 0 is Sun, 1 is Mon, ... 6 is Sat
-    // Diff to previous Monday: if Sun(0), diff is -6; if Mon(1), diff is 0; if Tue(2), diff is -1
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    const monday = new Date(d);
-    monday.setDate(d.getDate() + diffToMonday);
-    monday.setHours(0, 0, 0, 0);
+  // Helper to parse date string (YYYY-MM-DD or YYYY.MM.DD) safely into year, month, day, and a noon-local Date object
+  const parseDateParts = (dateStr: string): { year: number; month: number; day: number; date: Date } => {
+    const clean = String(dateStr || '').replace(/\./g, '-').trim();
+    const parts = clean.split('-');
+    let y = 2026, m = 1, d = 1;
+    if (parts.length >= 3) {
+      y = parseInt(parts[0], 10) || 2026;
+      m = parseInt(parts[1], 10) || 1;
+      d = parseInt(parts[2], 10) || 1;
+    }
+    // Midday (12:00:00) avoids any UTC or Daylight Saving boundary shifts
+    const date = new Date(y, m - 1, d, 12, 0, 0);
+    return { year: y, month: m, day: d, date };
+  };
 
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
+  // Helper to get Monday-Sunday Week Range string for a given date
+  // e.g. "2026.09.28 (월) ~ 10.04 (일)"
+  const getMondayToSundayWeekInfo = (
+    dateStr: string
+  ): {
+    weekKey: string;
+    weekLabel: string;
+    mondayDate: Date;
+    isCrossMonth: boolean;
+  } => {
+    const { year: y, month: m, day: d, date } = parseDateParts(dateStr);
+    const dayOfWeek = date.getDay(); // 0 is Sun, 1 is Mon, ... 6 is Sat
+    // Diff to previous Monday: if Sun(0), diff is -6; if Mon(1), diff is 0; if Tue(2), diff is -1
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const monday = new Date(y, m - 1, d + diffToMonday, 12, 0, 0);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 12, 0, 0);
 
     const mYear = monday.getFullYear();
     const mMonth = String(monday.getMonth() + 1).padStart(2, '0');
@@ -267,22 +285,48 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
     const weekKey = `${mYear}-${mMonth}-${mDate}`;
     const weekLabel = `${mYear}.${mMonth}.${mDate}(월) ~ ${sMonth}.${sDate}(일)`;
+    const isCrossMonth = mMonth !== sMonth;
 
-    return { weekKey, weekLabel, mondayDate: monday };
+    return {
+      weekKey,
+      weekLabel,
+      mondayDate: monday,
+      isCrossMonth,
+    };
   };
+
+  // Map of full Monday~Sunday total weekly distance across all sessions
+  const globalWeeklyDistanceMap = useMemo(() => {
+    const map: Record<string, { totalDistance: number; totalSessions: number }> = {};
+    for (const session of trainingSessions) {
+      const { weekKey } = getMondayToSundayWeekInfo(session.date);
+      if (!map[weekKey]) {
+        map[weekKey] = { totalDistance: 0, totalSessions: 0 };
+      }
+      map[weekKey].totalDistance += session.totalDistanceKm || 0;
+      map[weekKey].totalSessions += 1;
+    }
+    for (const k of Object.keys(map)) {
+      map[k].totalDistance = Math.round(map[k].totalDistance * 100) / 100;
+    }
+    return map;
+  }, [trainingSessions]);
 
   // 3. Group training sessions by Month and Monday~Sunday Weeks (All sorted descending by date)
   interface WeeklyGroup {
     weekKey: string;
     weekLabel: string;
     mondayDate: Date;
-    weeklyDistance: number;
+    weeklyDistance: number; // Combined total weekly distance
+    monthSessionDistance: number; // Distance run in this particular month
+    isCrossMonth?: boolean;
     sessions: TrainingSession[];
   }
 
   interface MonthlyGroup {
     monthKey: string;
     monthTitle: string;
+    month: number;
     monthDate: Date;
     totalDistance: number;
     totalSessionsCount: number;
@@ -307,16 +351,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     // Map: year -> monthKey -> month data
     const yearMonthMap: Record<
       number,
-      Record<string, { monthDate: Date; monthTitle: string; weeksMap: Record<string, WeeklyGroup> }>
+      Record<string, { monthDate: Date; monthTitle: string; month: number; weeksMap: Record<string, WeeklyGroup> }>
     > = {};
 
     for (const session of sorted) {
-      const d = new Date(session.date);
-      const year = !isNaN(d.getTime()) ? d.getFullYear() : 2026;
-      const month = !isNaN(d.getTime()) ? d.getMonth() + 1 : 1;
+      const { year, month } = parseDateParts(session.date);
       const monthKey = `${year}-${String(month).padStart(2, '0')}`;
       const monthTitle = `${year}년 ${month}월`;
-      const monthDate = new Date(year, month - 1, 1);
+      const monthDate = new Date(year, month - 1, 1, 12, 0, 0);
 
       if (!yearMonthMap[year]) {
         yearMonthMap[year] = {};
@@ -326,24 +368,28 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         yearMonthMap[year][monthKey] = {
           monthDate,
           monthTitle,
+          month,
           weeksMap: {},
         };
       }
 
-      const { weekKey, weekLabel, mondayDate } = getMondayToSundayWeekInfo(session.date);
+      const { weekKey, weekLabel, mondayDate, isCrossMonth } = getMondayToSundayWeekInfo(session.date);
+      const combinedWeeklyDist = globalWeeklyDistanceMap[weekKey]?.totalDistance || 0;
 
       if (!yearMonthMap[year][monthKey].weeksMap[weekKey]) {
         yearMonthMap[year][monthKey].weeksMap[weekKey] = {
           weekKey,
           weekLabel,
           mondayDate,
-          weeklyDistance: 0,
+          weeklyDistance: combinedWeeklyDist,
+          monthSessionDistance: 0,
+          isCrossMonth,
           sessions: [],
         };
       }
 
       yearMonthMap[year][monthKey].weeksMap[weekKey].sessions.push(session);
-      yearMonthMap[year][monthKey].weeksMap[weekKey].weeklyDistance += session.totalDistanceKm || 0;
+      yearMonthMap[year][monthKey].weeksMap[weekKey].monthSessionDistance += session.totalDistanceKm || 0;
     }
 
     // Convert to sorted YearlyGroup array descending by year
@@ -365,15 +411,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         // Within each week, sort sessions descending by date
         weeks.forEach((w) => {
           w.sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          w.weeklyDistance = Math.round(w.weeklyDistance * 100) / 100;
+          w.monthSessionDistance = Math.round(w.monthSessionDistance * 100) / 100;
+          w.weeklyDistance = globalWeeklyDistanceMap[w.weekKey]?.totalDistance || w.monthSessionDistance;
         });
 
-        const totalDist = weeks.reduce((sum, w) => sum + w.weeklyDistance, 0);
+        // Monthly total is the sum of sessions actually run in this month
+        const totalDist = weeks.reduce((sum, w) => sum + w.monthSessionDistance, 0);
         const totalSessions = weeks.reduce((sum, w) => sum + w.sessions.length, 0);
 
         return {
           monthKey: mKey,
           monthTitle: mData.monthTitle,
+          month: mData.month,
           monthDate: mData.monthDate,
           totalDistance: Math.round(totalDist * 100) / 100,
           totalSessionsCount: totalSessions,
@@ -395,7 +444,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
     });
 
     return yearlyResult;
-  }, [trainingSessions]);
+  }, [trainingSessions, globalWeeklyDistanceMap]);
 
   // Handle Save Records
   const handleSaveRecordsSubmit = async (e: React.FormEvent) => {
@@ -1693,8 +1742,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         >
                           {/* Monday ~ Sunday Week Header */}
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-2 border-b border-stone-200">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-emerald-700" />
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
                               <span className="text-xs font-bold text-stone-900">
                                 {weekGroup.weekLabel}
                               </span>
@@ -1702,7 +1751,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                 ({weekGroup.sessions.length}회 훈련)
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                            <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
                               <span className="text-[11px] text-stone-500">주간 마일리지:</span>
                               <span className="text-xs font-bold font-athletic text-emerald-900 px-2 py-0.5 rounded-md bg-emerald-100 border border-emerald-300">
                                 {weekGroup.weeklyDistance} km

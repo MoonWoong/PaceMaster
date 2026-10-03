@@ -2,17 +2,23 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { Header } from './components/Header';
 import { TabsNav, TabKey } from './components/TabsNav';
 import { TabMyInfo } from './components/TabMyInfo';
-import { TabRunningRecords } from './components/TabRunningRecords';
 import { SecurityPromptModal } from './components/SecurityPromptModal';
 import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
-import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
-import { DataBackupSection } from './components/DataBackupSection';
 
-// Code Splitting: Lazy-loaded heavy modules (Marathon Database, Modals, Pace Calculator)
+// Code Splitting: Lazy-load heavy sub-tabs, widgets & modals for instant initial page render
+const TabRunningRecords = React.lazy(() =>
+  import('./components/TabRunningRecords').then((m) => ({ default: m.TabRunningRecords }))
+);
 const TabMarathonRaces = React.lazy(() =>
   import('./components/TabMarathonRaces').then((m) => ({ default: m.TabMarathonRaces }))
+);
+const AnnualRunningHeatmap = React.lazy(() =>
+  import('./components/AnnualRunningHeatmap').then((m) => ({ default: m.AnnualRunningHeatmap }))
+);
+const DataBackupSection = React.lazy(() =>
+  import('./components/DataBackupSection').then((m) => ({ default: m.DataBackupSection }))
 );
 const PaceCalculatorModal = React.lazy(() =>
   import('./components/PaceCalculatorModal').then((m) => ({ default: m.PaceCalculatorModal }))
@@ -60,7 +66,14 @@ import {
   saveWeeklyPlan,
   getWeeklyPlanSettings,
   saveWeeklyPlanSettings,
+  DEFAULT_PHYSICAL,
+  DEFAULT_SHOES,
+  DEFAULT_RACES,
+  DEFAULT_RECORDS,
+  DEFAULT_GOALS,
+  DEFAULT_TRAINING_SESSIONS,
   DEFAULT_WEEKLY_PLAN_SETTINGS,
+  getLocalItem,
 } from './lib/firebase';
 import { estimateBestVDOT } from './lib/vdot';
 
@@ -69,40 +82,48 @@ export default function App() {
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
   const [isPaceCalcOpen, setIsPaceCalcOpen] = useState(false);
   const [isTodayWorkoutModalOpen, setIsTodayWorkoutModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // App State synced with DB
-  const [physicalInfo, setPhysicalInfo] = useState<PhysicalInfo>({
-    height: 176,
-    weight: 68.5,
-    age: 33,
-  });
-
-  const [shoes, setShoes] = useState<RunningShoe[]>([]);
-  const [races, setRaces] = useState<RegisteredRace[]>([]);
-  const [runningRecords, setRunningRecords] = useState<RunningRecords>({
-    pb5k: '00:20:45',
-    pb10k: '00:43:10',
-    pbHalf: '01:36:25',
-    pbFull: '03:24:50',
-    maxHr: 191,
-    thresholdHr: 172,
-  });
-  const [runningGoals, setRunningGoals] = useState<RunningGoals>({
-    target10k: '00:39:59',
-    targetHalf: '01:29:59',
-    targetFull: '03:09:59',
-  });
-  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>([]);
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanDay[]>([]);
-  const [weeklyPlanSettings, setWeeklyPlanSettings] = useState<WeeklyPlanSettings>(
-    DEFAULT_WEEKLY_PLAN_SETTINGS
+  // App State: Instant Synchronous Hydration from Local Storage (0ms initial load time)
+  const [physicalInfo, setPhysicalInfo] = useState<PhysicalInfo>(() =>
+    getLocalItem<PhysicalInfo>('physical', DEFAULT_PHYSICAL)
   );
 
-  // Load all data on mount asynchronously
+  const [shoes, setShoes] = useState<RunningShoe[]>(() =>
+    getLocalItem<RunningShoe[]>('shoes', DEFAULT_SHOES)
+  );
+  const [races, setRaces] = useState<RegisteredRace[]>(() =>
+    getLocalItem<RegisteredRace[]>('races', DEFAULT_RACES)
+  );
+  const [runningRecords, setRunningRecords] = useState<RunningRecords>(() =>
+    getLocalItem<RunningRecords>('records', DEFAULT_RECORDS)
+  );
+  const [runningGoals, setRunningGoals] = useState<RunningGoals>(() =>
+    getLocalItem<RunningGoals>('goals', DEFAULT_GOALS)
+  );
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>(() =>
+    getLocalItem<TrainingSession[]>('training_sessions', DEFAULT_TRAINING_SESSIONS)
+  );
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanDay[]>(() =>
+    getLocalItem<WeeklyPlanDay[]>('weekly_plan', [])
+  );
+  const [weeklyPlanSettings, setWeeklyPlanSettings] = useState<WeeklyPlanSettings>(() =>
+    getLocalItem<WeeklyPlanSettings>('weekly_plan_settings', DEFAULT_WEEKLY_PLAN_SETTINGS)
+  );
+
+  // Non-blocking background sync with Firestore (runs asynchronously without blocking UI)
   useEffect(() => {
-    async function loadData() {
+    let isMounted = true;
+    async function syncCloudData() {
+      setIsSyncing(true);
       try {
+        function fetchWithTimeout<T>(p: Promise<T>, fallback: T, ms = 5000): Promise<T> {
+          return Promise.race([
+            p,
+            new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+          ]);
+        }
+
         const [
           phys,
           shoeList,
@@ -113,32 +134,39 @@ export default function App() {
           planData,
           planSettingsData,
         ] = await Promise.all([
-          getPhysicalInfo(),
-          getShoes(),
-          getRaces(),
-          getRunningRecords(),
-          getRunningGoals(),
-          getTrainingSessions(),
-          getWeeklyPlan(),
-          getWeeklyPlanSettings(),
+          fetchWithTimeout(getPhysicalInfo(), physicalInfo),
+          fetchWithTimeout(getShoes(), shoes),
+          fetchWithTimeout(getRaces(), races),
+          fetchWithTimeout(getRunningRecords(), runningRecords),
+          fetchWithTimeout(getRunningGoals(), runningGoals),
+          fetchWithTimeout(getTrainingSessions(), trainingSessions),
+          fetchWithTimeout(getWeeklyPlan(), weeklyPlan),
+          fetchWithTimeout(getWeeklyPlanSettings(), weeklyPlanSettings),
         ]);
 
-        if (phys) setPhysicalInfo(phys);
-        if (shoeList) setShoes(shoeList);
-        if (raceList) setRaces(raceList);
-        if (recordsData) setRunningRecords(recordsData);
-        if (goalsData) setRunningGoals(goalsData);
-        if (sessionsData) setTrainingSessions(sessionsData);
-        if (planData) setWeeklyPlan(planData);
-        if (planSettingsData) setWeeklyPlanSettings(planSettingsData);
+        if (isMounted) {
+          if (phys) setPhysicalInfo(phys);
+          if (shoeList && shoeList.length > 0) setShoes(shoeList);
+          if (raceList && raceList.length > 0) setRaces(raceList);
+          if (recordsData) setRunningRecords(recordsData);
+          if (goalsData) setRunningGoals(goalsData);
+          if (sessionsData) setTrainingSessions(sessionsData);
+          if (planData) setWeeklyPlan(planData);
+          if (planSettingsData) setWeeklyPlanSettings(planSettingsData);
+        }
       } catch (err) {
-        console.error('Failed to load runner data from DB:', err);
+        console.warn('[Sync] Non-blocking cloud sync completed with notice:', err);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsSyncing(false);
+        }
       }
     }
 
-    loadData();
+    syncCloudData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Handlers for Physical Info
@@ -412,90 +440,95 @@ export default function App() {
 
         {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
         <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-white/95 border-b-2 border-x-2 border-emerald-600/30 shadow-xl mb-8 text-stone-800">
-          {isLoading ? (
-            <div className="glass-panel rounded-2xl p-12 text-center border border-emerald-500/20">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-3" />
-              <p className="text-sm text-stone-600">러닝 대시보드 데이터를 불러오는 중입니다...</p>
-            </div>
-          ) : (
-            <>
-              {activeTab === 'my_info' && (
-                <TabMyInfo
-                  physicalInfo={physicalInfo}
-                  shoes={shoes}
-                  races={races}
-                  sessions={trainingSessions}
-                  onSavePhysical={handleSavePhysical}
-                  onAddShoe={handleAddShoe}
-                  onUpdateShoe={handleUpdateShoe}
-                  onDeleteShoe={handleDeleteShoe}
-                  onResetShoes={handleResetShoes}
-                  onAddRace={handleAddRace}
-                  onDeleteRace={handleDeleteRace}
-                  onUpdateRace={handleUpdateRace}
-                />
-              )}
+          {activeTab === 'my_info' && (
+            <TabMyInfo
+              physicalInfo={physicalInfo}
+              shoes={shoes}
+              races={races}
+              sessions={trainingSessions}
+              onSavePhysical={handleSavePhysical}
+              onAddShoe={handleAddShoe}
+              onUpdateShoe={handleUpdateShoe}
+              onDeleteShoe={handleDeleteShoe}
+              onResetShoes={handleResetShoes}
+              onAddRace={handleAddRace}
+              onDeleteRace={handleDeleteRace}
+              onUpdateRace={handleUpdateRace}
+            />
+          )}
 
-              {activeTab === 'running_records' && (
-                <TabRunningRecords
-                  records={runningRecords}
-                  goals={runningGoals}
-                  trainingSessions={trainingSessions}
-                  weeklyPlan={weeklyPlan}
-                  weeklyPlanSettings={weeklyPlanSettings}
-                  shoes={shoes}
-                  races={races}
-                  onSaveRecords={handleSaveRecords}
-                  onSaveGoals={handleSaveGoals}
-                  onAddTrainingSession={handleAddTrainingSession}
-                  onAddBatchTrainingSessions={handleAddBatchTrainingSessions}
-                  onUpdateTrainingSession={handleUpdateTrainingSession}
-                  onDeleteTrainingSession={handleDeleteTrainingSession}
-                  onClearAllTrainingSessions={handleClearAllTrainingSessions}
-                  onSaveWeeklyPlan={handleSaveWeeklyPlan}
-                  onUpdateRace={handleUpdateRace}
-                  onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
-                  onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
-                  onNavigateToShoes={handleNavigateToShoes}
-                />
-              )}
+          {activeTab === 'running_records' && (
+            <Suspense
+              fallback={
+                <div className="py-20 text-center space-y-3">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-2" />
+                  <p className="text-sm font-bold text-stone-700">훈련 기록 대시보드를 불러오는 중입니다...</p>
+                  <p className="text-xs text-stone-500">러닝 세션 데이터 및 맞춤 훈련 계획을 준비합니다.</p>
+                </div>
+              }
+            >
+              <TabRunningRecords
+                records={runningRecords}
+                goals={runningGoals}
+                trainingSessions={trainingSessions}
+                weeklyPlan={weeklyPlan}
+                weeklyPlanSettings={weeklyPlanSettings}
+                shoes={shoes}
+                races={races}
+                onSaveRecords={handleSaveRecords}
+                onSaveGoals={handleSaveGoals}
+                onAddTrainingSession={handleAddTrainingSession}
+                onAddBatchTrainingSessions={handleAddBatchTrainingSessions}
+                onUpdateTrainingSession={handleUpdateTrainingSession}
+                onDeleteTrainingSession={handleDeleteTrainingSession}
+                onClearAllTrainingSessions={handleClearAllTrainingSessions}
+                onSaveWeeklyPlan={handleSaveWeeklyPlan}
+                onUpdateRace={handleUpdateRace}
+                onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
+                onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
+                onNavigateToShoes={handleNavigateToShoes}
+              />
+            </Suspense>
+          )}
 
-              {activeTab === 'marathon_races' && (
-                <Suspense
-                  fallback={
-                    <div className="py-20 text-center space-y-3">
-                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-2" />
-                      <p className="text-sm font-bold text-stone-700">전국 마라톤 대회 DB를 불러오는 중입니다...</p>
-                      <p className="text-xs text-stone-500">최신 다가오는 대회 일정 및 코스 정보를 동기화합니다.</p>
-                    </div>
-                  }
-                >
-                  <TabMarathonRaces
-                    onRegisterRaceToMyList={async (race) => {
-                      await handleAddRace(race);
-                    }}
-                  />
-                </Suspense>
-              )}
-            </>
+          {activeTab === 'marathon_races' && (
+            <Suspense
+              fallback={
+                <div className="py-20 text-center space-y-3">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-2" />
+                  <p className="text-sm font-bold text-stone-700">전국 마라톤 대회 DB를 불러오는 중입니다...</p>
+                  <p className="text-xs text-stone-500">최신 다가오는 대회 일정 및 코스 정보를 동기화합니다.</p>
+                </div>
+              }
+            >
+              <TabMarathonRaces
+                onRegisterRaceToMyList={async (race) => {
+                  await handleAddRace(race);
+                }}
+              />
+            </Suspense>
           )}
         </main>
 
         {/* Annual Running Activity Heatmap (GitHub Grass Contribution Graph) */}
-        <AnnualRunningHeatmap sessions={trainingSessions} />
+        <Suspense fallback={null}>
+          <AnnualRunningHeatmap sessions={trainingSessions} />
+        </Suspense>
 
         {/* Data Loss Prevention: Local JSON Export & Import Section */}
-        <DataBackupSection
-          physicalInfo={physicalInfo}
-          shoes={shoes}
-          races={races}
-          runningRecords={runningRecords}
-          runningGoals={runningGoals}
-          trainingSessions={trainingSessions}
-          weeklyPlan={weeklyPlan}
-          weeklyPlanSettings={weeklyPlanSettings}
-          onRestoreSuccess={handleRestoreSuccess}
-        />
+        <Suspense fallback={null}>
+          <DataBackupSection
+            physicalInfo={physicalInfo}
+            shoes={shoes}
+            races={races}
+            runningRecords={runningRecords}
+            runningGoals={runningGoals}
+            trainingSessions={trainingSessions}
+            weeklyPlan={weeklyPlan}
+            weeklyPlanSettings={weeklyPlanSettings}
+            onRestoreSuccess={handleRestoreSuccess}
+          />
+        </Suspense>
 
         {/* Footer */}
         <footer className="w-full text-center py-6 text-xs text-stone-600 border-t border-emerald-900/15">

@@ -356,6 +356,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   const shoeMetrics = useMemo(() => {
     const totalShoes = analyzedShoes.length;
     const totalMileage = Math.round(analyzedShoes.reduce((sum, s) => sum + s.effectiveMileage, 0) * 10) / 10;
+    const totalMaxMileage = Math.round(analyzedShoes.reduce((sum, s) => sum + s.effectiveMaxMileage, 0) * 10) / 10;
     const overdueCount = analyzedShoes.filter((s) => s.status === 'overdue').length;
     const nearLimitCount = analyzedShoes.filter((s) => s.status === 'near_limit').length;
     const warningCount = analyzedShoes.filter((s) => s.status === 'warning').length;
@@ -363,21 +364,23 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     const urgentCount = overdueCount + nearLimitCount;
     const safeCount = optimalCount + warningCount;
 
-    const avgWearPct =
-      totalShoes > 0
-        ? Math.round(analyzedShoes.reduce((sum, s) => sum + s.wearPct, 0) / totalShoes)
+    const totalWearPct =
+      totalMaxMileage > 0
+        ? Math.round((totalMileage / totalMaxMileage) * 100)
         : 0;
 
     return {
       totalShoes,
       totalMileage,
+      totalMaxMileage,
       overdueCount,
       nearLimitCount,
       warningCount,
       optimalCount,
       urgentCount,
       safeCount,
-      avgWearPct,
+      totalWearPct,
+      avgWearPct: totalWearPct,
     };
   }, [analyzedShoes]);
 
@@ -608,18 +611,18 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
           <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
             <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
-              <span>평균 수명 소진율</span>
+              <span>전체 수명 소진율</span>
               <BarChart3 className="w-4 h-4 text-emerald-700" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-stone-900 font-mono">
-              {shoeMetrics.avgWearPct} <span className="text-xs font-normal text-stone-500">%</span>
+              {shoeMetrics.totalWearPct} <span className="text-xs font-normal text-stone-500">%</span>
             </div>
             <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden mt-1.5">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
-                  shoeMetrics.avgWearPct >= 80 ? 'bg-amber-500' : 'bg-emerald-600'
+                  shoeMetrics.totalWearPct >= 80 ? 'bg-amber-500' : 'bg-emerald-600'
                 }`}
-                style={{ width: `${Math.min(shoeMetrics.avgWearPct, 100)}%` }}
+                style={{ width: `${Math.min(shoeMetrics.totalWearPct, 100)}%` }}
               />
             </div>
           </div>

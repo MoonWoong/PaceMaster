@@ -13,6 +13,9 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   Firestore,
   doc,
   getDoc,
@@ -96,16 +99,32 @@ const activeConfig = getActiveFirebaseConfig();
 if (activeConfig && activeConfig.projectId) {
   try {
     firebaseAppInstance = getApps().length > 0 ? getApp() : initializeApp(activeConfig);
-    // Initialize Firestore with specific database ID if configured, or default
-    if (provisionedConfig.firestoreDatabaseId && provisionedConfig.firestoreDatabaseId !== '(default)') {
-      firestoreInstance = getFirestore(firebaseAppInstance, provisionedConfig.firestoreDatabaseId);
-    } else {
-      firestoreInstance = getFirestore(firebaseAppInstance);
+    const dbId =
+      provisionedConfig.firestoreDatabaseId && provisionedConfig.firestoreDatabaseId !== '(default)'
+        ? provisionedConfig.firestoreDatabaseId
+        : undefined;
+
+    // Use persistent local cache (IndexedDB) for near-instant offline & cached queries
+    try {
+      firestoreInstance = initializeFirestore(
+        firebaseAppInstance,
+        {
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          }),
+        },
+        dbId
+      );
+    } catch {
+      firestoreInstance = dbId
+        ? getFirestore(firebaseAppInstance, dbId)
+        : getFirestore(firebaseAppInstance);
     }
+
     isFirebaseConnected = true;
     console.log('[Firebase] Cloud Firestore initialized with projectId:', activeConfig.projectId);
 
-    // Validate server connection (per Firebase skill guidelines)
+    // Validate server connection asynchronously in background without blocking
     getDocFromServer(doc(firestoreInstance, 'test', 'connection'))
       .catch((err) => {
         // Document doesn't need to exist; catching network error only
@@ -136,7 +155,7 @@ export function getDbConnectionStatus(): {
 /* ============================================================================
  * Initial Seed Data for immediate preview and testing
  * ============================================================================ */
-const DEFAULT_PHYSICAL: PhysicalInfo = {
+export const DEFAULT_PHYSICAL: PhysicalInfo = {
   height: 176,
   weight: 68.5,
   age: 33,
@@ -145,7 +164,7 @@ const DEFAULT_PHYSICAL: PhysicalInfo = {
 
 export const DEFAULT_SHOES: RunningShoe[] = INITIAL_RUNNING_SHOES;
 
-const DEFAULT_RACES: RegisteredRace[] = [
+export const DEFAULT_RACES: RegisteredRace[] = [
   {
     id: 'race-1',
     name: '2026 JTBC 서울 마라톤',
@@ -187,7 +206,7 @@ const DEFAULT_RACES: RegisteredRace[] = [
   },
 ];
 
-const DEFAULT_RECORDS: RunningRecords = {
+export const DEFAULT_RECORDS: RunningRecords = {
   pb5k: '00:20:45',
   pb10k: '00:43:10',
   pbHalf: '01:36:25',
@@ -197,7 +216,7 @@ const DEFAULT_RECORDS: RunningRecords = {
   updatedAt: new Date().toISOString(),
 };
 
-const DEFAULT_GOALS: RunningGoals = {
+export const DEFAULT_GOALS: RunningGoals = {
   target10k: '00:39:59',
   targetHalf: '01:29:59',
   targetFull: '03:09:59',
@@ -205,10 +224,10 @@ const DEFAULT_GOALS: RunningGoals = {
   updatedAt: new Date().toISOString(),
 };
 
-const DEFAULT_TRAINING_SESSIONS: TrainingSession[] = [];
+export const DEFAULT_TRAINING_SESSIONS: TrainingSession[] = [];
 
-/* Helper for local fallback persistence */
-function getLocalItem<T>(key: string, defaultVal: T): T {
+/* Helper for local fallback persistence & instant optimistic hydration */
+export function getLocalItem<T>(key: string, defaultVal: T): T {
   try {
     if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
       const s = window.localStorage.getItem(`pace_master_${key}`);
@@ -220,7 +239,7 @@ function getLocalItem<T>(key: string, defaultVal: T): T {
   }
 }
 
-function setLocalItem<T>(key: string, val: T): void {
+export function setLocalItem<T>(key: string, val: T): void {
   try {
     if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
       window.localStorage.setItem(`pace_master_${key}`, JSON.stringify(val));
@@ -315,7 +334,9 @@ export async function getShoes(): Promise<RunningShoe[]> {
       const colRef = collection(firestoreInstance, 'shoes');
       const snap = await getDocs(colRef);
       if (!snap.empty) {
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() } as RunningShoe));
+        const shoesList = snap.docs.map((d) => ({ id: d.id, ...d.data() } as RunningShoe));
+        setLocalItem('shoes', shoesList);
+        return shoesList;
       }
     } catch (e) {
       console.warn('Firestore getShoes failed, reading local', e);
@@ -415,9 +436,11 @@ export async function getRaces(): Promise<RegisteredRace[]> {
     try {
       const snap = await getDocs(collection(firestoreInstance, 'races'));
       if (!snap.empty) {
-        return snap.docs
+        const raceList = snap.docs
           .map((d) => ({ id: d.id, ...d.data() } as RegisteredRace))
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        setLocalItem('races', raceList);
+        return raceList;
       }
     } catch (e) {
       console.warn('Firestore getRaces failed, reading local', e);
@@ -505,7 +528,9 @@ export async function getRunningRecords(): Promise<RunningRecords> {
     try {
       const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'records'));
       if (snap.exists()) {
-        return snap.data() as RunningRecords;
+        const records = snap.data() as RunningRecords;
+        setLocalItem('records', records);
+        return records;
       }
     } catch (e) {
       console.warn('Firestore getRunningRecords failed, reading local', e);
@@ -535,7 +560,9 @@ export async function getRunningGoals(): Promise<RunningGoals> {
     try {
       const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'goals'));
       if (snap.exists()) {
-        return snap.data() as RunningGoals;
+        const goals = snap.data() as RunningGoals;
+        setLocalItem('goals', goals);
+        return goals;
       }
     } catch (e) {
       console.warn('Firestore getRunningGoals failed, reading local', e);
@@ -565,9 +592,11 @@ export async function getTrainingSessions(): Promise<TrainingSession[]> {
     try {
       const snap = await getDocs(collection(firestoreInstance, 'training_sessions'));
       if (!snap.empty) {
-        return snap.docs
+        const sessions = snap.docs
           .map((d) => ({ id: d.id, ...d.data() } as TrainingSession))
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setLocalItem('training_sessions', sessions);
+        return sessions;
       }
     } catch (e) {
       console.warn('Firestore getTrainingSessions failed, reading local', e);
@@ -757,7 +786,9 @@ export async function getWeeklyPlanSettings(): Promise<WeeklyPlanSettings> {
     try {
       const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'));
       if (snap.exists() && snap.data().settings) {
-        return snap.data().settings as WeeklyPlanSettings;
+        const settings = snap.data().settings as WeeklyPlanSettings;
+        setLocalItem('weekly_plan_settings', settings);
+        return settings;
       }
     } catch (e) {
       console.warn('Firestore getWeeklyPlanSettings failed, reading local', e);
@@ -794,7 +825,9 @@ export async function getWeeklyPlan(): Promise<WeeklyPlanDay[]> {
     try {
       const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'weekly_plan'));
       if (snap.exists() && snap.data().days) {
-        return snap.data().days as WeeklyPlanDay[];
+        const plan = snap.data().days as WeeklyPlanDay[];
+        setLocalItem('weekly_plan', plan);
+        return plan;
       }
     } catch (e) {
       console.warn('Firestore getWeeklyPlan failed, reading local', e);

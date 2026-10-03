@@ -140,15 +140,16 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
   const metrics = useMemo(() => {
     const totalShoes = analyzedShoes.length;
     const totalMileage = Math.round(analyzedShoes.reduce((sum, s) => sum + s.effectiveMileage, 0) * 10) / 10;
+    const totalMaxMileage = Math.round(analyzedShoes.reduce((sum, s) => sum + s.effectiveMaxMileage, 0) * 10) / 10;
     const overdueCount = analyzedShoes.filter((s) => s.status === 'overdue').length;
     const nearLimitCount = analyzedShoes.filter((s) => s.status === 'near_limit').length;
     const warningCount = analyzedShoes.filter((s) => s.status === 'warning').length;
     const optimalCount = analyzedShoes.filter((s) => s.status === 'optimal').length;
     const urgentCount = overdueCount + nearLimitCount;
 
-    const avgWearPct =
-      totalShoes > 0
-        ? Math.round(analyzedShoes.reduce((sum, s) => sum + s.wearPct, 0) / totalShoes)
+    const totalWearPct =
+      totalMaxMileage > 0
+        ? Math.round((totalMileage / totalMaxMileage) * 100)
         : 0;
 
     // Mileage by Category
@@ -170,12 +171,14 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
     return {
       totalShoes,
       totalMileage,
+      totalMaxMileage,
       overdueCount,
       nearLimitCount,
       warningCount,
       optimalCount,
       urgentCount,
-      avgWearPct,
+      totalWearPct,
+      avgWearPct: totalWearPct,
       categoryMileage,
     };
   }, [analyzedShoes]);
@@ -378,22 +381,22 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
           </div>
         </div>
 
-        {/* Metric 2: Average Wear Rate */}
+        {/* Metric 2: Total Wear Rate */}
         <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
           <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
-            <span>평균 수명 소진율</span>
+            <span>전체 수명 소진율</span>
             <BarChart3 className="w-4 h-4 text-emerald-700" />
           </div>
           <div className="text-xl sm:text-2xl font-black text-stone-900 font-mono">
-            {metrics.avgWearPct} <span className="text-xs font-normal text-stone-500">%</span>
+            {metrics.totalWearPct} <span className="text-xs font-normal text-stone-500">%</span>
           </div>
           {/* Miniature Progress Bar */}
           <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden mt-1.5">
             <div
               className={`h-full rounded-full transition-all duration-700 ${
-                metrics.avgWearPct >= 80 ? 'bg-orange-500' : metrics.avgWearPct >= 50 ? 'bg-amber-400' : 'bg-emerald-600'
+                metrics.totalWearPct >= 80 ? 'bg-orange-500' : metrics.totalWearPct >= 50 ? 'bg-amber-400' : 'bg-emerald-600'
               }`}
-              style={{ width: `${Math.min(metrics.avgWearPct, 100)}%` }}
+              style={{ width: `${Math.min(metrics.totalWearPct, 100)}%` }}
             />
           </div>
         </div>

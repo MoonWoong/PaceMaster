@@ -217,63 +217,111 @@ export function getDailyForecastRunnerAdvice(
 // Global weather context for shared state between header widget and 3-day forecast summary
 const WeatherContext = createContext<WeatherContextValue | null>(null);
 
+const WEATHER_STORAGE_KEY = 'pace_master_weather_cache_v2';
+
+interface StoredWeatherData {
+  currentWeather: CurrentWeatherData;
+  dailyForecast: Omit<DailyForecastItem, 'icon'>[];
+  locationName: string;
+  cachedAt: number;
+}
+
+function getStoredWeather(): {
+  currentWeather: CurrentWeatherData | null;
+  dailyForecast: DailyForecastItem[];
+  locationName: string;
+} {
+  try {
+    if (typeof window === 'undefined') return { currentWeather: null, dailyForecast: [], locationName: '서울' };
+    const raw = window.localStorage.getItem(WEATHER_STORAGE_KEY);
+    if (!raw) return { currentWeather: null, dailyForecast: [], locationName: '서울' };
+    const parsed: StoredWeatherData = JSON.parse(raw);
+    const now = Date.now();
+    // Reconstruct DailyForecastItem with React icon components
+    const reconstructedForecast: DailyForecastItem[] = (parsed.dailyForecast || []).map((item) => {
+      const conf = getWeatherConfig(item.weatherCode);
+      return {
+        ...item,
+        icon: conf.icon,
+        iconColor: conf.iconColor,
+        badgeBg: conf.badgeBg,
+      };
+    });
+    return {
+      currentWeather: parsed.currentWeather,
+      dailyForecast: reconstructedForecast,
+      locationName: parsed.locationName || '서울',
+    };
+  } catch {
+    return { currentWeather: null, dailyForecast: [], locationName: '서울' };
+  }
+}
+
 export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData | null>(null);
-  const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>([]);
-  const [locationName, setLocationName] = useState<string>('서울');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const initialCache = getStoredWeather();
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeatherData | null>(initialCache.currentWeather);
+  const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>(initialCache.dailyForecast);
+  const [locationName, setLocationName] = useState<string>(initialCache.locationName);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialCache.currentWeather);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchWeather = async () => {
-    setIsLoading(true);
+    // Only set loading to true if we do not already have cached weather
+    if (!currentWeather) {
+      setIsLoading(true);
+    }
     let lat = 37.5665;
     let lon = 126.978;
-    let loc = '서울';
+    let loc = locationName || '서울';
 
-    // Try browser geolocation if permitted
+    // Try browser geolocation with short timeout (1500ms max) so it never blocks page speed
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 3500,
-            maximumAge: 1000 * 60 * 15,
+            timeout: 1500,
+            maximumAge: 1000 * 60 * 30,
           });
         });
         lat = pos.coords.latitude;
         lon = pos.coords.longitude;
         loc = '내 위치';
-      } catch (e) {
-        lat = 37.5665;
-        lon = 126.978;
-        loc = '서울';
+      } catch {
+        // Fallback to default coordinates on error/timeout
       }
     }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(
           4
-        )}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=4&timezone=auto`
+        )}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=4&timezone=auto`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error('기상청 예보 데이터를 불러오지 못했습니다');
       const data = await res.json();
 
+      let newCurrentWeather: CurrentWeatherData | null = null;
       if (data.current) {
-        setCurrentWeather({
+        newCurrentWeather = {
           temp: Math.round(data.current.temperature_2m * 10) / 10,
           feelsLike: Math.round(data.current.apparent_temperature * 10) / 10,
           humidity: Math.round(data.current.relative_humidity_2m),
           weatherCode: data.current.weather_code,
           windSpeed: Math.round(data.current.wind_speed_10m * 10) / 10,
           time: data.current.time,
-        });
+        };
+        setCurrentWeather(newCurrentWeather);
       }
 
+      let forecastList: DailyForecastItem[] = [];
       if (data.daily && data.daily.time && data.daily.time.length > 0) {
         const dayNames = ['오늘', '내일', '모레'];
         const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
 
-        const forecastList: DailyForecastItem[] = [];
         for (let i = 0; i < Math.min(3, data.daily.time.length); i++) {
           const timeStr = data.daily.time[i];
           const d = new Date(timeStr + 'T00:00:00');
@@ -312,6 +360,17 @@ export const WeatherProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       setLocationName(loc);
       setLastUpdated(new Date());
+
+      // Save to localStorage cache for instant zero-lag reload
+      if (newCurrentWeather && forecastList.length > 0 && typeof window !== 'undefined') {
+        const toCache: StoredWeatherData = {
+          currentWeather: newCurrentWeather,
+          dailyForecast: forecastList.map(({ icon, ...rest }) => rest),
+          locationName: loc,
+          cachedAt: Date.now(),
+        };
+        window.localStorage.setItem(WEATHER_STORAGE_KEY, JSON.stringify(toCache));
+      }
     } catch (err) {
       console.warn('Weather fetch error:', err);
       // Fallback mock weather if offline
