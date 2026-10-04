@@ -7,31 +7,14 @@ import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
 
-// Code Splitting: Lazy-load heavy sub-tabs, widgets & modals for instant initial page render
-const TabRunningRecords = React.lazy(() =>
-  import('./components/TabRunningRecords').then((m) => ({ default: m.TabRunningRecords }))
-);
-const TabMarathonRaces = React.lazy(() =>
-  import('./components/TabMarathonRaces').then((m) => ({ default: m.TabMarathonRaces }))
-);
-const TabTrainingPlan = React.lazy(() =>
-  import('./components/TabTrainingPlan').then((m) => ({ default: m.TabTrainingPlan }))
-);
-const AnnualRunningHeatmap = React.lazy(() =>
-  import('./components/AnnualRunningHeatmap').then((m) => ({ default: m.AnnualRunningHeatmap }))
-);
-const DataBackupSection = React.lazy(() =>
-  import('./components/DataBackupSection').then((m) => ({ default: m.DataBackupSection }))
-);
-const PaceCalculatorModal = React.lazy(() =>
-  import('./components/PaceCalculatorModal').then((m) => ({ default: m.PaceCalculatorModal }))
-);
-const FirebaseConfigModal = React.lazy(() =>
-  import('./components/FirebaseConfigModal').then((m) => ({ default: m.FirebaseConfigModal }))
-);
-const TodayWorkoutLoggerModal = React.lazy(() =>
-  import('./components/TodayWorkoutLoggerModal').then((m) => ({ default: m.TodayWorkoutLoggerModal }))
-);
+import { TabRunningRecords } from './components/TabRunningRecords';
+import { TabMarathonRaces } from './components/TabMarathonRaces';
+import { TabTrainingPlan } from './components/TabTrainingPlan';
+import { AnnualRunningHeatmap } from './components/AnnualRunningHeatmap';
+import { DataBackupSection } from './components/DataBackupSection';
+import { PaceCalculatorModal } from './components/PaceCalculatorModal';
+import { FirebaseConfigModal } from './components/FirebaseConfigModal';
+import { TodayWorkoutLoggerModal } from './components/TodayWorkoutLoggerModal';
 
 import {
   PhysicalInfo,
@@ -274,6 +257,19 @@ export default function App() {
     }, 100);
   };
 
+  const handleNavigateToPlan = () => {
+    setActiveTab('training_plan');
+    setTimeout(() => {
+      const el = document.getElementById('training-plan-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.focus();
+        el.classList.add('ring-2', 'ring-emerald-500');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-500'), 2500);
+      }
+    }, 120);
+  };
+
   const handleNavigateToShoes = () => {
     setActiveTab('my_info');
     setTimeout(() => {
@@ -451,7 +447,7 @@ export default function App() {
           records={runningRecords}
           onNavigateToRaces={handleNavigateToRaces}
           onNavigateToGoals={handleNavigateToGoals}
-          onNavigateToPlan={() => setActiveTab('training_plan')}
+          onNavigateToPlan={handleNavigateToPlan}
           onUpdateRace={handleUpdateRace}
         />
 

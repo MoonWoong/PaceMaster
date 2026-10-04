@@ -247,6 +247,32 @@ export interface TrainingPlanPeriodSettings {
   updatedAt?: string;
 }
 
+export interface PlanFitnessAudit {
+  fitScore: number; // 0 ~ 100
+  fitGrade: '최적 정합성' | '우수' | '적정' | '주의' | '과부하 위험';
+  currentVdot: number;
+  targetVdot: number;
+  vdotGap: number;
+  requiredMonthlyVdotGain: number;
+  feasibilityAssessment: string;
+  targetPaceFormatted: string;
+  currentEstimatedPaceFormatted: string;
+  paceGapSeconds: number;
+  baselineWeeklyKm: number;
+  peakWeeklyKm: number;
+  recommendedPeakKmRange: string;
+  peakLsdKm: number;
+  recommendedLsdKmRange: string;
+  auditDetails: {
+    category: '주간 마일리지' | '포인트 강도' | 'LSD 장거리' | '주기화 및 회복';
+    status: '최적' | '적정' | '주의';
+    title: string;
+    summary: string;
+    recommendation: string;
+  }[];
+  coachingSummary: string;
+}
+
 export interface ComprehensiveTrainingPlan {
   id: string;
   createdAt: string;
@@ -273,6 +299,7 @@ export interface ComprehensiveTrainingPlan {
     acwrValue: number;
     fatigueRisk: string;
   };
+  fitnessAudit?: PlanFitnessAudit;
 }
 
 export interface MarathonEvent {

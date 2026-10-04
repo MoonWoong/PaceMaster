@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -9,6 +11,39 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
+
+// Always return valid JS for service-worker requests to prevent 'text/html' MIME type errors
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (p === '/sw.js' || p === '/service-worker.js' || p.includes('sw.js') || p.includes('worker.js')) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    return res.send('self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("activate",e=>e.waitUntil(self.registration.unregister()));');
+  }
+
+  // Intercept asset requests (prevents returning text/html when browser requests cached assets from production in dev mode)
+  if (req.path.startsWith('/assets/')) {
+    const distAsset = path.join(process.cwd(), 'dist', req.path);
+    if (fs.existsSync(distAsset)) {
+      if (req.path.endsWith('.js') || req.path.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      } else if (req.path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      }
+      return res.sendFile(distAsset);
+    }
+    // If a .js/.mjs asset is not found, never return text/html! Send valid JS that reloads to fresh version
+    if (req.path.endsWith('.js') || req.path.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      return res.send('console.warn("Stale chunk requested: ' + req.path + ' - refreshing to latest bundle"); window.location.reload();');
+    }
+    if (req.path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=utf-8');
+      return res.send('/* CSS asset not found */');
+    }
+  }
+
+  next();
+});
 
 // Server-side Gemini client utility
 const getAiClient = () => {
@@ -347,6 +382,14 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     app.use(express.static('dist'));
+    // If a request was for an asset (e.g. /assets/*.js, *.css) that was not found, return 404, NEVER index.html!
+    app.use('/assets', (_req, res) => {
+      res.status(404).setHeader('Content-Type', 'text/plain').send('Asset not found');
+    });
+    // For any missing .js/.mjs/.ts request, return 404 with JS content type, never text/html
+    app.get(/\.(js|mjs|ts|tsx)$/, (_req, res) => {
+      res.status(404).setHeader('Content-Type', 'application/javascript; charset=utf-8').send('/* 404 Not Found */');
+    });
     app.get('*', (_req, res) => {
       res.sendFile('dist/index.html', { root: '.' });
     });

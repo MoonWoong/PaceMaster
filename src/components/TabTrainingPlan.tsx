@@ -44,12 +44,102 @@ import {
   generateComprehensivePlan,
   formatDate,
   getMonday,
+  getTodayDateStr,
+  getNextMondayStr,
+  parseLocalDate,
   parseCourseKm,
   calculateSpecificRacePace,
   DayOfWeek,
 } from '../lib/comprehensivePlanGenerator';
 import { parseTimeToSeconds, formatSecondsToTime, formatPace } from '../lib/vdot';
 import { verifyRunnerSecurityKey } from '../lib/security';
+
+const STORAGE_KEY_PLAN_SETTINGS = 'pacemaster_training_plan_settings';
+
+export interface StoredPlanSettings {
+  durationPreset: 'to_target_race' | '4weeks' | '8weeks' | '12weeks' | '16weeks' | 'custom';
+  startDateMode: 'today' | 'next_monday' | 'custom';
+  startDate: string;
+  endDate: string;
+  goalMode: 'race' | 'target_goal' | 'continuous_progression';
+  targetRaceId: string;
+  targetCourse: string;
+  customDistanceKm: string;
+  targetTime: string;
+  targetPace: string;
+  trainingDays: DayOfWeek[];
+  speedDay: DayOfWeek | '없음';
+  speedWorkoutTypes: SpeedWorkoutType[];
+  longRunDay: DayOfWeek | '없음';
+  baseWeeklyKm: string;
+  updatedAt?: string;
+}
+
+const loadStoredPlanSettings = (
+  savedPlan: ComprehensiveTrainingPlan | null,
+  nearestTargetRace: RegisteredRace | undefined
+): StoredPlanSettings => {
+  let fromStorage: Partial<StoredPlanSettings> | null = null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_PLAN_SETTINGS);
+    if (raw) {
+      fromStorage = JSON.parse(raw);
+    }
+  } catch (e) {
+    console.warn('Failed to parse saved plan settings from localStorage', e);
+  }
+
+  const s = savedPlan?.settings;
+  const today = getTodayDateStr();
+  const nextMon = getNextMondayStr();
+
+  // Determine start date and mode
+  let startMode: 'today' | 'next_monday' | 'custom' = fromStorage?.startDateMode || 'next_monday';
+  let initialStartDate = nextMon;
+
+  if (startMode === 'today') {
+    initialStartDate = today;
+  } else if (startMode === 'next_monday') {
+    initialStartDate = nextMon;
+  } else if (fromStorage?.startDate && fromStorage.startDate >= today) {
+    initialStartDate = fromStorage.startDate;
+  } else if (s?.startDate && s.startDate >= today) {
+    initialStartDate = s.startDate;
+  }
+
+  const goalMode = fromStorage?.goalMode || s?.goalMode || (nearestTargetRace ? 'race' : 'continuous_progression');
+  const targetRaceId = fromStorage?.targetRaceId !== undefined ? fromStorage.targetRaceId : (s?.targetRaceId || nearestTargetRace?.id || '');
+  const targetCourse = fromStorage?.targetCourse || s?.targetCourse || nearestTargetRace?.course || '10K';
+  const customDistanceKm = fromStorage?.customDistanceKm || '10';
+  const targetTime = fromStorage?.targetTime || s?.targetTime || nearestTargetRace?.targetTime || '00:59:59';
+  const targetPace = fromStorage?.targetPace || s?.targetPace || "5'59\"";
+  const durationPreset = fromStorage?.durationPreset || s?.durationPreset || (nearestTargetRace ? 'to_target_race' : '12weeks');
+  const endDate = fromStorage?.endDate || s?.endDate || '';
+  const trainingDays = fromStorage?.trainingDays || s?.trainingDays || ['화요일', '목요일', '토요일', '일요일'];
+  const speedDay = fromStorage?.speedDay !== undefined ? fromStorage.speedDay : (s?.speedDay !== undefined ? s.speedDay : '화요일');
+  const speedWorkoutTypes = fromStorage?.speedWorkoutTypes || s?.speedWorkoutTypes || ['인터벌', '언덕훈련', '템포런'];
+  const longRunDay = fromStorage?.longRunDay !== undefined ? fromStorage.longRunDay : (s?.longRunDay !== undefined ? s.longRunDay : '일요일');
+  const baseWeeklyKm = fromStorage?.baseWeeklyKm || (s?.baseWeeklyKm ? String(s.baseWeeklyKm) : '36');
+
+  return {
+    durationPreset,
+    startDateMode: startMode,
+    startDate: initialStartDate,
+    endDate,
+    goalMode,
+    targetRaceId,
+    targetCourse,
+    customDistanceKm,
+    targetTime,
+    targetPace,
+    trainingDays,
+    speedDay,
+    speedWorkoutTypes,
+    longRunDay,
+    baseWeeklyKm,
+    updatedAt: fromStorage?.updatedAt || s?.updatedAt,
+  };
+};
 
 interface TabTrainingPlanProps {
   currentVDOT: number;
@@ -115,6 +205,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   // Active Week Selection
   const [selectedWeekIdx, setSelectedWeekIdx] = useState<number>(0);
 
+  // Goal & Fitness Audit Panel expansion state
+  const [isAuditExpanded, setIsAuditExpanded] = useState<boolean>(true);
+
   // Active Month for Monthly View
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(() => new Date());
 
@@ -127,45 +220,92 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     return upcoming.find((r) => r.isTarget || r.priority === 'A') || upcoming[0];
   }, [races]);
 
-  // Form State for Plan Generation
+  // Form State for Plan Generation (restored from recent settings)
+  const initialLoadedSettings = useMemo(() => {
+    return loadStoredPlanSettings(savedPlan, nearestTargetRace);
+  }, [savedPlan, nearestTargetRace]);
+
   const [formDurationPreset, setFormDurationPreset] = useState<
     'to_target_race' | '4weeks' | '8weeks' | '12weeks' | '16weeks' | 'custom'
-  >(nearestTargetRace ? 'to_target_race' : '12weeks');
-  const [formStartDate, setFormStartDate] = useState<string>(() => formatDate(getMonday(new Date())));
-  const [formEndDate, setFormEndDate] = useState<string>('');
+  >(() => initialLoadedSettings.durationPreset);
+  const [formStartDateMode, setFormStartDateMode] = useState<'today' | 'next_monday' | 'custom'>(
+    () => initialLoadedSettings.startDateMode
+  );
+  const [formStartDate, setFormStartDate] = useState<string>(() => initialLoadedSettings.startDate);
+  const [formEndDate, setFormEndDate] = useState<string>(() => initialLoadedSettings.endDate);
   const [formGoalMode, setFormGoalMode] = useState<'race' | 'target_goal' | 'continuous_progression'>(
-    nearestTargetRace ? 'race' : 'continuous_progression'
+    () => initialLoadedSettings.goalMode
   );
-  const [formTargetRaceId, setFormTargetRaceId] = useState<string>(nearestTargetRace?.id || '');
+  const [formTargetRaceId, setFormTargetRaceId] = useState<string>(() => initialLoadedSettings.targetRaceId);
   const [formTargetCourse, setFormTargetCourse] = useState<string>(
-    nearestTargetRace?.course || '10K'
+    () => initialLoadedSettings.targetCourse
   );
-  const [formCustomDistanceKm, setFormCustomDistanceKm] = useState<string>('10');
-  const [formTargetTime, setFormTargetTime] = useState<string>(() => {
-    if (nearestTargetRace?.targetTime) return nearestTargetRace.targetTime;
-    return '00:59:59';
-  });
-  const [formTargetPace, setFormTargetPace] = useState<string>(() => {
-    const dist = parseCourseKm(nearestTargetRace?.course || '10K');
-    const time = nearestTargetRace?.targetTime || '00:59:59';
-    const totalSec = parseTimeToSeconds(time);
-    return totalSec > 0 && dist > 0 ? formatPace(totalSec / dist) : "5'59\"";
-  });
-  const [formTrainingDays, setFormTrainingDays] = useState<DayOfWeek[]>([
-    '화요일',
-    '목요일',
-    '토요일',
-    '일요일',
-  ]);
-  const [formSpeedDay, setFormSpeedDay] = useState<DayOfWeek | '없음'>('화요일');
+  const [formCustomDistanceKm, setFormCustomDistanceKm] = useState<string>(() => initialLoadedSettings.customDistanceKm);
+  const [formTargetTime, setFormTargetTime] = useState<string>(() => initialLoadedSettings.targetTime);
+  const [formTargetPace, setFormTargetPace] = useState<string>(() => initialLoadedSettings.targetPace);
+  const [formTrainingDays, setFormTrainingDays] = useState<DayOfWeek[]>(() => initialLoadedSettings.trainingDays);
+  const [formSpeedDay, setFormSpeedDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.speedDay);
   // Multi-selection speed workout types:
-  const [formSpeedTypes, setFormSpeedTypes] = useState<SpeedWorkoutType[]>([
-    '인터벌',
-    '언덕훈련',
-    '템포런',
+  const [formSpeedTypes, setFormSpeedTypes] = useState<SpeedWorkoutType[]>(() => initialLoadedSettings.speedWorkoutTypes);
+  const [formLongRunDay, setFormLongRunDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.longRunDay);
+  const [formBaseWeeklyKm, setFormBaseWeeklyKm] = useState<string>(() => initialLoadedSettings.baseWeeklyKm);
+
+  // Helper to persist current form state to localStorage
+  const persistCurrentFormSettings = (override?: Partial<StoredPlanSettings>) => {
+    const updated: StoredPlanSettings = {
+      durationPreset: override?.durationPreset ?? formDurationPreset,
+      startDateMode: override?.startDateMode ?? formStartDateMode,
+      startDate: override?.startDate ?? formStartDate,
+      endDate: override?.endDate ?? formEndDate,
+      goalMode: override?.goalMode ?? formGoalMode,
+      targetRaceId: override?.targetRaceId ?? formTargetRaceId,
+      targetCourse: override?.targetCourse ?? formTargetCourse,
+      customDistanceKm: override?.customDistanceKm ?? formCustomDistanceKm,
+      targetTime: override?.targetTime ?? formTargetTime,
+      targetPace: override?.targetPace ?? formTargetPace,
+      trainingDays: override?.trainingDays ?? formTrainingDays,
+      speedDay: override?.speedDay ?? formSpeedDay,
+      speedWorkoutTypes: override?.speedWorkoutTypes ?? formSpeedTypes,
+      longRunDay: override?.longRunDay ?? formLongRunDay,
+      baseWeeklyKm: override?.baseWeeklyKm ?? formBaseWeeklyKm,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY_PLAN_SETTINGS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save plan settings to localStorage', e);
+    }
+  };
+
+  // Auto-persist whenever settings change
+  useEffect(() => {
+    persistCurrentFormSettings();
+  }, [
+    formDurationPreset,
+    formStartDateMode,
+    formStartDate,
+    formEndDate,
+    formGoalMode,
+    formTargetRaceId,
+    formTargetCourse,
+    formCustomDistanceKm,
+    formTargetTime,
+    formTargetPace,
+    formTrainingDays,
+    formSpeedDay,
+    formSpeedTypes,
+    formLongRunDay,
+    formBaseWeeklyKm,
   ]);
-  const [formLongRunDay, setFormLongRunDay] = useState<DayOfWeek | '없음'>('일요일');
-  const [formBaseWeeklyKm, setFormBaseWeeklyKm] = useState<string>('36');
+
+  const handleSelectStartDatePreset = (mode: 'today' | 'next_monday') => {
+    setFormStartDateMode(mode);
+    if (mode === 'today') {
+      setFormStartDate(getTodayDateStr());
+    } else {
+      setFormStartDate(getNextMondayStr());
+    }
+  };
 
   // Real-time synchronization handlers
   const handleTargetTimeChange = (newTimeStr: string, currentCourse: string) => {
@@ -553,7 +693,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-stone-800 animate-fadeIn">
+    <div id="training-plan-section" tabIndex={-1} className="space-y-6 text-stone-800 animate-fadeIn focus:outline-none scroll-mt-6">
       {/* 1. Header Banner & Plan Executive Summary */}
       <section className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-emerald-600/30 bg-gradient-to-br from-white via-white to-emerald-50/40 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200">
@@ -695,6 +835,171 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
           </div>
         </div>
       </section>
+
+      {/* 1.5 Goal-Fitness Match Audit Report (목표-실력 정합성 & AI 코칭 진단 리포트) */}
+      {activePlan.fitnessAudit && (
+        <section className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/5 via-white to-emerald-50/60 shadow-sm transition-all">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-200">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="p-2 rounded-xl bg-emerald-800 text-white shadow-xs">
+                <Target className="w-4 h-4 text-amber-300" />
+              </span>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-black text-stone-900 font-athletic">
+                    목표-실력 정합성 및 AI 코칭 진단 리포트
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                    {activePlan.fitnessAudit.fitGrade} ({activePlan.fitnessAudit.fitScore}점)
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  현재 러너의 PB 기량(VDOT {activePlan.fitnessAudit.currentVdot})과 목표({activePlan.settings.targetCourse || '하프'} {activePlan.settings.targetTime || '1:29:59'}) 간의 훈련 적합성을 과학적으로 검토했습니다.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAuditExpanded((prev) => !prev)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-600 hover:text-stone-900 bg-white border border-stone-200 shadow-2xs hover:bg-stone-50 transition-colors cursor-pointer"
+            >
+              <span>{isAuditExpanded ? '접기' : '상세 진단 보기'}</span>
+              {isAuditExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {isAuditExpanded && (
+            <div className="mt-4 space-y-4 animate-fadeIn">
+              {/* 4 Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* 1) VDOT Gap */}
+                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                      VDOT 기량 간극
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
+                      월 +{activePlan.fitnessAudit.requiredMonthlyVdotGain}
+                    </span>
+                  </div>
+                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                    <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.currentVdot}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="text-blue-800 text-xl font-bold">{activePlan.fitnessAudit.targetVdot}</span>
+                    <span className="text-xs text-blue-600 font-bold">(+{activePlan.fitnessAudit.vdotGap})</span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
+                    {activePlan.fitnessAudit.feasibilityAssessment}
+                  </div>
+                </div>
+
+                {/* 2) Target Pace Match */}
+                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3.5 h-3.5 text-amber-600" />
+                      목표 페이스 일치도
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">
+                      {activePlan.fitnessAudit.paceGapSeconds < 0 ? `${Math.abs(activePlan.fitnessAudit.paceGapSeconds)}초 가속` : '정속'}
+                    </span>
+                  </div>
+                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                    <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.currentEstimatedPaceFormatted}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-amber-800 text-xl font-bold">{activePlan.fitnessAudit.targetPaceFormatted}</span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
+                    수요일 역치 템포런(4&apos;10&quot;~4&apos;15&quot;) 및 인터벌(3&apos;50&quot;~3&apos;58&quot;)로 스피드 버퍼 확보
+                  </div>
+                </div>
+
+                {/* 3) Weekly Mileage Cap */}
+                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Footprints className="w-3.5 h-3.5 text-emerald-600" />
+                      주간 볼륨 최적화
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">
+                      피크 {activePlan.fitnessAudit.peakWeeklyKm}km
+                    </span>
+                  </div>
+                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                    <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.baselineWeeklyKm}km</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-emerald-800 text-xl font-bold">{activePlan.fitnessAudit.peakWeeklyKm}km</span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
+                    하프 최적 권장 피크: <span className="font-bold text-stone-800">{activePlan.fitnessAudit.recommendedPeakKmRange}</span> (과도한 70km+ 배제로 부상 차단)
+                  </div>
+                </div>
+
+                {/* 4) LSD Distance Cap */}
+                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
+                    <span className="flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5 text-purple-600" />
+                      LSD 장거리 정밀 캡
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-800">
+                      최장 {activePlan.fitnessAudit.peakLsdKm}km
+                    </span>
+                  </div>
+                  <div className="text-lg font-black text-purple-900 font-athletic">
+                    {activePlan.fitnessAudit.peakLsdKm}km <span className="text-xs font-semibold text-stone-500">(권장: {activePlan.fitnessAudit.recommendedLsdKmRange})</span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
+                    하프 대회 거리(21.1km)를 완벽 충족하며, 과도한 장거리로 인한 관절 피로를 사전에 방지
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 Detailed Evaluation Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {activePlan.fitnessAudit.auditDetails.map((item, idx) => (
+                  <div key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-stone-200 shadow-2xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        {item.title}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] font-medium text-stone-600 mb-1">
+                      {item.summary}
+                    </div>
+                    <div className="text-[11px] text-emerald-900/90 bg-emerald-50/60 p-2 rounded-xl border border-emerald-100 leading-relaxed">
+                      💡 {item.recommendation}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* AI Head Coach Directive */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-900 to-stone-900 text-white shadow-md border border-emerald-800/80">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-white/10 text-amber-300 shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold text-amber-300 uppercase tracking-wider mb-0.5">
+                      AI 러닝 헤드코치 종합 진단 총평
+                    </div>
+                    <p className="text-xs sm:text-sm text-stone-200 leading-relaxed font-medium">
+                      {activePlan.fitnessAudit.coachingSummary}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* 2. View Mode Switcher: 주간 뷰 (Weekly) vs 월간 뷰 (Monthly) */}
       <div className="flex items-center justify-between gap-3 bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200">
@@ -1497,9 +1802,15 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   <SlidersHorizontal className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-stone-900">
-                    맞춤 러닝 훈련 계획표 설정
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg sm:text-xl font-bold text-stone-900">
+                      맞춤 러닝 훈련 계획표 설정
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <Check className="w-3 h-3 text-emerald-700" />
+                      최근 설정값 자동 저장됨
+                    </span>
+                  </div>
                   <p className="text-xs text-stone-500">
                     훈련 기간, 요일, 포인트 훈련, 목표 대회 및 지속 발전 여부를 설정합니다.
                   </p>
@@ -1904,28 +2215,109 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   ))}
                 </div>
 
-                {/* Custom date range inputs */}
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <label className="block text-[11px] text-stone-500 mb-1">플랜 시작일 (월요일 권장)</label>
-                    <input
-                      type="date"
-                      value={formStartDate}
-                      onChange={(e) => setFormStartDate(e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold border border-stone-300"
-                    />
+                {/* Start Date selection: Today vs Next Monday vs Custom */}
+                <div className="mt-3.5 p-3.5 bg-stone-50/90 rounded-2xl border border-stone-200 space-y-2.5">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-emerald-700" />
+                      <span>플랜 시작 날짜 선택</span>
+                    </label>
+                    <span className="text-[11px] text-stone-600 font-mono">
+                      선택된 시작일: <strong className="text-emerald-850 font-bold bg-white px-2 py-0.5 rounded-md border border-stone-200">{formStartDate}</strong>
+                    </span>
                   </div>
-                  {formDurationPreset === 'custom' && (
+
+                  {/* 3 Quick Choice Buttons */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStartDatePreset('today')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold cursor-pointer text-left transition-all ${
+                        formStartDateMode === 'today' || formStartDate === getTodayDateStr()
+                          ? 'bg-emerald-900 text-white border-emerald-950 ring-2 ring-emerald-500/30 shadow-xs'
+                          : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>⚡ 오늘부터 시작</span>
+                        </span>
+                        {(formStartDateMode === 'today' || formStartDate === getTodayDateStr()) && (
+                          <span className="text-[10px] text-amber-300 font-extrabold">선택됨</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] opacity-80 font-mono mt-0.5">{getTodayDateStr()} (오늘)</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStartDatePreset('next_monday')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold cursor-pointer text-left transition-all ${
+                        formStartDateMode === 'next_monday' || formStartDate === getNextMondayStr()
+                          ? 'bg-emerald-900 text-white border-emerald-950 ring-2 ring-emerald-500/30 shadow-xs'
+                          : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>🗓️ 다음 월요일부터</span>
+                        </span>
+                        {(formStartDateMode === 'next_monday' || formStartDate === getNextMondayStr()) && (
+                          <span className="text-[10px] text-amber-300 font-extrabold">권장</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] opacity-80 font-mono mt-0.5">{getNextMondayStr()} (주 시작)</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormStartDateMode('custom')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold cursor-pointer text-left transition-all col-span-2 sm:col-span-1 ${
+                        formStartDateMode === 'custom' &&
+                        formStartDate !== getTodayDateStr() &&
+                        formStartDate !== getNextMondayStr()
+                          ? 'bg-emerald-900 text-white border-emerald-950 ring-2 ring-emerald-500/30 shadow-xs'
+                          : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>📅 직접 지정</span>
+                        {formStartDateMode === 'custom' &&
+                          formStartDate !== getTodayDateStr() &&
+                          formStartDate !== getNextMondayStr() && (
+                            <span className="text-[10px] text-amber-300 font-extrabold">직접선택</span>
+                          )}
+                      </div>
+                      <div className="text-[10px] opacity-80 font-mono mt-0.5">{formStartDate || '캘린더 선택'}</div>
+                    </button>
+                  </div>
+
+                  {/* Date Input verification / edit */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-[11px] text-stone-500 mb-1">플랜 종료일</label>
+                      <label className="block text-[11px] text-stone-500 mb-1">시작일 캘린더 확인 및 변경</label>
                       <input
                         type="date"
-                        value={formEndDate}
-                        onChange={(e) => setFormEndDate(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold border border-stone-300"
+                        value={formStartDate}
+                        onChange={(e) => {
+                          setFormStartDate(e.target.value);
+                          setFormStartDateMode('custom');
+                        }}
+                        className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold border border-stone-300 bg-white"
                       />
                     </div>
-                  )}
+                    {formDurationPreset === 'custom' && (
+                      <div>
+                        <label className="block text-[11px] text-stone-500 mb-1">플랜 종료일</label>
+                        <input
+                          type="date"
+                          value={formEndDate}
+                          onChange={(e) => setFormEndDate(e.target.value)}
+                          className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold border border-stone-300 bg-white"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

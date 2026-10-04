@@ -61,18 +61,14 @@ import {
 } from '../lib/trainingPlanGenerator';
 import { attachShoeRecommendationsToPlan } from '../lib/shoeRecommender';
 import { verifyRunnerSecurityKey } from '../lib/security';
-const TrainingShareModal = React.lazy(() =>
-  import('./TrainingShareModal').then((m) => ({ default: m.TrainingShareModal }))
-);
+import { TrainingShareModal } from './TrainingShareModal';
 import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
 import { TrainingIntensityRecommender } from './TrainingIntensityRecommender';
 import { TrainingShoeModal } from './TrainingShoeModal';
 import { TrainingCalendarView } from './TrainingCalendarView';
 import { ShoeMileageAnalyticsCard } from './ShoeMileageAnalyticsCard';
 import { GoalProgressBarSection } from './GoalProgressBarSection';
-const CsvWorkoutUploadModal = React.lazy(() =>
-  import('./CsvWorkoutUploadModal').then((m) => ({ default: m.CsvWorkoutUploadModal }))
-);
+import { CsvWorkoutUploadModal } from './CsvWorkoutUploadModal';
 
 interface TabRunningRecordsProps {
   records: RunningRecords;
@@ -524,7 +520,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const activePlan = useMemo(() => {
     if (weeklyPlan && weeklyPlan.length > 0) {
       const planWithShoes = attachShoeRecommendationsToPlan(weeklyPlan, shoes, trainingSessions);
-      return enrichWeeklyPlanWithActualSessions(planWithShoes, trainingSessions, runnerStateAnalysis, targetRaceAnalysis);
+      return enrichWeeklyPlanWithActualSessions(planWithShoes, trainingSessions, runnerStateAnalysis, targetRaceAnalysis, races);
     }
     return generateWeeklyTrainingPlan(currentVDOT, evalSelectedDistance, {
       trainingDays: customTrainingDays,

@@ -39,10 +39,12 @@ export interface PlanCustomOptions {
   longRunDay: DayOfWeek | '없음'; // Day for long slow distance point workout
   targetRaceCourse?: string; // 풀코스, 하프, 10K, 5K
   weeklyMileageGoal?: number; // Target weekly volume in km
+  baseWeeklyKm?: number; // Starting baseline weekly mileage in km
   trainingSessions?: TrainingSession[]; // User's actual logged sessions for in-depth workload & trend analysis
   shoes?: RunningShoe[]; // User's owned running shoes for rotation recommendation
   races?: RegisteredRace[]; // Registered upcoming races
   goals?: RunningGoals; // User's running goals
+  refDate?: Date; // Reference date for current week evaluation (defaults to now)
 }
 
 const DAY_ORDER: DayOfWeek[] = [
@@ -78,6 +80,22 @@ export function getWeekMondayDate(dateStrOrDate: string | Date): Date {
   monday.setDate(d.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0);
   return monday;
+}
+
+export function formatLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function parseCourseDistKm(course: string): number {
+  if (!course) return 10;
+  if (course.includes('풀') || course.includes('42')) return 42.195;
+  if (course.includes('하프') || course.includes('21')) return 21.0975;
+  const match = course.match(/(\d+(?:\.\d+)?)\s*k/i);
+  if (match) return parseFloat(match[1]);
+  return 10;
 }
 
 /**
@@ -1074,7 +1092,7 @@ export function generateWeeklyTrainingPlan(
   const longRunDay = options?.longRunDay ?? '일요일';
 
   // Determine active current week Monday
-  let currentWeekMonday = getWeekMondayDate(new Date());
+  let currentWeekMonday = getWeekMondayDate(options?.refDate || new Date());
   if (options?.trainingSessions && options.trainingSessions.length > 0) {
     const latestDate = options.trainingSessions.reduce((max, s) => {
       const d = new Date(s.date);
@@ -1123,18 +1141,46 @@ export function generateWeeklyTrainingPlan(
   const remainingRunningDays = trainingDays.filter((d) => !completedDayNames.includes(d));
 
   // Distances dynamically adjusted to user state analysis or fallback defaults
-  let totalTargetWeeklyKm = analysis ? analysis.recommendedWeeklyKm : (isFullCourse ? 48 : isHalfCourse ? 38 : 28);
+  let totalTargetWeeklyKm = (options?.weeklyMileageGoal && options.weeklyMileageGoal > 0)
+    ? options.weeklyMileageGoal
+    : (options?.baseWeeklyKm && options.baseWeeklyKm > 0)
+    ? options.baseWeeklyKm
+    : (analysis ? analysis.recommendedWeeklyKm : (isFullCourse ? 48 : isHalfCourse ? 38 : 28));
+
+  // Determine races in this week and nearby
+  const thisWeekMonStr = weekDaysInfo[0].dateStr;
+  const thisWeekSunStr = weekDaysInfo[6].dateStr;
+  const nextWeekMon = new Date(currentWeekMonday.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const nextWeekMonStr = formatLocalDateStr(nextWeekMon);
+  const prevWeekSun = new Date(currentWeekMonday.getTime() - 24 * 60 * 60 * 1000);
+  const prevWeekSunStr = formatLocalDateStr(prevWeekSun);
+
+  const raceInThisWeek = options?.races?.find((r) => r.date >= thisWeekMonStr && r.date <= thisWeekSunStr);
+  const raceOnNextMonday = options?.races?.find((r) => r.date === nextWeekMonStr);
+  const raceOnPrevSunday = options?.races?.find((r) => r.date === prevWeekSunStr);
+
+  if (raceInThisWeek) {
+    const rDist = parseCourseDistKm(raceInThisWeek.course);
+    if (rDist >= totalTargetWeeklyKm) {
+      totalTargetWeeklyKm = Math.round((rDist + (rDist >= 40 ? 3.0 : 5.0)) * 10) / 10;
+    }
+  } else if (raceOnNextMonday) {
+    totalTargetWeeklyKm = Math.max(20, Math.round(totalTargetWeeklyKm * 0.85 * 10) / 10);
+  }
 
   // Apply Target Race Periodization & Tapering Modulation based on Target Pace Intensity
   const isTaperingPhase = targetRacePlan && (targetRacePlan.periodizationPhase === '테이퍼링 감량기 (Tapering)' || targetRacePlan.periodizationPhase === '대회 직전 조정기 (Race Week)');
-  const isRaceWeek = targetRacePlan?.periodizationPhase === '대회 직전 조정기 (Race Week)';
+  const isRaceWeek = targetRacePlan?.periodizationPhase === '대회 직전 조정기 (Race Week)' || !!raceInThisWeek;
 
-  if (targetRacePlan && isTaperingPhase && targetRacePlan.taperingVolumeCutPct > 0) {
-    const rawTaperVol = Math.round(totalTargetWeeklyKm * (1 - targetRacePlan.taperingVolumeCutPct / 100));
-    const minSafeVol = targetRacePlan.isRaceThisWeek
-      ? targetRacePlan.courseDistKm + 6
-      : isRaceWeek ? 14 : isFullCourse ? 22 : isHalfCourse ? 18 : 14;
-    totalTargetWeeklyKm = Math.max(minSafeVol, rawTaperVol);
+  if (targetRacePlan && isTaperingPhase && targetRacePlan.taperingVolumeCutPct > 0 && !raceInThisWeek) {
+    // Only auto-cut if user didn't explicitly set a weeklyMileageGoal or baseWeeklyKm
+    if (!options?.weeklyMileageGoal && !options?.baseWeeklyKm) {
+      const rawTaperVol = Math.round(totalTargetWeeklyKm * (1 - targetRacePlan.taperingVolumeCutPct / 100));
+      const minSafeVol = targetRacePlan.isRaceThisWeek
+        ? targetRacePlan.courseDistKm + 6
+        : isRaceWeek ? 14 : isFullCourse ? 22 : isHalfCourse ? 18 : 14;
+      totalTargetWeeklyKm = Math.max(minSafeVol, rawTaperVol);
+    }
   }
 
   const remainingKm = Math.max(0, Math.round((totalTargetWeeklyKm - completedKmThisWeek) * 10) / 10);
@@ -1164,6 +1210,183 @@ export function generateWeeklyTrainingPlan(
   const defaultLsdDist = targetLsdDist;
   const defaultSpeedDist = targetSpeedDist;
 
+  // Pre-configure flexible day schedules when a race occurs this week
+  let raceDayConfigs: Record<
+    string,
+    {
+      type: '대회' | '휴식' | '조깅' | '회복주';
+      title: string;
+      dist: number;
+      isShakeout?: boolean;
+      stages?: WorkoutStage[];
+    }
+  > | null = null;
+
+  if (raceInThisWeek) {
+    const rDate = new Date(raceInThisWeek.date);
+    const rDayIdx = (rDate.getDay() + 6) % 7;
+    const raceDist = parseCourseDistKm(raceInThisWeek.course);
+    const raceDayName = DAY_ORDER[rDayIdx];
+
+    const p1 = Math.min(5, Math.round(raceDist * 0.15 * 10) / 10);
+    const p2 = Math.round(raceDist * 0.6 * 10) / 10;
+    const p3 = Math.round((raceDist - p1 - p2) * 10) / 10;
+    const rStages: WorkoutStage[] = [
+      { step: `1구간: 출발~초반 (0 ~ ${p1}km, ${p1}km)`, distanceKm: p1, pace: effectiveRacePace, zone: 'Zone 3 (흥분 억제)', focus: '오버페이스 절대 금지! 심박 안정화 및 목표 페이스 안착' },
+      { step: `2구간: 중반 정속 순항 (${p1} ~ ${Math.round((p1 + p2) * 10) / 10}km, ${p2}km)`, distanceKm: p2, pace: effectiveRacePace, zone: 'Zone 3~4 (정속 크루징)', focus: '규칙적 급수 및 에너지젤 섭취, 일정한 피치와 호흡 유지' },
+      { step: `3구간: 승부처 & 피니시 (${Math.round((p1 + p2) * 10) / 10} ~ ${raceDist}km, ${p3}km)`, distanceKm: p3, pace: effectiveRacePace, zone: 'Zone 4 (젖산 내성 극복)', focus: '후반 피로를 코어와 팔치기로 극복하며 감격의 목표 기록 피니시!' },
+    ];
+
+    const shakeStages: WorkoutStage[] = [
+      { step: '1단계: 가벼운 예열 조깅 (2.0km)', distanceKm: 2.0, pace: easyMax, zone: 'Zone 1~2', focus: '관절 예열 및 체온 상승' },
+      { step: '2단계: 신경계 각성 질주 (0.5km)', distanceKm: 0.5, pace: tempoPace, zone: 'Zone 3~4', focus: '50m 가벼운 질주 2회, 다리 탄력 보존' },
+      { step: '3단계: 쿨다운 스트레칭 (0.5km)', distanceKm: 0.5, pace: "6'30\" ~ 7'00\"", zone: 'Zone 1', focus: '심박 안정화 및 하체 이완' },
+    ];
+
+    raceDayConfigs = {};
+    raceDayConfigs[raceDayName] = {
+      type: '대회',
+      title: `[🏁 참가 대회] ${raceInThisWeek.name} (${raceInThisWeek.course} ${raceDist}km)`,
+      dist: raceDist,
+      stages: rStages,
+    };
+
+    if (rDayIdx + 1 < 7) {
+      raceDayConfigs[DAY_ORDER[rDayIdx + 1]] = {
+        type: '휴식',
+        title: '[대회 익일] 완전 휴식 및 근육 회복 (Rest & Recovery)',
+        dist: 0,
+      };
+    }
+
+    const hasShakeout = raceDist >= 5;
+    if (rDayIdx - 1 >= 0) {
+      const prevDayName = DAY_ORDER[rDayIdx - 1];
+      if (hasShakeout) {
+        raceDayConfigs[prevDayName] = {
+          type: '조깅',
+          title: '[대회 D-1] 실전 대비 쉐이크아웃 (3.0km)',
+          dist: 3.0,
+          isShakeout: true,
+          stages: shakeStages,
+        };
+      } else {
+        raceDayConfigs[prevDayName] = {
+          type: '휴식',
+          title: '대회 D-1 완전 휴식 (Rest & Recovery)',
+          dist: 0,
+        };
+      }
+    }
+
+    if (rDayIdx - 2 >= 0) {
+      raceDayConfigs[DAY_ORDER[rDayIdx - 2]] = {
+        type: '휴식',
+        title: '대회 D-2 완전 휴식 및 글리코겐 충전',
+        dist: 0,
+      };
+    }
+
+    const preDist = (rDayIdx - 1 >= 0 && raceDayConfigs[DAY_ORDER[rDayIdx - 1]]) ? raceDayConfigs[DAY_ORDER[rDayIdx - 1]].dist : 0;
+    const fixedDist = raceDist + preDist;
+    const remainingKmThisWeek = Math.max(0, Math.round((totalTargetWeeklyKm - fixedDist) * 10) / 10);
+    const candidateDays = DAY_ORDER.filter((d) => !raceDayConfigs![d]);
+
+    let activeOtherDays = candidateDays.filter((d) => trainingDays.includes(d));
+    if (activeOtherDays.length === 0 && remainingKmThisWeek > 0) {
+      activeOtherDays = candidateDays.slice(0, remainingKmThisWeek >= 14 ? 2 : 1);
+    }
+
+    if (activeOtherDays.length === 0 || remainingKmThisWeek <= 0) {
+      candidateDays.forEach((d) => {
+        if (!raceDayConfigs![d]) {
+          raceDayConfigs![d] = { type: '휴식', title: '완전 휴식 및 리커버리 (Rest & Recovery)', dist: 0 };
+        }
+      });
+    } else if (activeOtherDays.length === 1) {
+      raceDayConfigs[activeOtherDays[0]] = {
+        type: '회복주',
+        title: `가벼운 피로 회복 조깅 (${remainingKmThisWeek}km)`,
+        dist: remainingKmThisWeek,
+      };
+    } else if (activeOtherDays.length === 2) {
+      const d0 = Math.max(4.0, Math.round(remainingKmThisWeek * 0.44 * 10) / 10);
+      const d1 = Math.max(4.0, Math.round((remainingKmThisWeek - d0) * 10) / 10);
+      raceDayConfigs[activeOtherDays[0]] = {
+        type: '회복주',
+        title: `가벼운 피로 회복 조깅 (${d0}km)`,
+        dist: d0,
+      };
+      raceDayConfigs[activeOtherDays[1]] = {
+        type: '조깅',
+        title: `유산소 이지 조깅 (${d1}km)`,
+        dist: d1,
+      };
+    } else {
+      let allocated = 0;
+      activeOtherDays.forEach((d, idx) => {
+        const isLast = idx === activeOtherDays.length - 1;
+        const share = isLast
+          ? Math.max(4.0, Math.round((remainingKmThisWeek - allocated) * 10) / 10)
+          : Math.max(4.0, Math.round((remainingKmThisWeek / activeOtherDays.length) * 10) / 10);
+        allocated += share;
+        raceDayConfigs![d] = {
+          type: idx === 0 ? '회복주' : '조깅',
+          title: idx === 0 ? `가벼운 피로 회복 조깅 (${share}km)` : `유산소 컨디셔닝 조깅 (${share}km)`,
+          dist: share,
+        };
+      });
+    }
+
+    DAY_ORDER.forEach((d) => {
+      if (!raceDayConfigs![d]) {
+        raceDayConfigs![d] = { type: '휴식', title: '완전 휴식 및 리커버리 (Rest & Recovery)', dist: 0 };
+      }
+    });
+  }
+
+  // Pre-configure flexible day schedules when next Monday is a race
+  let nextMonMidDays: DayOfWeek[] = [];
+  let nextMonDaysDistMap: Record<string, number> = {};
+  if (raceOnNextMonday) {
+    const satDateStr = formatLocalDateStr(new Date(currentWeekMonday.getTime() + 5 * 86400000));
+    const ranSaturday = options?.trainingSessions?.some((s) => s.date === satDateStr);
+    const sunShakeoutDist = !ranSaturday ? 3.0 : 0;
+    const effectiveSpeedDist = (trainingDays.includes(speedDay as DayOfWeek) || speedDay !== '없음') ? Math.min(targetSpeedDist, 6.0) : 0;
+    targetSpeedDist = effectiveSpeedDist;
+
+    const ptSum = effectiveSpeedDist + sunShakeoutDist;
+    let candMid = trainingDays.filter((d) => d !== '토요일' && d !== '일요일' && d !== speedDay);
+    if (candMid.length === 0) {
+      candMid = (['화요일', '목요일'] as DayOfWeek[]).filter((d) => d !== speedDay);
+    }
+    const remKm = Math.max(0, Math.round((totalTargetWeeklyKm - ptSum) * 10) / 10);
+    if (candMid.length === 0 || remKm / candMid.length > 12) {
+      const fallbackMid: DayOfWeek[] = (['화요일', '수요일', '목요일', '금요일'] as DayOfWeek[]).filter((d) => d !== speedDay);
+      candMid = Array.from(new Set([...candMid, ...fallbackMid])).slice(0, remKm >= 28 ? 4 : remKm >= 18 ? 3 : 2);
+    }
+    nextMonMidDays = candMid;
+
+    if (candMid.length === 1) {
+      nextMonDaysDistMap[candMid[0]] = Math.max(4.0, remKm);
+    } else if (candMid.length === 2) {
+      const d0 = Math.max(4.0, Math.round(remKm * 0.44 * 10) / 10);
+      const d1 = Math.max(4.0, Math.round((remKm - d0) * 10) / 10);
+      nextMonDaysDistMap[candMid[0]] = d0;
+      nextMonDaysDistMap[candMid[1]] = d1;
+    } else {
+      let allocated = 0;
+      candMid.forEach((d, idx) => {
+        const isLast = idx === candMid.length - 1;
+        const part = isLast
+          ? Math.max(4.0, Math.round((remKm - allocated) * 10) / 10)
+          : Math.max(4.0, Math.round((remKm / candMid.length) * 10) / 10);
+        allocated += part;
+        nextMonDaysDistMap[d] = part;
+      });
+    }
+  }
+
   const pointRunsSum = (hasRemainingLongRun ? targetLsdDist : 0) + (hasRemainingSpeed ? targetSpeedDist : 0);
   const otherRemainingDaysCount = remainingRunningDays.filter(d => d !== longRunDay && d !== speedDay).length;
 
@@ -1173,7 +1396,7 @@ export function generateWeeklyTrainingPlan(
     : 8.0;
   const recoveryDist = Math.max(Math.round(standardJogDist * 0.65 * 10) / 10, 4.0);
 
-  const rawPlan: WeeklyPlanDay[] = weekDaysInfo.map(({ dayName, dayShort, dateStr, sessionForDay }) => {
+  const rawPlan: WeeklyPlanDay[] = weekDaysInfo.map(({ dayName, dayShort, dateStr, sessionForDay }, dayIdx) => {
     // If this day already has an actual completed session, display it directly!
     if (sessionForDay) {
       const actualType = inferWorkoutType(sessionForDay.title, sessionForDay.totalDistanceKm);
@@ -1209,20 +1432,209 @@ export function generateWeeklyTrainingPlan(
       };
     }
 
+    // 1. Race in This Week (Fully configured with balanced distances, rest, and shakeout)
+    if (raceDayConfigs) {
+      const cfg = raceDayConfigs[dayName];
+      if (cfg.type === '대회') {
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: cfg.dist >= 20 ? 'LSD' : '템포런',
+          title: cfg.title,
+          distanceKm: cfg.dist,
+          targetPace: effectiveRacePace,
+          targetZone: '실전 마라톤 레이스',
+          description: `드디어 결전의 날입니다! 그동안 흘린 땀방울을 믿고, 목표 페이스(${effectiveRacePace}/km)로 스타트하여 흔들림 없이 피니시 라인까지 달리세요.`,
+          intensity: '높음',
+          stages: cfg.stages,
+        };
+      }
+      if (cfg.type === '휴식') {
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: '휴식',
+          title: cfg.title,
+          distanceKm: 0,
+          targetPace: '-',
+          targetZone: '-',
+          description: cfg.title.includes('대회 익일')
+            ? '어제 대회 출전으로 인한 근육 피로를 풀고 글리코겐을 충전하는 완전 휴식일입니다. 족욕 및 폼롤러 마사지를 권장합니다.'
+            : '체력 비축 및 근육 회복을 위한 완전 휴식일입니다.',
+          intensity: '휴식',
+        };
+      }
+      if (cfg.isShakeout) {
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: '조깅',
+          title: cfg.title,
+          distanceKm: cfg.dist,
+          targetPace: easyMax,
+          targetZone: 'Zone 1~2 (가벼운 예열)',
+          description: `내일(${raceInThisWeek!.name}) 대회를 앞두고 다리 탄력 보존과 신경계 각성을 위한 3km 쉐이크아웃 러닝입니다. 후반에 50m 가벼운 질주 2회를 곁들입니다.`,
+          intensity: '낮음',
+          stages: cfg.stages,
+        };
+      }
+      const wm = cfg.dist >= 8 ? 1.5 : 1.0;
+      const cm = cfg.dist >= 8 ? 1.5 : 1.0;
+      const mm = Math.round((cfg.dist - wm - cm) * 10) / 10;
+      const jStages: WorkoutStage[] = [
+        { step: `1단계: 워밍업 (${wm}km)`, distanceKm: wm, pace: easyMax, zone: 'Zone 1~2', focus: '가벼운 조깅' },
+        { step: `2단계: 본운동 (${mm}km)`, distanceKm: mm, pace: `${easyMin} ~ ${easyMax}`, zone: 'Zone 2', focus: '편안하게 대화 가능한 유산소 페이스 유지' },
+        { step: `3단계: 쿨다운 (${cm}km)`, distanceKm: cm, pace: `${easyMax} ~ 6'40"`, zone: 'Zone 1', focus: '심박 안정화' },
+      ];
+      return {
+        day: dayName,
+        dayShort,
+        dateStr,
+        type: cfg.type,
+        title: cfg.title,
+        distanceKm: cfg.dist,
+        targetPace: `${easyMin} ~ ${easyMax}`,
+        targetZone: 'Zone 2 (이지 에어로빅)',
+        description: '대회 주간 컨디션을 안정시키는 편안한 유산소 조깅입니다. 몸에 부담 없는 페이스로 심폐 리듬을 유지합니다.',
+        intensity: '낮음',
+        stages: jStages,
+      };
+    }
+
+    // 2. Next Monday Race Check (지정 요일과 무관하게 일요일 쉐이크아웃 및 토요일 휴식 부여)
+    if (raceOnNextMonday) {
+      if (dayName === '토요일') {
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: '휴식',
+          title: '대회 D-2 완전 휴식 및 영양 충전',
+          distanceKm: 0,
+          targetPace: '-',
+          targetZone: '-',
+          description: '대회 2일 전 완전 휴식 및 탄수화물 영양 보충일입니다.',
+          intensity: '휴식',
+        };
+      }
+
+      if (dayName === '일요일') {
+        const friDateStr = formatLocalDateStr(new Date(currentWeekMonday.getTime() + 4 * 86400000));
+        const satDateStr = formatLocalDateStr(new Date(currentWeekMonday.getTime() + 5 * 86400000));
+        const ranFriday = options?.trainingSessions?.some((s) => s.date === friDateStr);
+        const ranSaturday = options?.trainingSessions?.some((s) => s.date === satDateStr);
+
+        if (!ranSaturday) {
+          const shakeoutStages: WorkoutStage[] = [
+            { step: '1단계: 가벼운 예열 조깅 (2.0km)', distanceKm: 2.0, pace: easyMax, zone: 'Zone 1~2', focus: '관절 예열 및 체온 상승' },
+            { step: '2단계: 신경계 각성 질주 (0.5km)', distanceKm: 0.5, pace: tempoPace, zone: 'Zone 3~4', focus: '50m 가벼운 질주 2회, 다리 탄력 보존' },
+            { step: '3단계: 쿨다운 스트레칭 (0.5km)', distanceKm: 0.5, pace: "6'30\" ~ 7'00\"", zone: 'Zone 1', focus: '심박 안정화 및 하체 이완' },
+          ];
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '조깅',
+            title: '[대회 D-1] 실전 대비 쉐이크아웃 (3.0km)',
+            distanceKm: 3.0,
+            targetPace: easyMax,
+            targetZone: 'Zone 1~2 (가벼운 예열)',
+            description: `내일(${raceOnNextMonday.name}) 대회를 앞두고, ${ranFriday ? '금요일 훈련을 마치고 토요일 충분한 휴식을 취하셨으므로 ' : ''}오늘(일요일) 3km 가벼운 쉐이크아웃 러닝으로 다리 근육의 탄력과 신경계를 최상으로 예열합니다. 후반에 50m 가벼운 질주 2회를 곁들입니다.`,
+            intensity: '낮음',
+            stages: shakeoutStages,
+          };
+        } else {
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '휴식',
+            title: '대회 D-1 완전 휴식 (Rest & Recovery)',
+            distanceKm: 0,
+            targetPace: '-',
+            targetZone: '-',
+            description: `내일(${raceOnNextMonday.name}) 결전을 앞두고 체력을 100% 충전하는 완전 휴식일입니다.`,
+            intensity: '휴식',
+          };
+        }
+      }
+
+      const isMidRunningDay = dayName === speedDay || nextMonMidDays.includes(dayName);
+      if (!isMidRunningDay) {
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: '휴식',
+          title: '완전 휴식 및 리커버리 (Rest & Recovery)',
+          distanceKm: 0,
+          targetPace: '-',
+          targetZone: '-',
+          description: '대회 직전 피로를 풀고 최상의 컨디션을 만드는 휴식일입니다.',
+          intensity: '휴식',
+        };
+      }
+
+      if (nextMonMidDays.includes(dayName) && dayName !== speedDay) {
+        const wKm = nextMonDaysDistMap[dayName] || 8.0;
+        const wm = wKm >= 8 ? 1.5 : 1.0;
+        const cm = wKm >= 8 ? 1.5 : 1.0;
+        const mm = Math.round((wKm - wm - cm) * 10) / 10;
+        const jStages: WorkoutStage[] = [
+          { step: `1단계: 워밍업 (${wm}km)`, distanceKm: wm, pace: easyMax, zone: 'Zone 1~2', focus: '가벼운 조깅' },
+          { step: `2단계: 본운동 이지 조깅 (${mm}km)`, distanceKm: mm, pace: `${easyMin} ~ ${easyMax}`, zone: 'Zone 2', focus: '편안한 유산소 페이스 유지' },
+          { step: `3단계: 쿨다운 (${cm}km)`, distanceKm: cm, pace: `${easyMax} ~ 6'40"`, zone: 'Zone 1', focus: '심박 안정화' },
+        ];
+        return {
+          day: dayName,
+          dayShort,
+          dateStr,
+          type: '조깅',
+          title: `유산소 컨디셔닝 조깅 (${wKm}km)`,
+          distanceKm: wKm,
+          targetPace: `${easyMin} ~ ${easyMax}`,
+          targetZone: 'Zone 2 (유산소)',
+          description: '대회 전 주간 컨디션을 안정시키는 유산소 조깅입니다.',
+          intensity: '낮음',
+          stages: jStages,
+        };
+      }
+    }
+
+    // 3. Previous Sunday Race Check
+    if (raceOnPrevSunday && dayName === '월요일') {
+      return {
+        day: dayName,
+        dayShort,
+        dateStr,
+        type: '휴식',
+        title: '[대회 익일] 완전 휴식 및 근육 회복 (Rest & Recovery)',
+        distanceKm: 0,
+        targetPace: '-',
+        targetZone: '-',
+        description: '어제 대회 출전 후 근육 피로를 풀고 글리코겐을 충전하는 완전 휴식일입니다.',
+        intensity: '휴식',
+      };
+    }
+
     const isRunningDay = trainingDays.includes(dayName);
 
-    // 1. If not an active running day, it's a Rest day
+    // 4. If not an active running day, it's a Rest day
     if (!isRunningDay) {
       return {
         day: dayName,
         dayShort,
+        dateStr,
         type: '휴식',
         title: '완전 휴식 (Rest & Recovery)',
         distanceKm: 0,
         targetPace: '-',
         targetZone: '-',
         description: isTaperingPhase
-          ? `대회 D-${targetRacePlan.dDayDays}일 테이퍼링 휴식일. 폼롤러 근막 이완과 탄수화물 영양 보충, 깊은 수면으로 글리코겐을 충전합니다.`
+          ? `대회 D-${targetRacePlan?.dDayDays || 7}일 테이퍼링 휴식일. 폼롤러 근막 이완과 탄수화물 영양 보충, 깊은 수면으로 글리코겐을 충전합니다.`
           : '폼롤러 근막 이완, 햄스트링/종아리 스트레칭 및 영양 보충. 포인트 훈련 피로 회복.',
         intensity: '휴식',
       };
@@ -1324,6 +1736,7 @@ export function generateWeeklyTrainingPlan(
       return {
         day: dayName,
         dayShort,
+        dateStr,
         type: 'LSD',
         title: lsdTitle,
         distanceKm: actualLsdDist,
@@ -1382,6 +1795,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '인터벌',
           title: isTaper
             ? `[대회 테이퍼링 감량 인터벌] ${effectiveRacePace} 텐션 유지 ${actualSpeedDist}km (400m x ${intervalReps}회)`
@@ -1438,6 +1852,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '인터벌',
           title: isTaper
             ? `[대회 테이퍼링 감량 인터벌] 800m 페이스 점검 ${actualTotalDist}km (800m x ${reps}회)`
@@ -1488,6 +1903,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '인터벌',
           title: `[포인트: 스피드] 1~3k 롱 크루즈 인터벌 ${actualTotalDist}km (${repDistKm}km x ${reps}회)`,
           distanceKm: actualTotalDist,
@@ -1530,6 +1946,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '템포런',
           title: `[포인트: 스피드] 젖산 역치(Threshold) ${actualTotalDist}km 템포런`,
           distanceKm: actualTotalDist,
@@ -1572,6 +1989,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '인터벌',
           title: `[포인트: 스피드] 파틀렉(Fartlek) 변속주 ${actualTotalDist}km`,
           distanceKm: actualTotalDist,
@@ -1628,6 +2046,7 @@ export function generateWeeklyTrainingPlan(
         return {
           day: dayName,
           dayShort,
+          dateStr,
           type: '템포런',
           title: `[포인트: 스피드] 네거티브 스플릿 빌드업 ${totalDist}km`,
           distanceKm: totalDist,
@@ -1642,7 +2061,6 @@ export function generateWeeklyTrainingPlan(
 
     // 4. Other training days: Recovery or Aerobic Zone 2 Jogging
     // Check if the previous day was a hard point run
-    const dayIdx = DAY_ORDER.indexOf(dayName);
     const prevDayName = DAY_ORDER[(dayIdx + 6) % 7];
     const prevWasHard = prevDayName === speedDay || prevDayName === longRunDay;
 
@@ -1650,6 +2068,7 @@ export function generateWeeklyTrainingPlan(
       return {
         day: dayName,
         dayShort,
+        dateStr,
         type: '회복주',
         title: isTaperingPhase
           ? `[대회 테이퍼링 회복주] 젖산 배출 & 근막 이완 ${recoveryDist}km`
@@ -1668,6 +2087,7 @@ export function generateWeeklyTrainingPlan(
     return {
       day: dayName,
       dayShort,
+      dateStr,
       type: '조깅',
       title: isTaperingPhase
         ? `[대회 테이퍼링 컨디셔닝 조깅] 글리코겐 보존 Zone 2 ${standardJogDist}km`
@@ -1698,11 +2118,13 @@ export function enrichWeeklyPlanWithActualSessions(
   plan: WeeklyPlanDay[],
   trainingSessions: TrainingSession[] = [],
   analysis?: RunnerStateAnalysis | null,
-  targetRacePlan?: TargetRacePlanAnalysis | null
+  targetRacePlan?: TargetRacePlanAnalysis | null,
+  races: RegisteredRace[] = [],
+  refDate?: Date
 ): WeeklyPlanDay[] {
   if (!plan || plan.length === 0) return plan;
 
-  let currentWeekMonday = getWeekMondayDate(new Date());
+  let currentWeekMonday = getWeekMondayDate(refDate || new Date());
   if (trainingSessions && trainingSessions.length > 0) {
     const latestDate = trainingSessions.reduce((max, s) => {
       const d = new Date(s.date);
@@ -1845,7 +2267,72 @@ export function enrichWeeklyPlanWithActualSessions(
       };
     }
 
-    // 3. Today or Future Planned Rest Day
+    // 3. Today or Future Planned Day
+    // Flexible Saturday Rest and Sunday Shakeout before Next Monday's Race Check
+    const nextWeekMon = new Date(currentWeekMonday.getTime() + 7 * 86400000);
+    const nextWeekMonStr = formatLocalDateStr(nextWeekMon);
+    const raceOnNextMon = (races || []).find((r) => r.date === nextWeekMonStr) ||
+      (targetRacePlan && (targetRacePlan.raceDate === nextWeekMonStr || targetRacePlan.dDayDays === 1) ? targetRacePlan : null);
+    const nextMonRaceName = raceOnNextMon ? ('name' in raceOnNextMon ? raceOnNextMon.name : raceOnNextMon.raceName) : '';
+
+    if (pDay.day === '토요일' && !isPastDay && raceOnNextMon) {
+      return {
+        ...pDay,
+        dateStr,
+        isCompleted: false,
+        type: '휴식',
+        title: '대회 D-2 완전 휴식 및 영양 충전',
+        distanceKm: 0,
+        targetPace: '-',
+        targetZone: '-',
+        description: `월요일(${nextMonRaceName}) 대회를 앞두고 충분한 글리코겐 충전과 체력 안배를 위한 2일 전 완전 휴식일입니다.`,
+        intensity: '휴식',
+        stages: undefined,
+      };
+    }
+
+    if (pDay.day === '일요일' && !isPastDay && raceOnNextMon) {
+      const friDateStr = formatLocalDateStr(new Date(currentWeekMonday.getTime() + 4 * 86400000));
+      const satDateStr = formatLocalDateStr(new Date(currentWeekMonday.getTime() + 5 * 86400000));
+      const ranFriday = thisWeekSessions.some((s) => s.date === friDateStr);
+      const ranSaturday = thisWeekSessions.some((s) => s.date === satDateStr);
+
+      if (!ranSaturday) {
+        const shakeoutStages: WorkoutStage[] = [
+          { step: '1단계: 가벼운 예열 조깅 (0 ~ 2.0km, 2.0km)', distanceKm: 2.0, pace: "6'15\"", zone: 'Zone 1~2', focus: '관절 예열 및 가벼운 체온 상승' },
+          { step: '2단계: 신경계 각성 질주 (2.0 ~ 2.5km, 0.5km)', distanceKm: 0.5, pace: "4'35\"", zone: 'Zone 3~4', focus: '50m 가벼운 질주 2회, 다리 탄력 보존' },
+          { step: '3단계: 쿨다운 스트레칭 (2.5 ~ 3.0km, 0.5km)', distanceKm: 0.5, pace: "6'30\" ~ 7'00\"", zone: 'Zone 1', focus: '심박 안정화 및 하체 이완' },
+        ];
+        return {
+          ...pDay,
+          dateStr,
+          isCompleted: false,
+          type: '조깅',
+          title: '[대회 D-1] 실전 대비 쉐이크아웃 (3.0km)',
+          distanceKm: 3.0,
+          targetPace: "6'15\"",
+          targetZone: 'Zone 1~2 (가벼운 예열)',
+          description: `내일(${nextMonRaceName}) 대회를 앞두고, ${ranFriday ? '금요일 훈련을 마치고 토요일 충분한 휴식을 취하셨으므로 ' : ''}오늘(일요일) 3km 가벼운 쉐이크아웃 러닝으로 다리 근육의 탄력과 신경계를 최상으로 예열합니다.`,
+          stages: shakeoutStages,
+          intensity: '낮음',
+        };
+      } else {
+        return {
+          ...pDay,
+          dateStr,
+          isCompleted: false,
+          type: '휴식',
+          title: '대회 D-1 완전 휴식 (Rest & Recovery)',
+          distanceKm: 0,
+          targetPace: '-',
+          targetZone: '-',
+          description: `내일(${nextMonRaceName}) 결전을 앞두고 체력을 100% 충전하는 완전 휴식일입니다.`,
+          intensity: '휴식',
+          stages: undefined,
+        };
+      }
+    }
+
     if (pDay.type === '휴식') {
       return {
         ...pDay,
