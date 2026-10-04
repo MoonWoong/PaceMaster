@@ -1292,20 +1292,20 @@ export function generateWeeklyTrainingPlan(
         {
           step: `2구간: 본운동 (${warmupDist} ~ ${Math.round((warmupDist + mainDist) * 10) / 10}km, ${mainDist}km)`,
           distanceKm: mainDist,
-          pace: isTaper ? effectiveRacePace : `${easyMin} ~ ${easyMax}`,
-          zone: isTaper ? 'Zone 3 (레이스 페이스 점검)' : 'Zone 2 (지속주)',
+          pace: isTaper && targetRaceCourse === '풀코스' ? effectiveRacePace : `${easyMin} ~ ${easyMax}`,
+          zone: isTaper ? 'Zone 2~3 (페이스 점검)' : 'Zone 2 (지속주)',
           focus: isTaper
-            ? `${targetRacePlan.raceName} 목표 페이스(${effectiveRacePace}) 정밀 락온 및 리듬 점검`
+            ? `${targetRacePlan.raceName} 목표 페이스(${targetRaceCourse === '풀코스' ? effectiveRacePace : easyMin}) 정밀 락온 및 리듬 점검`
             : targetRacePlan
-            ? `${targetRacePlan.raceName} 목표 페이스(${effectiveRacePace}) 적응 및 5km마다 뉴트리션 섭취 시뮬레이션`
+            ? `${targetRacePlan.raceName} 대비 안정된 유산소 지구력 적응 및 5km마다 뉴트리션 섭취 시뮬레이션`
             : '지방 대사 최적화 및 5km마다 뉴트리션 섭취 시뮬레이션',
         },
         {
-          step: `3구간: 후반 마무리 (${Math.round((warmupDist + mainDist) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
+          step: `3구간: 후반 쿨다운 (${Math.round((warmupDist + mainDist) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
           distanceKm: cooldownDist,
-          pace: isTaper ? easyMax : effectiveRacePace,
-          zone: isTaper ? 'Zone 1 (회복)' : 'Zone 2~3',
-          focus: isTaper ? '심박 안정화 및 근육 긴장 완화' : '후반 다리 피로 누적 상황에서 자세와 케이던스 집중 유지',
+          pace: `${easyMax} ~ 6'40"`,
+          zone: 'Zone 1 (회복)',
+          focus: '심박 안정화 및 하체 피로 털기 스트레칭',
         },
       ];
 

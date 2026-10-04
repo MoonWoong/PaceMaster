@@ -1005,9 +1005,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
                           <div className={`grid grid-cols-1 sm:grid-cols-2 ${dayItem.stages.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2.5`}>
                             {dayItem.stages.map((stage, sIdx) => {
-                              const isMain = stage.step.includes('본운동') || stage.step.includes('본훈련') || stage.step.includes('본세트') || stage.step.includes('2구간');
-                              const isWarm = stage.step.includes('워밍업') || stage.step.includes('1단계') || stage.step.includes('1구간');
-                              const isCool = stage.step.includes('쿨다운') || stage.step.includes('3단계') || stage.step.includes('4단계') || stage.step.includes('마무리');
+                              const isCool = stage.step.includes('쿨다운') || stage.step.includes('마무리') || (!stage.step.includes('본훈련') && !stage.step.includes('본운동') && !stage.step.includes('피니시') && sIdx === dayItem.stages!.length - 1);
+                              const isWarm = stage.step.includes('워밍업') || (!isCool && sIdx === 0 && (stage.step.includes('1단계') || stage.step.includes('1구간')));
+                              const isMain = !isCool && !isWarm;
 
                               return (
                                 <div
@@ -1384,8 +1384,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   {selectedDayDetail.day.stages.map((stg, i) => {
                     const totalDist = Math.max(1, selectedDayDetail.day.distanceKm);
                     const pct = Math.max(8, Math.min(100, (stg.distanceKm / totalDist) * 100));
-                    const isMain = stg.step.includes('본운동') || stg.step.includes('본훈련') || stg.step.includes('본세트') || stg.step.includes('2구간');
-                    const isWarm = stg.step.includes('워밍업') || stg.step.includes('1단계') || stg.step.includes('1구간');
+                    const isCool = stg.step.includes('쿨다운') || stg.step.includes('마무리') || (!stg.step.includes('본훈련') && !stg.step.includes('본운동') && !stg.step.includes('피니시') && i === selectedDayDetail.day.stages!.length - 1);
+                    const isWarm = stg.step.includes('워밍업') || (!isCool && i === 0 && (stg.step.includes('1단계') || stg.step.includes('1구간')));
+                    const isMain = !isCool && !isWarm;
                     return (
                       <div
                         key={i}
@@ -1401,9 +1402,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
                 <div className="space-y-2">
                   {selectedDayDetail.day.stages.map((stg, i) => {
-                    const isMain = stg.step.includes('본운동') || stg.step.includes('본훈련') || stg.step.includes('본세트') || stg.step.includes('2구간');
-                    const isWarm = stg.step.includes('워밍업') || stg.step.includes('1단계') || stg.step.includes('1구간');
-                    const isCool = stg.step.includes('쿨다운') || stg.step.includes('3단계') || stg.step.includes('4단계') || stg.step.includes('마무리');
+                    const isCool = stg.step.includes('쿨다운') || stg.step.includes('마무리') || (!stg.step.includes('본훈련') && !stg.step.includes('본운동') && !stg.step.includes('피니시') && i === selectedDayDetail.day.stages!.length - 1);
+                    const isWarm = stg.step.includes('워밍업') || (!isCool && i === 0 && (stg.step.includes('1단계') || stg.step.includes('1구간')));
+                    const isMain = !isCool && !isWarm;
 
                     return (
                       <div

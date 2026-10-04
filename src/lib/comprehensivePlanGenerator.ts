@@ -11,7 +11,7 @@ import {
   PlanPeriodizationPhase,
   SpeedWorkoutType,
 } from '../types';
-import { getTrainingPaces, formatPace, parseTimeToSeconds } from './vdot';
+import { getTrainingPaces, formatPace, parseTimeToSeconds, parsePaceToSeconds } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 import { analyzeRunnerState } from './trainingPlanGenerator';
 
@@ -658,6 +658,15 @@ export function generateComprehensivePlan(params: {
         let lsdTitle = `유산소 지구력 장거리 지속주 (LSD ${longRunKm}km)`;
         let lsdDesc = `장거리 주행력을 키우는 핵심 주말 포인트 훈련입니다. ${warmupKm}km 워밍업 후 본훈련 진행.`;
 
+        // Determine Peak long-run pace:
+        // Marathon target runner: peak lock-on pace is marathonPace (~4'55").
+        // 10K/5K target runner: long run peak pace is still aerobic Zone 3 (~4'55" ~ 5'05"), NOT 10K race pace (4'15")!
+        const targetSec = parsePaceToSeconds(effectiveTargetPace);
+        const maraSec = paces?.marathonPace?.rawSec || 295;
+        const peakLsdPace = targetCourseName === '풀코스'
+          ? (targetSec >= maraSec - 10 ? effectiveTargetPace : marathonPace)
+          : marathonPace;
+
         if (isRaceWeek) {
           lsdTitle = `가벼운 대회 리듬 셰이핑 (${longRunKm}km)`;
           lsdPace = `${easyMin} ~ ${easyMax}`;
@@ -682,28 +691,28 @@ export function generateComprehensivePlan(params: {
               step: `3단계: 쿨다운 (${cooldownKm}km)`,
               distanceKm: cooldownKm,
               pace: `${easyMax} ~ 6'40"`,
-              zone: 'Zone 1',
+              zone: 'Zone 1 (회복)',
               focus: '심박 안정화 및 하체 피로 털기 스트레칭',
             },
           ];
         } else if (isDeload) {
           lsdTitle = `회복 디로드 저강도 LSD (${longRunKm}km)`;
           lsdPace = `${easyMax} ~ 6'30"`;
-          lsdZone = 'Zone 2 (회복 유산소)';
-          lsdDesc = `디로드 주간입니다. 무리 없는 편안한 페이스(${easyMax})로 달려 하체 관절의 부담을 줄이고 심폐 지구력을 편안하게 유지합니다.`;
+          lsdZone = 'Zone 1~2 (회복 유산소)';
+          lsdDesc = `디로드(회복) 주간입니다. 무리 없는 편안한 저강도 페이스(${easyMax} ~ 6'30")로 달려 하체 관절과 심폐의 누적 피로를 회복하고 초과회복을 유도합니다.`;
           lsdStages = [
             {
               step: `1단계: 워밍업 (${warmupKm}km)`,
               distanceKm: warmupKm,
-              pace: easyMax,
-              zone: 'Zone 1~2',
-              focus: '가벼운 조깅으로 몸을 풀고 호흡 안정',
+              pace: `${easyMax} ~ 6'30"`,
+              zone: 'Zone 1',
+              focus: '몸에 무리가 가지 않도록 아주 천천히 조깅하며 호흡 안정',
             },
             {
               step: `2단계: 본운동 회복형 이지 LSD (${mainTotalKm}km)`,
               distanceKm: mainTotalKm,
               pace: easyMax,
-              zone: 'Zone 2',
+              zone: 'Zone 1~2',
               focus: '대화가 편안히 가능한 페이스로 관절과 근육에 무리 없는 지속주',
             },
             {
@@ -715,13 +724,13 @@ export function generateComprehensivePlan(params: {
             },
           ];
         } else if (phase === '목표 페이스 특화기 (Peak)') {
-          // Peak Phase: Marathon-Pace build-up LSD
-          const part1Km = Math.round(mainTotalKm * 0.6 * 10) / 10;
+          // Peak Phase: Race-Pace build-up LSD (4 stages)
+          const part1Km = Math.round(mainTotalKm * 0.65 * 10) / 10;
           const part2Km = Math.round((mainTotalKm - part1Km) * 10) / 10;
-          lsdTitle = `마라톤 목표 페이스 빌드업 LSD (${longRunKm}km)`;
-          lsdPace = `${easyMin} ~ ${effectiveTargetPace}`;
-          lsdZone = 'Zone 2~3 (실전 마라톤 페이스 감각)';
-          lsdDesc = `초반 ${part1Km}km는 안정적인 이지런(${easyMin} ~ ${easyMax})으로 달리고, 후반 ${part2Km}km는 실전 목표 페이스(${effectiveTargetPace})로 락온하여 후반 글리코겐 고갈 저항력을 기릅니다.`;
+          lsdTitle = `실전 목표 페이스 락온 장거리 LSD (${longRunKm}km)`;
+          lsdPace = `${easyMin} ~ ${peakLsdPace}`;
+          lsdZone = 'Zone 2 ➡️ Zone 3 (실전 페이스 락온)';
+          lsdDesc = `초반 ${part1Km}km는 안정적인 이지런(${easyMin} ~ ${easyMax})으로 달리고, 후반 ${part2Km}km는 실전 목표 페이스(${peakLsdPace})로 락온하여 후반 글리코겐 고갈 저항력과 멘탈 지구력을 기릅니다.`;
           lsdStages = [
             {
               step: `1단계: 워밍업 (${warmupKm}km)`,
@@ -731,7 +740,7 @@ export function generateComprehensivePlan(params: {
               focus: '체온 상승 및 관절 윤활액 분비 유도, 가벼운 호흡 리듬 정착',
             },
             {
-              step: `2단계: 본훈련 1구간 유산소 지속주 (${part1Km}km)`,
+              step: `2단계: 본훈련 1구간 기초 유산소 정속 (${part1Km}km)`,
               distanceKm: part1Km,
               pace: `${easyMin} ~ ${easyMax}`,
               zone: 'Zone 2',
@@ -740,9 +749,9 @@ export function generateComprehensivePlan(params: {
             {
               step: `3단계: 본훈련 2구간 목표 페이스 락온 (${part2Km}km)`,
               distanceKm: part2Km,
-              pace: effectiveTargetPace,
-              zone: 'Zone 3~4',
-              focus: `후반 피로 상황에서 실전 목표 페이스(${effectiveTargetPace}) 사수 훈련, 코어 중심 안정적 주행`,
+              pace: peakLsdPace,
+              zone: 'Zone 3',
+              focus: `대회 후반부와 동일한 피로 상황에서 실전 페이스(${peakLsdPace}) 정밀 사수 훈련, 코어 중심 안정적 주행`,
             },
             {
               step: `4단계: 쿨다운 (${cooldownKm}km)`,
@@ -752,12 +761,79 @@ export function generateComprehensivePlan(params: {
               focus: '심박수를 점진적으로 떨어뜨리고 가벼운 햄스트링/종아리 스트레칭',
             },
           ];
-        } else {
-          // Regular Base / Build Phase
-          lsdTitle = `유산소 지구력 장거리 LSD (${longRunKm}km)`;
+        } else if (phase === '스피드/지구력 빌드업기 (Build)') {
+          // Build Phase: Negative Split Progression LSD (4 stages)
+          const part1Km = Math.round(mainTotalKm * 0.65 * 10) / 10;
+          const part2Km = Math.round((mainTotalKm - part1Km) * 10) / 10;
+          lsdTitle = `점진적 네거티브 스플릿 빌드업 LSD (${longRunKm}km)`;
+          lsdPace = `${easyMax} ➡️ ${easyMin} (후반 ${marathonPace})`;
+          lsdZone = 'Zone 2 ➡️ Zone 3 (네거티브 스플릿)';
+          lsdDesc = `장거리 후반부 글리코겐 보존 및 페이스 제어력을 기르는 빌드업 LSD입니다. 초반 ${part1Km}km는 안정적인 이지런(${easyMax} ➡️ ${easyMin})으로 달리고, 후반 ${part2Km}km는 유산소 템포(${marathonPace})로 점진 가속합니다.`;
+          lsdStages = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅으로 관절 가동성 확보 및 체온 상승',
+            },
+            {
+              step: `2단계: 본훈련 1구간 기초 유산소 정속 (${part1Km}km)`,
+              distanceKm: part1Km,
+              pace: `${easyMax} ➡️ ${easyMin}`,
+              zone: 'Zone 2',
+              focus: '대화가 편안한 Zone 2 정속 주행, 지방 대사 최적화 및 5km마다 수분 섭취',
+            },
+            {
+              step: `3단계: 본훈련 2구간 후반 점진 가속 (${part2Km}km)`,
+              distanceKm: part2Km,
+              pace: `${easyMin} ➡️ ${marathonPace}`,
+              zone: 'Zone 2~3',
+              focus: `후반 다리 피로 누적 상황에서 리듬을 살리며 유산소 템포(${marathonPace}) 영역까지 부드럽게 점진 가속`,
+            },
+            {
+              step: `4단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '심박 정상화 및 하체 피로 털기 스트레칭',
+            },
+          ];
+        } else if (phase === '테이퍼링 감량기 (Tapering)') {
+          // Tapering Phase: Controlled volume easy long run
+          lsdTitle = `테이퍼링 컨디션 조율 LSD (${longRunKm}km)`;
           lsdPace = `${easyMin} ~ ${easyMax}`;
-          lsdZone = 'Zone 2 (지구력)';
-          lsdDesc = `장거리 주행력을 키우는 핵심 주말 포인트 훈련입니다. 이지 페이스(${easyMin} ~ ${easyMax})로 정속 주행하며 심폐 지구력을 극대화합니다.`;
+          lsdZone = 'Zone 2 (테이퍼링)';
+          lsdDesc = `대회를 앞둔 테이퍼링 주간입니다. 거리를 축소하여 글리코겐을 충전하고 다리의 가벼운 반발력을 유지합니다.`;
+          lsdStages = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅으로 몸을 풀고 호흡 안정',
+            },
+            {
+              step: `2단계: 본운동 테이퍼링 가벼운 이지런 (${mainTotalKm}km)`,
+              distanceKm: mainTotalKm,
+              pace: `${easyMin} ~ ${easyMax}`,
+              zone: 'Zone 2',
+              focus: '무리하지 않고 경쾌한 케이던스로 다리 탄력 유지',
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '심박 안정화 및 하체 스트레칭',
+            },
+          ];
+        } else {
+          // Base Phase / Default: Pure Steady Aerobic Long Run (3 stages)
+          lsdTitle = `기초 유산소 정속 장거리 지속주 (LSD ${longRunKm}km)`;
+          lsdPace = `${easyMin} ~ ${easyMax}`;
+          lsdZone = 'Zone 2 (심폐 유산소 기초)';
+          lsdDesc = `일정한 이지런 페이스(${easyMin} ~ ${easyMax})로 달리는 순수 유산소 정속 지속주입니다. 심박수를 Zone 2로 일정하게 통제하여 모세혈관망 확장과 지방 연소 효율을 극대화합니다.`;
           lsdStages = [
             {
               step: `1단계: 워밍업 (${warmupKm}km)`,
@@ -767,11 +843,11 @@ export function generateComprehensivePlan(params: {
               focus: '가벼운 조깅으로 관절 윤활액 분비 및 체온 상승 유도',
             },
             {
-              step: `2단계: 본운동 LSD 정속 지속주 (${mainTotalKm}km)`,
+              step: `2단계: 본운동 순수 유산소 정속 지속주 (${mainTotalKm}km)`,
               distanceKm: mainTotalKm,
-              pace: `${easyMin} ~ ${easyMax}`,
+              pace: `${easyMax} ➡️ ${easyMin}`,
               zone: 'Zone 2',
-              focus: '일정한 보폭과 규칙적인 케이던스(180spm 내외) 유지, 5km마다 수분/전해질 보충 연습',
+              focus: '대화가 편안한 Zone 2 정속 유지, 케이던스 180spm 안정 유지, 5km마다 수분/전해질 보충 연습',
             },
             {
               step: `3단계: 쿨다운 (${cooldownKm}km)`,
@@ -1082,33 +1158,125 @@ export function generateComprehensivePlan(params: {
 
         // E. Buildup Run (빌드업주)
         if (activeSpeedType === '빌드업주') {
-          const sec1Dist = Math.round(speedKm * 0.35 * 10) / 10;
-          const sec2Dist = Math.round(speedKm * 0.40 * 10) / 10;
-          const sec3Dist = Math.round((speedKm - sec1Dist - sec2Dist) * 10) / 10;
+          const targetSec = parsePaceToSeconds(effectiveTargetPace);
+          const threshSec = paces?.thresholdPace?.rawSec || 276;
+          const maraSec = paces?.marathonPace?.rawSec || 295;
+          const isTargetFasterThanThreshold = targetSec > 0 && targetSec < threshSec - 5;
 
-          const stages: WorkoutStage[] = [
-            {
-              step: `1구간: 워밍업 & 초반 이지런 (${sec1Dist}km)`,
-              distanceKm: sec1Dist,
-              pace: `${easyMax} ~ ${easyMin}`,
-              zone: 'Zone 2',
-              focus: '릴랙스한 주법으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
-            },
-            {
-              step: `2구간: 본훈련 1구간 목표 페이스 정속 (${sec2Dist}km)`,
-              distanceKm: sec2Dist,
-              pace: effectiveTargetPace,
-              zone: 'Zone 3',
-              focus: `일정한 보폭과 리드미컬한 호흡 유지, 실전 목표 페이스(${effectiveTargetPace}) 감각 완벽 체화`,
-            },
-            {
-              step: `3구간: 본훈련 2구간 역치 가속 피니시 (${sec3Dist}km)`,
-              distanceKm: sec3Dist,
-              pace: thresholdPace,
-              zone: 'Zone 4',
-              focus: `피로 속에서도 무너지지 않는 코어 유지와 강한 팔치기로 역치 페이스(${thresholdPace}) 네거티브 스플릿 피니시`,
-            },
-          ];
+          let stages: WorkoutStage[] = [];
+          let targetPaceStr = '';
+          let targetZoneStr = '';
+          let descStr = '';
+
+          if (isTargetFasterThanThreshold && speedKm >= 8) {
+            // 4-stage progression: Zone 2 -> Zone 3 (MP) -> Zone 4 (Threshold) -> Zone 5 (Target Fast Finish)
+            const s1 = Math.round(speedKm * 0.25 * 10) / 10;
+            const s2 = Math.round(speedKm * 0.30 * 10) / 10;
+            const s3 = Math.round(speedKm * 0.25 * 10) / 10;
+            const s4 = Math.round((speedKm - s1 - s2 - s3) * 10) / 10;
+
+            stages = [
+              {
+                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
+                distanceKm: s1,
+                pace: `${easyMax} ~ ${easyMin}`,
+                zone: 'Zone 2',
+                focus: '가벼운 조깅으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
+              },
+              {
+                step: `2구간: 본훈련 1구간 유산소 순항 (${s2}km)`,
+                distanceKm: s2,
+                pace: marathonPace,
+                zone: 'Zone 3',
+                focus: `일정한 보폭과 리드미컬한 호흡 유지, 유산소 순항(마라톤 페이스 ${marathonPace}) 정속 감각 체화`,
+              },
+              {
+                step: `3구간: 본훈련 2구간 젖산 역치 가속 (${s3}km)`,
+                distanceKm: s3,
+                pace: thresholdPace,
+                zone: 'Zone 4',
+                focus: `피로 누적 속에서도 탄력 있는 케이던스로 젖산 역치 페이스(${thresholdPace}) 지속 주행`,
+              },
+              {
+                step: `4구간: 본훈련 3구간 실전 목표 스피드 피니시 (${s4}km)`,
+                distanceKm: s4,
+                pace: effectiveTargetPace,
+                zone: 'Zone 5',
+                focus: `피로 속에서도 무너지지 않는 코어 유지와 강한 팔치기로 목표 레이스 페이스(${effectiveTargetPace}) 네거티브 가속 피니시`,
+              },
+            ];
+
+            targetPaceStr = `${easyMin} ➡️ ${marathonPace} ➡️ ${thresholdPace} ➡️ ${effectiveTargetPace}`;
+            targetZoneStr = 'Zone 2 ➡️ Zone 5';
+            descStr = `이지런(${easyMin})으로 출발하여 중반 유산소 순항(${marathonPace}, Zone 3), 젖산 역치(${thresholdPace}, Zone 4)를 거쳐 최종 구간 실전 목표 페이스(${effectiveTargetPace}, Zone 5)까지 4단계 점진 가속 완주합니다.`;
+          } else if (isTargetFasterThanThreshold) {
+            // 3-stage progression when speedKm is shorter: Zone 2 -> Zone 3 (MP) -> Zone 4~5 (Threshold to Target)
+            const s1 = Math.round(speedKm * 0.35 * 10) / 10;
+            const s2 = Math.round(speedKm * 0.35 * 10) / 10;
+            const s3 = Math.round((speedKm - s1 - s2) * 10) / 10;
+
+            stages = [
+              {
+                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
+                distanceKm: s1,
+                pace: `${easyMax} ~ ${easyMin}`,
+                zone: 'Zone 2',
+                focus: '릴랙스한 주법으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
+              },
+              {
+                step: `2구간: 본훈련 1구간 유산소 순항 (${s2}km)`,
+                distanceKm: s2,
+                pace: marathonPace,
+                zone: 'Zone 3',
+                focus: `일정한 보폭과 리드미컬한 호흡 유지, 유산소 순항 페이스(${marathonPace}) 정속 주행`,
+              },
+              {
+                step: `3구간: 본훈련 2구간 역치 가속 & 피니시 질주 (${s3}km)`,
+                distanceKm: s3,
+                pace: `${thresholdPace} ➡️ ${effectiveTargetPace}`,
+                zone: 'Zone 4 ➡️ Zone 5',
+                focus: `젖산 역치 페이스(${thresholdPace}, Zone 4)로 가속 후 최종 피니시 구간은 목표 페이스(${effectiveTargetPace}, Zone 5)로 폭발적 질주`,
+              },
+            ];
+
+            targetPaceStr = `${easyMin} ➡️ ${marathonPace} ➡️ ${thresholdPace} (피니시 ${effectiveTargetPace})`;
+            targetZoneStr = 'Zone 2 ➡️ Zone 4~5';
+            descStr = `이지런(${easyMin})으로 시작하여 중반 유산소 순항(${marathonPace}, Zone 3)을 거쳐 후반 역치 페이스(${thresholdPace}, Zone 4) 및 실전 목표 페이스(${effectiveTargetPace})로 가속 피니시합니다.`;
+          } else {
+            // Standard 3-stage progression: Zone 2 -> Zone 3 (MP / Target) -> Zone 4 (Threshold)
+            const s1 = Math.round(speedKm * 0.35 * 10) / 10;
+            const s2 = Math.round(speedKm * 0.40 * 10) / 10;
+            const s3 = Math.round((speedKm - s1 - s2) * 10) / 10;
+
+            stages = [
+              {
+                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
+                distanceKm: s1,
+                pace: `${easyMax} ~ ${easyMin}`,
+                zone: 'Zone 2',
+                focus: '릴랙스한 주법으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
+              },
+              {
+                step: `2구간: 본훈련 1구간 목표 유산소 정속 (${s2}km)`,
+                distanceKm: s2,
+                pace: effectiveTargetPace,
+                zone: 'Zone 3',
+                focus: `일정한 보폭과 리드미컬한 호흡 유지, 실전 목표 페이스(${effectiveTargetPace}) 감각 완벽 체화`,
+              },
+              {
+                step: `3구간: 본훈련 2구간 역치 가속 피니시 (${s3}km)`,
+                distanceKm: s3,
+                pace: thresholdPace,
+                zone: 'Zone 4',
+                focus: `피로 속에서도 무너지지 않는 코어 유지와 강한 팔치기로 역치 페이스(${thresholdPace}) 네거티브 스플릿 피니시`,
+              },
+            ];
+
+            targetPaceStr = `${easyMin} ➡️ ${effectiveTargetPace} ➡️ ${thresholdPace}`;
+            targetZoneStr = 'Zone 2 ➡️ Zone 4';
+            descStr = `이지런(${easyMin})으로 시작하여 중반 목표 페이스(${effectiveTargetPace}, Zone 3)를 거쳐 마지막 구간은 역치 페이스(${thresholdPace}, Zone 4)로 가속 완주합니다.`;
+          }
+
           normalizeStagesDistance(stages, speedKm);
 
           return {
@@ -1118,9 +1286,9 @@ export function generateComprehensivePlan(params: {
             type: '템포런',
             title: `점진적 가속 빌드업주 (${speedKm}km)`,
             distanceKm: speedKm,
-            targetPace: `${easyMin} → ${effectiveTargetPace} → ${thresholdPace}`,
-            targetZone: 'Zone 2 → Zone 4',
-            description: `이지런(${easyMin})으로 시작하여 중반 목표 페이스(${effectiveTargetPace})를 거쳐 마지막 구간은 역치 페이스(${thresholdPace})로 가속 완주합니다.`,
+            targetPace: targetPaceStr,
+            targetZone: targetZoneStr,
+            description: descStr,
             purpose: '후반 가속 능력(Negative Split) 및 심리적 자신감 고취, 점진적 젖산 대사 적응력 배양',
             intensity: '높음',
             isCompleted: !!matchedSession,

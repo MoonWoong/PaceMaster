@@ -18,6 +18,19 @@ export function parseTimeToSeconds(timeStr: string): number {
   return 0;
 }
 
+// Helper to parse pace strings like "4'15\"", "4'15", "4:15", "4'15\"/km" into seconds
+export function parsePaceToSeconds(paceStr: string): number {
+  if (!paceStr || !paceStr.trim()) return 0;
+  const clean = paceStr.replace('/km', '').replace(/["'\s]/g, ':').replace(/:+/g, ':').replace(/^:|:$/g, '');
+  const parts = clean.split(':').map((p) => parseFloat(p) || 0);
+  if (parts.length >= 2) {
+    return parts[0] * 60 + parts[1];
+  } else if (parts.length === 1 && parts[0] > 0) {
+    return parts[0] * 60;
+  }
+  return parseTimeToSeconds(paceStr);
+}
+
 // Convert seconds into hh:mm:ss or mm:ss string
 export function formatSecondsToTime(totalSeconds: number, includeHours = false): string {
   if (isNaN(totalSeconds) || totalSeconds <= 0) return '--:--';
