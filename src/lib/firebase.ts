@@ -13,13 +13,9 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
   getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   Firestore,
   doc,
   getDoc,
-  getDocFromServer,
   setDoc,
   deleteDoc,
   collection,
@@ -36,6 +32,7 @@ import {
   TrainingSession,
   WeeklyPlanDay,
   WeeklyPlanSettings,
+  ComprehensiveTrainingPlan,
 } from '../types';
 import { INITIAL_RUNNING_SHOES } from './shoeData';
 import provisionedConfig from '../../firebase-applet-config.json';
@@ -104,34 +101,12 @@ if (activeConfig && activeConfig.projectId) {
         ? provisionedConfig.firestoreDatabaseId
         : undefined;
 
-    // Use persistent local cache (IndexedDB) for near-instant offline & cached queries
-    try {
-      firestoreInstance = initializeFirestore(
-        firebaseAppInstance,
-        {
-          localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager(),
-          }),
-        },
-        dbId
-      );
-    } catch {
-      firestoreInstance = dbId
-        ? getFirestore(firebaseAppInstance, dbId)
-        : getFirestore(firebaseAppInstance);
-    }
+    firestoreInstance = dbId
+      ? getFirestore(firebaseAppInstance, dbId)
+      : getFirestore(firebaseAppInstance);
 
     isFirebaseConnected = true;
     console.log('[Firebase] Cloud Firestore initialized with projectId:', activeConfig.projectId);
-
-    // Validate server connection asynchronously in background without blocking
-    getDocFromServer(doc(firestoreInstance, 'test', 'connection'))
-      .catch((err) => {
-        // Document doesn't need to exist; catching network error only
-        if (err instanceof Error && err.message.includes('the client is offline')) {
-          console.warn('[Firebase] Client is offline or Firestore is unreachable:', err.message);
-        }
-      });
   } catch (err) {
     console.warn('[Firebase] Init failed, falling back to local async sync mode:', err);
     isFirebaseConnected = false;
@@ -303,7 +278,9 @@ export async function getPhysicalInfo(): Promise<PhysicalInfo> {
     try {
       const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'physical'));
       if (snap.exists()) {
-        return snap.data() as PhysicalInfo;
+        const physical = snap.data() as PhysicalInfo;
+        setLocalItem('physical', physical);
+        return physical;
       }
     } catch (e) {
       console.warn('Firestore getPhysicalInfo failed, reading local', e);
@@ -859,6 +836,49 @@ export async function saveWeeklyPlan(
       });
     } catch (e) {
       console.error('Firestore saveWeeklyPlan failed', e);
+    }
+  }
+}
+
+/* ============================================================================
+ * Async CRUD Operations: 8. Comprehensive Long-Term Training Plan (장기 훈련 계획표)
+ * ============================================================================ */
+export async function getComprehensiveTrainingPlan(): Promise<ComprehensiveTrainingPlan | null> {
+  if (firestoreInstance) {
+    try {
+      const snap = await getDoc(doc(firestoreInstance, 'runner_data', 'training_plan'));
+      if (snap.exists() && snap.data().plan) {
+        const plan = snap.data().plan as ComprehensiveTrainingPlan;
+        setLocalItem('training_plan', plan);
+        return plan;
+      }
+    } catch (e) {
+      console.warn('Firestore getComprehensiveTrainingPlan failed, reading local', e);
+    }
+  }
+  return getLocalItem<ComprehensiveTrainingPlan | null>('training_plan', null);
+}
+
+export async function saveComprehensiveTrainingPlan(
+  plan: ComprehensiveTrainingPlan
+): Promise<void> {
+  setLocalItem('training_plan', plan);
+
+  if (firestoreInstance) {
+    try {
+      await setDoc(
+        doc(firestoreInstance, 'runner_data', 'training_plan'),
+        cleanFirestoreData(
+          {
+            plan,
+            updatedAt: new Date().toISOString(),
+          },
+          false
+        ),
+        { merge: true }
+      );
+    } catch (e) {
+      console.error('Firestore saveComprehensiveTrainingPlan failed', e);
     }
   }
 }

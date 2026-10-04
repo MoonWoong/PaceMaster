@@ -14,6 +14,9 @@ const TabRunningRecords = React.lazy(() =>
 const TabMarathonRaces = React.lazy(() =>
   import('./components/TabMarathonRaces').then((m) => ({ default: m.TabMarathonRaces }))
 );
+const TabTrainingPlan = React.lazy(() =>
+  import('./components/TabTrainingPlan').then((m) => ({ default: m.TabTrainingPlan }))
+);
 const AnnualRunningHeatmap = React.lazy(() =>
   import('./components/AnnualRunningHeatmap').then((m) => ({ default: m.AnnualRunningHeatmap }))
 );
@@ -39,6 +42,7 @@ import {
   TrainingSession,
   WeeklyPlanDay,
   WeeklyPlanSettings,
+  ComprehensiveTrainingPlan,
 } from './types';
 import {
   getPhysicalInfo,
@@ -66,6 +70,8 @@ import {
   saveWeeklyPlan,
   getWeeklyPlanSettings,
   saveWeeklyPlanSettings,
+  getComprehensiveTrainingPlan,
+  saveComprehensiveTrainingPlan,
   DEFAULT_PHYSICAL,
   DEFAULT_SHOES,
   DEFAULT_RACES,
@@ -110,6 +116,9 @@ export default function App() {
   const [weeklyPlanSettings, setWeeklyPlanSettings] = useState<WeeklyPlanSettings>(() =>
     getLocalItem<WeeklyPlanSettings>('weekly_plan_settings', DEFAULT_WEEKLY_PLAN_SETTINGS)
   );
+  const [comprehensivePlan, setComprehensivePlan] = useState<ComprehensiveTrainingPlan | null>(() =>
+    getLocalItem<ComprehensiveTrainingPlan | null>('training_plan', null)
+  );
 
   // Non-blocking background sync with Firestore (runs asynchronously without blocking UI)
   useEffect(() => {
@@ -117,43 +126,60 @@ export default function App() {
     async function syncCloudData() {
       setIsSyncing(true);
       try {
-        function fetchWithTimeout<T>(p: Promise<T>, fallback: T, ms = 5000): Promise<T> {
+        function fetchWithTimeout<T>(p: Promise<T>, fallback: T, ms = 4000): Promise<T> {
           return Promise.race([
             p,
             new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
           ]);
         }
 
-        const [
-          phys,
-          shoeList,
-          raceList,
-          recordsData,
-          goalsData,
-          sessionsData,
-          planData,
-          planSettingsData,
-        ] = await Promise.all([
-          fetchWithTimeout(getPhysicalInfo(), physicalInfo),
-          fetchWithTimeout(getShoes(), shoes),
-          fetchWithTimeout(getRaces(), races),
-          fetchWithTimeout(getRunningRecords(), runningRecords),
-          fetchWithTimeout(getRunningGoals(), runningGoals),
-          fetchWithTimeout(getTrainingSessions(), trainingSessions),
-          fetchWithTimeout(getWeeklyPlan(), weeklyPlan),
-          fetchWithTimeout(getWeeklyPlanSettings(), weeklyPlanSettings),
-        ]);
+        const pPhys = fetchWithTimeout(getPhysicalInfo(), physicalInfo).then((phys) => {
+          if (isMounted && phys) setPhysicalInfo(phys);
+        });
 
-        if (isMounted) {
-          if (phys) setPhysicalInfo(phys);
-          if (shoeList && shoeList.length > 0) setShoes(shoeList);
-          if (raceList && raceList.length > 0) setRaces(raceList);
-          if (recordsData) setRunningRecords(recordsData);
-          if (goalsData) setRunningGoals(goalsData);
-          if (sessionsData) setTrainingSessions(sessionsData);
-          if (planData) setWeeklyPlan(planData);
-          if (planSettingsData) setWeeklyPlanSettings(planSettingsData);
-        }
+        const pShoes = fetchWithTimeout(getShoes(), shoes).then((shoeList) => {
+          if (isMounted && shoeList && shoeList.length > 0) setShoes(shoeList);
+        });
+
+        const pRaces = fetchWithTimeout(getRaces(), races).then((raceList) => {
+          if (isMounted && raceList && raceList.length > 0) setRaces(raceList);
+        });
+
+        const pRecords = fetchWithTimeout(getRunningRecords(), runningRecords).then((recordsData) => {
+          if (isMounted && recordsData) setRunningRecords(recordsData);
+        });
+
+        const pGoals = fetchWithTimeout(getRunningGoals(), runningGoals).then((goalsData) => {
+          if (isMounted && goalsData) setRunningGoals(goalsData);
+        });
+
+        const pSessions = fetchWithTimeout(getTrainingSessions(), trainingSessions).then((sessionsData) => {
+          if (isMounted && sessionsData) setTrainingSessions(sessionsData);
+        });
+
+        const pPlan = fetchWithTimeout(getWeeklyPlan(), weeklyPlan).then((planData) => {
+          if (isMounted && planData) setWeeklyPlan(planData);
+        });
+
+        const pPlanSettings = fetchWithTimeout(getWeeklyPlanSettings(), weeklyPlanSettings).then((planSettingsData) => {
+          if (isMounted && planSettingsData) setWeeklyPlanSettings(planSettingsData);
+        });
+
+        const pCompPlan = fetchWithTimeout(getComprehensiveTrainingPlan(), comprehensivePlan).then((planData) => {
+          if (isMounted && planData) setComprehensivePlan(planData);
+        });
+
+        await Promise.allSettled([
+          pPhys,
+          pShoes,
+          pRaces,
+          pRecords,
+          pGoals,
+          pSessions,
+          pPlan,
+          pPlanSettings,
+          pCompPlan,
+        ]);
       } catch (err) {
         console.warn('[Sync] Non-blocking cloud sync completed with notice:', err);
       } finally {
@@ -168,6 +194,11 @@ export default function App() {
       isMounted = false;
     };
   }, []);
+
+  const handleSaveComprehensivePlan = async (plan: ComprehensiveTrainingPlan) => {
+    await saveComprehensiveTrainingPlan(plan);
+    setComprehensivePlan(plan);
+  };
 
   // Handlers for Physical Info
   const handleSavePhysical = async (info: PhysicalInfo) => {
@@ -420,6 +451,7 @@ export default function App() {
           records={runningRecords}
           onNavigateToRaces={handleNavigateToRaces}
           onNavigateToGoals={handleNavigateToGoals}
+          onNavigateToPlan={() => setActiveTab('training_plan')}
           onUpdateRace={handleUpdateRace}
         />
 
@@ -487,6 +519,32 @@ export default function App() {
                 onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
                 onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
                 onNavigateToShoes={handleNavigateToShoes}
+              />
+            </Suspense>
+          )}
+
+          {activeTab === 'training_plan' && (
+            <Suspense
+              fallback={
+                <div className="py-20 text-center space-y-3">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-600 mb-2" />
+                  <p className="text-sm font-bold text-stone-700">맞춤 훈련 계획표를 불러오는 중입니다...</p>
+                  <p className="text-xs text-stone-500">주기화 스케줄 및 상세 훈련 목적을 준비합니다.</p>
+                </div>
+              }
+            >
+              <TabTrainingPlan
+                currentVDOT={currentVDOT}
+                races={races}
+                goals={runningGoals}
+                shoes={shoes}
+                sessions={trainingSessions}
+                records={runningRecords}
+                savedPlan={comprehensivePlan}
+                onSavePlan={handleSaveComprehensivePlan}
+                onOpenLogWorkout={(dateStr, defaultTitle, defaultDist) => {
+                  setIsTodayWorkoutModalOpen(true);
+                }}
               />
             </Suspense>
           )}

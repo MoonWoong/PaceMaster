@@ -7,6 +7,7 @@ import {
   TrainingSession,
   WeeklyPlanDay,
   WeeklyPlanSettings,
+  ComprehensiveTrainingPlan,
 } from '../types';
 import {
   savePhysicalInfo,
@@ -17,6 +18,7 @@ import {
   setAllTrainingSessions,
   saveWeeklyPlan,
   saveWeeklyPlanSettings,
+  saveComprehensiveTrainingPlan,
 } from './firebase';
 
 export interface PaceMasterBackupPayload {
@@ -32,6 +34,7 @@ export interface PaceMasterBackupPayload {
     trainingSessions: TrainingSession[];
     weeklyPlan?: WeeklyPlanDay[];
     weeklyPlanSettings?: WeeklyPlanSettings;
+    trainingPlan?: ComprehensiveTrainingPlan | null;
   };
   stats?: {
     totalSessions: number;
@@ -232,6 +235,9 @@ export async function restoreRunningDataToStorage(
   }
   if (data.weeklyPlanSettings) {
     tasks.push(saveWeeklyPlanSettings(data.weeklyPlanSettings));
+  }
+  if (data.trainingPlan) {
+    tasks.push(saveComprehensiveTrainingPlan(data.trainingPlan));
   }
 
   await Promise.all(tasks);

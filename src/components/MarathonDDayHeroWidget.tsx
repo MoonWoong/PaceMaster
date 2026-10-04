@@ -24,6 +24,7 @@ interface MarathonDDayHeroWidgetProps {
   records: RunningRecords;
   onNavigateToRaces: () => void;
   onNavigateToGoals?: () => void;
+  onNavigateToPlan?: () => void;
   onUpdateRace?: (race: RegisteredRace) => Promise<void>;
 }
 
@@ -33,6 +34,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
   records,
   onNavigateToRaces,
   onNavigateToGoals,
+  onNavigateToPlan,
   onUpdateRace,
 }) => {
   const [isEditingTarget, setIsEditingTarget] = useState(false);
@@ -324,15 +326,27 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
             </div>
           </div>
 
-          {/* Action button to switch races */}
-          <button
-            type="button"
-            onClick={onNavigateToRaces}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white border border-rose-800 text-xs font-semibold transition-all shadow-sm cursor-pointer self-end whitespace-nowrap flex-shrink-0"
-          >
-            <span>마라톤 일정 전체보기</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+          {/* Action button to switch races & jump to plan */}
+          <div className="flex items-center gap-2 self-end">
+            {onNavigateToPlan && (
+              <button
+                type="button"
+                onClick={onNavigateToPlan}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap flex-shrink-0"
+              >
+                <span>대회 훈련 플랜</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onNavigateToRaces}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-900 hover:bg-rose-800 text-white border border-rose-800 text-xs font-semibold transition-all shadow-sm cursor-pointer whitespace-nowrap flex-shrink-0"
+            >
+              <span>전체 대회</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 

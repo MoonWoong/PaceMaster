@@ -1292,7 +1292,7 @@ export function generateWeeklyTrainingPlan(
         {
           step: `2구간: 본운동 (${warmupDist} ~ ${Math.round((warmupDist + mainDist) * 10) / 10}km, ${mainDist}km)`,
           distanceKm: mainDist,
-          pace: isTaper ? effectiveRacePace : `${effectiveRacePace} ~ ${easyMin}`,
+          pace: isTaper ? effectiveRacePace : `${easyMin} ~ ${easyMax}`,
           zone: isTaper ? 'Zone 3 (레이스 페이스 점검)' : 'Zone 2 (지속주)',
           focus: isTaper
             ? `${targetRacePlan.raceName} 목표 페이스(${effectiveRacePace}) 정밀 락온 및 리듬 점검`
@@ -1327,7 +1327,7 @@ export function generateWeeklyTrainingPlan(
         type: 'LSD',
         title: lsdTitle,
         distanceKm: actualLsdDist,
-        targetPace: isTaper ? `${effectiveRacePace}` : `${effectiveRacePace} ~ ${easyMin}`,
+        targetPace: isTaper ? `${effectiveRacePace}` : `${easyMin} ~ ${easyMax}`,
         targetZone: isTaper ? 'Zone 2~3 (테이퍼링 점검)' : 'Zone 2~3 (마라톤 페이스)',
         description: lsdDesc,
         intensity: isTaper && actualLsdDist <= 14 ? '보통' : '높음',

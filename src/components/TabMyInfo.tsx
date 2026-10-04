@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   UserCheck,
   Scale,
@@ -58,11 +58,21 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   onUpdateRace,
 }) => {
   // Physical Info State
-  const [height, setHeight] = useState(physicalInfo.height.toString());
-  const [weight, setWeight] = useState(physicalInfo.weight.toString());
-  const [age, setAge] = useState(physicalInfo.age.toString());
+  const [height, setHeight] = useState(physicalInfo?.height != null ? physicalInfo.height.toString() : '175');
+  const [weight, setWeight] = useState(physicalInfo?.weight != null ? physicalInfo.weight.toString() : '68');
+  const [age, setAge] = useState(physicalInfo?.age != null ? physicalInfo.age.toString() : '30');
   const [isSavingPhysical, setIsSavingPhysical] = useState(false);
   const [physicalSavedAlert, setPhysicalSavedAlert] = useState(false);
+  const [isPhysicalTouched, setIsPhysicalTouched] = useState(false);
+
+  // Sync form inputs with physicalInfo prop whenever updated from Firestore or storage
+  useEffect(() => {
+    if (!isPhysicalTouched && physicalInfo) {
+      if (physicalInfo.height != null) setHeight(physicalInfo.height.toString());
+      if (physicalInfo.weight != null) setWeight(physicalInfo.weight.toString());
+      if (physicalInfo.age != null) setAge(physicalInfo.age.toString());
+    }
+  }, [physicalInfo?.height, physicalInfo?.weight, physicalInfo?.age, isPhysicalTouched]);
 
   // Shoes State
   const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('데일리');
@@ -120,11 +130,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     if (!authorized) return;
 
     setIsSavingPhysical(true);
+    const updatedHeight = parseFloat(height) || 175;
+    const updatedWeight = parseFloat(weight) || 68;
+    const updatedAge = parseInt(age, 10) || 30;
+
     await onSavePhysical({
-      height: parseFloat(height) || 175,
-      weight: parseFloat(weight) || 68,
-      age: parseInt(age, 10) || 30,
+      height: updatedHeight,
+      weight: updatedWeight,
+      age: updatedAge,
     });
+    setIsPhysicalTouched(false);
     setIsSavingPhysical(false);
     setPhysicalSavedAlert(true);
     setTimeout(() => setPhysicalSavedAlert(false), 2500);
@@ -482,7 +497,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 type="number"
                 step="0.1"
                 value={height}
-                onChange={(e) => setHeight(e.target.value)}
+                onChange={(e) => {
+                  setIsPhysicalTouched(true);
+                  setHeight(e.target.value);
+                }}
                 required
                 className="w-full px-4 py-2.5 glass-input rounded-xl text-sm font-semibold"
                 placeholder="175"
@@ -497,7 +515,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 type="number"
                 step="0.1"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                  setIsPhysicalTouched(true);
+                  setWeight(e.target.value);
+                }}
                 required
                 className="w-full px-4 py-2.5 glass-input rounded-xl text-sm font-semibold"
                 placeholder="68"
@@ -511,7 +532,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               <input
                 type="number"
                 value={age}
-                onChange={(e) => setAge(e.target.value)}
+                onChange={(e) => {
+                  setIsPhysicalTouched(true);
+                  setAge(e.target.value);
+                }}
                 required
                 className="w-full px-4 py-2.5 glass-input rounded-xl text-sm font-semibold"
                 placeholder="32"

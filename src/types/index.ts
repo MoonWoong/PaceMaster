@@ -84,7 +84,8 @@ export type SpeedWorkoutType =
   | '1~3k 인터벌'
   | '템포런'
   | '변속주(파틀렉)'
-  | '빌드업주';
+  | '빌드업주'
+  | '언덕훈련';
 
 export interface WeeklyPlanSettings {
   trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
@@ -170,12 +171,13 @@ export interface WeeklyPlanDay {
   day: string; // 월요일, 화요일, ...
   dayShort: string; // Mon, Tue, ...
   dateStr?: string; // YYYY-MM-DD
-  type: '조깅' | '템포런' | '인터벌' | 'LSD' | '회복주' | '휴식';
+  type: '조깅' | '템포런' | '인터벌' | 'LSD' | '회복주' | '휴식' | '대회' | '언덕훈련';
   title: string;
   distanceKm: number;
   targetPace: string;
   targetZone: string;
   description: string;
+  purpose?: string; // 상세 훈련 목적 (심폐 적응, 젖산 역치, 근지구력 등)
   intensity: '낮음' | '보통' | '높음' | '휴식';
   stages?: WorkoutStage[];
   recommendedShoe?: RecommendedShoeInfo;
@@ -189,6 +191,87 @@ export interface WeeklyPlanDay {
     maxHr?: number;
     shoeName?: string;
     date: string;
+  };
+}
+
+export type PlanPeriodizationPhase =
+  | '기초 유산소 구축기 (Base)'
+  | '스피드/지구력 빌드업기 (Build)'
+  | '목표 페이스 특화기 (Peak)'
+  | '테이퍼링 감량기 (Tapering)'
+  | '대회 직전 조정기 (Race Week)'
+  | '회복 및 디로드 (Recovery)'
+  | '지속 점진적 과부하 (Progression)';
+
+export type TrainingPlanDurationPreset =
+  | 'to_target_race'
+  | '4weeks'
+  | '8weeks'
+  | '12weeks'
+  | '16weeks'
+  | 'custom';
+
+export interface PlanWeek {
+  weekNumber: number; // 1부터 시작
+  startDateStr: string; // YYYY-MM-DD
+  endDateStr: string; // YYYY-MM-DD
+  weekLabel: string; // e.g. "1주차 (10/05~10/11)"
+  phase: PlanPeriodizationPhase;
+  phaseBadgeColor: string;
+  phaseDescription: string;
+  focus: string; // 주간 핵심 목표
+  targetWeeklyKm: number;
+  completedKm?: number;
+  days: WeeklyPlanDay[];
+  raceInThisWeek?: RegisteredRace;
+  isCurrentWeek?: boolean;
+}
+
+export interface TrainingPlanPeriodSettings {
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  durationWeeks: number;
+  durationPreset: TrainingPlanDurationPreset;
+  targetRaceId?: string; // 선택된 목표 대회 ID
+  targetRaceName?: string;
+  targetCourse?: string; // '풀코스' | '하프' | '10K' | '5K' | '지속발전'
+  targetTime?: string;
+  targetPace?: string; // e.g. "4'30\"/km" or "5'00\""
+  goalMode: 'race' | 'target_goal' | 'continuous_progression'; // 특정 참가대회 vs 목표 거리/페이스 직접 설정 vs 현상태 기준 지속 발전
+  trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
+  speedDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
+  speedWorkoutType?: SpeedWorkoutType;
+  speedWorkoutTypes?: SpeedWorkoutType[]; // 다중 선택 목록 (로테이션 회전 적용)
+  longRunDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
+  baseWeeklyKm?: number;
+  updatedAt?: string;
+}
+
+export interface ComprehensiveTrainingPlan {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  settings: TrainingPlanPeriodSettings;
+  weeks: PlanWeek[];
+  totalWeeks: number;
+  totalPlannedKm: number;
+  totalPlannedSessions: number;
+  targetRaceSummary?: {
+    raceName: string;
+    raceDate: string;
+    dDayWeeks: number;
+    course: string;
+    priority: string;
+    targetTime?: string;
+    targetPace?: string;
+  };
+  runnerAnalysisSummary: {
+    currentVdot: number;
+    baselineWeeklyKm: number;
+    progressionDescription: string;
+    continuousProgression: boolean;
+    acwrValue: number;
+    fatigueRisk: string;
   };
 }
 

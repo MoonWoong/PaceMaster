@@ -1,7 +1,7 @@
 import React from 'react';
-import { User, Activity, Trophy } from 'lucide-react';
+import { User, Activity, Trophy, CalendarRange } from 'lucide-react';
 
-export type TabKey = 'my_info' | 'running_records' | 'marathon_races';
+export type TabKey = 'my_info' | 'running_records' | 'training_plan' | 'marathon_races';
 
 interface TabsNavProps {
   activeTab: TabKey;
@@ -30,8 +30,15 @@ export const TabsNav: React.FC<TabsNavProps> = ({
       id: 'running_records' as TabKey,
       label: '러닝기록 & 훈련',
       badge: `${sessionsCount}회 세션`,
-      sublabel: 'PB · 심박존 · AI 훈련계획표',
+      sublabel: 'PB · 심박존 · 가민 CSV',
       icon: Activity,
+    },
+    {
+      id: 'training_plan' as TabKey,
+      label: '플랜',
+      badge: '주/월간 뷰',
+      sublabel: '맞춤 주기화 계획표 · 포인트',
+      icon: CalendarRange,
     },
     {
       id: 'marathon_races' as TabKey,
@@ -72,7 +79,8 @@ export const TabsNav: React.FC<TabsNavProps> = ({
             <span className="text-stone-400">/</span>
             <span className="text-emerald-900 font-bold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
               {activeTab === 'my_info' && '내 신체 스펙 & 러닝화 보관함'}
-              {activeTab === 'running_records' && '러닝 기록 분석 & 맞춤 훈련 계획'}
+              {activeTab === 'running_records' && '러닝 기록 분석 & 가민 CSV 세션'}
+              {activeTab === 'training_plan' && '기간 맞춤 훈련 계획표 (주/월간 주기화)'}
               {activeTab === 'marathon_races' && '전국 마라톤 대회 일정'}
             </span>
           </div>
@@ -81,7 +89,7 @@ export const TabsNav: React.FC<TabsNavProps> = ({
         {/* Tab Buttons Row - Active tab bottom blends seamlessly into body background */}
         <nav
           aria-label="대시보드 주요 관리 탭"
-          className="grid grid-cols-3 gap-1 sm:gap-2 items-end -mb-[1px] relative z-10"
+          className="grid grid-cols-4 gap-1 sm:gap-2 items-end -mb-[1px] relative z-10"
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;

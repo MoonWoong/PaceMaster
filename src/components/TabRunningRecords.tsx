@@ -2664,13 +2664,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               휴식: 'bg-stone-100 text-stone-600 border-stone-300',
             };
 
-            const typeBadgeColors = {
+            const typeBadgeColors: Record<string, string> = {
               템포런: 'bg-amber-100 text-amber-900 border-amber-300',
               인터벌: 'bg-rose-100 text-rose-900 border-rose-300',
               LSD: 'bg-rose-50 text-rose-900 border-rose-300',
               조깅: 'bg-emerald-100 text-emerald-900 border-emerald-300',
               회복주: 'bg-emerald-50 text-emerald-800 border-emerald-200',
               휴식: 'bg-stone-100 text-stone-600 border-stone-200',
+              대회: 'bg-rose-900 text-amber-300 border-rose-700 font-bold',
             };
 
             return (
