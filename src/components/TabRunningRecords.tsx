@@ -94,6 +94,7 @@ interface TabRunningRecordsProps {
   onOpenPaceCalculator?: () => void;
   onOpenTodayWorkoutModal?: () => void;
   onNavigateToShoes?: () => void;
+  onNavigateToRaces?: () => void;
 }
 
 export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
@@ -116,6 +117,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   onOpenPaceCalculator,
   onOpenTodayWorkoutModal,
   onNavigateToShoes,
+  onNavigateToRaces,
 }) => {
   // Session Shoe Modal State
   const [shoeModalSession, setShoeModalSession] = useState<TrainingSession | null>(null);
@@ -2005,7 +2007,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* Target Race Schedule & Goal Pace Intensity Analysis Banner */}
-        {targetRaceAnalysis && (
+        {targetRaceAnalysis ? (
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-50/80 via-amber-50/50 to-emerald-50/80 border border-emerald-300 shadow-sm mb-5 space-y-3 text-stone-800 animate-fadeIn">
             {/* Multi-race selector tabs: sorted closest to farthest */}
             {allUpcomingRacesAnalysis.length > 1 && (
@@ -2022,8 +2024,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         : 'bg-white text-stone-700 border-stone-200 hover:border-emerald-400'
                     }`}
                   >
-                    <span>{idx === 0 ? '🥇 1순위 (가장 가까운 대회)' : `${idx + 1}순위 대회`}</span>
-                    <span className="font-mono text-[11px] opacity-90">D-{r.dDayDays}일</span>
+                    <span>{idx === 0 ? (r.dDayDays === 0 ? '🏆 1순위 (오늘 결승 레이스!)' : '🥇 1순위 (가장 가까운 대회)') : `${idx + 1}순위 대회`}</span>
+                    <span className="font-mono text-[11px] opacity-90">{r.dDayDays === 0 ? 'D-Day (오늘)' : `D-${r.dDayDays}일`}</span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/10">{r.importanceGrade.split(' ')[0]}</span>
                   </button>
                 ))}
@@ -2041,7 +2043,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       <span>참가 대회 일정 & 목표 페이스 강도 연동 분석</span>
                     </h3>
                     <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-bold font-athletic">
-                      D-{targetRaceAnalysis.dDayDays}일 ({targetRaceAnalysis.dDayWeeks}주 전)
+                      {targetRaceAnalysis.dDayDays === 0
+                        ? '🏆 D-Day (오늘 결승 레이스!)'
+                        : `D-${targetRaceAnalysis.dDayDays}일 (${targetRaceAnalysis.dDayWeeks}주 전)`}
                     </span>
                     <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">
                       {targetRaceAnalysis.periodizationPhase}
@@ -2130,6 +2134,40 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 <span>이 대회 맞춤 테이퍼링 계획표 즉시 갱신</span>
               </button>
             </div>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-stone-50 via-emerald-50/30 to-stone-50 border border-stone-200/80 shadow-2xs mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 text-xs text-stone-700 animate-fadeIn">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2.5 bg-gradient-to-br from-stone-200 to-stone-300 text-stone-700 rounded-xl shadow-2xs flex-shrink-0">
+                <Target className="w-5 h-5 text-stone-700" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <h3 className="text-sm font-bold text-stone-900">
+                    현재 참가 예정인 목표 대회가 없습니다.
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
+                    기본 유산소 체력 유지 모드
+                  </span>
+                </div>
+                <p className="text-xs text-stone-600 keep-all">
+                  {races && races.length > 0
+                    ? '등록된 이전 마라톤 대회가 모두 완료되었습니다! 출전할 다음 목표 대회를 등록하시면 실시간 D-Day 카운트다운과 목표 페이스 주기화 훈련이 자동으로 연동됩니다.'
+                    : '출전할 마라톤 대회를 등록하시면 실시간 D-Day 카운트다운과 목표 페이스 주기화(테이퍼링) 훈련이 스마트하게 연동됩니다.'}
+                </p>
+              </div>
+            </div>
+
+            {onNavigateToRaces && (
+              <button
+                type="button"
+                onClick={onNavigateToRaces}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 shadow-2xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer self-start sm:self-auto transition-all whitespace-nowrap"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>참가 예정 대회 등록하기</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -2486,7 +2524,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         <span>참가 대회 가중치 & 테이퍼링 정밀 반영</span>
                       </span>
                       <strong className="text-xs sm:text-sm font-bold text-stone-900">
-                        {rDetail.raceName} (D-{rDetail.dDayDays}일 · {rDetail.course})
+                        {rDetail.raceName} ({rDetail.dDayDays === 0 ? '🏆 D-Day 오늘 결승 레이스' : `D-${rDetail.dDayDays}일`} · {rDetail.course})
                       </strong>
                     </div>
 
@@ -2561,9 +2599,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                           >
                             <div className="flex items-center justify-between font-bold text-stone-900">
                               <span className="flex items-center gap-1">
-                                <span>{i === 0 ? '🥇 1순위 (현재 연동)' : `${i + 1}순위`}</span>
+                                <span>{i === 0 ? (r.dDayDays === 0 ? '🏆 1순위 (오늘 대회)' : '🥇 1순위 (현재 연동)') : `${i + 1}순위`}</span>
                               </span>
-                              <span className="text-rose-800 font-mono">D-{r.dDayDays}일</span>
+                              <span className="text-rose-800 font-mono">{r.dDayDays === 0 ? 'D-Day (오늘)' : `D-${r.dDayDays}일`}</span>
                             </div>
                             <div className="truncate text-stone-800 font-semibold">{r.raceName} ({r.course})</div>
                             <div className="text-[10px] text-stone-600 flex items-center gap-1.5 mt-0.5">

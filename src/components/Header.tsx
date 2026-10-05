@@ -19,7 +19,11 @@ export const Header: React.FC<HeaderProps> = ({
     if (!races || races.length === 0) return null;
     const todayStr = getTodayDateStr();
     const upcoming = races
-      .filter((r) => r.date >= todayStr)
+      .filter((r) => {
+        if (!r.date || r.status === 'completed' || r.actualRecord) return false;
+        const dDay = calculateDDay(r.date, todayStr);
+        return !dDay.isPassed && dDay.daysDiff >= 0;
+      })
       .sort((a, b) => a.date.localeCompare(b.date));
 
     if (upcoming.length === 0) {

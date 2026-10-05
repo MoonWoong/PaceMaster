@@ -515,6 +515,7 @@ export default function App() {
                 onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
                 onOpenTodayWorkoutModal={() => setIsTodayWorkoutModalOpen(true)}
                 onNavigateToShoes={handleNavigateToShoes}
+                onNavigateToRaces={handleNavigateToRaces}
               />
             </Suspense>
           )}

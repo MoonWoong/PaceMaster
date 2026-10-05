@@ -1,6 +1,7 @@
 import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, RunningShoe, SpeedWorkoutType, RegisteredRace, RunningGoals, RaceWeightDetail } from '../types';
 import { getTrainingPaces, formatPace, parseTimeToSeconds } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
+import { calculateDDay, getTodayDateStr } from './marathonData';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
@@ -89,11 +90,12 @@ export function formatLocalDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function parseCourseDistKm(course: string): number {
+export function parseCourseDistKm(course: string, customDistanceKm?: number): number {
+  if (customDistanceKm && customDistanceKm > 0) return customDistanceKm;
   if (!course) return 10;
   if (course.includes('풀') || course.includes('42')) return 42.195;
   if (course.includes('하프') || course.includes('21')) return 21.0975;
-  const match = course.match(/(\d+(?:\.\d+)?)\s*k/i);
+  const match = course.match(/(\d+(?:\.\d+)?)\s*(?:km|k|킬로)?/i);
   if (match) return parseFloat(match[1]);
   return 10;
 }
@@ -205,18 +207,20 @@ export function analyzeSingleRacePlan(
   goals?: RunningGoals,
   targetCourseFallback: string = '풀코스'
 ): TargetRacePlanAnalysis {
-  const now = new Date();
-  const todayMs = now.getTime();
-  const raceDate = new Date(targetRace.date);
-  const diffDays = Math.max(0, Math.ceil((raceDate.getTime() - todayMs) / (1000 * 60 * 60 * 24)));
-  const diffWeeks = Math.ceil(diffDays / 7);
+  const todayStr = getTodayDateStr();
+  const dDayInfo = calculateDDay(targetRace.date, todayStr);
+  const diffDays = Math.max(0, dDayInfo.daysDiff);
+  const diffWeeks = Math.max(0, Math.ceil(diffDays / 7));
 
   // Determine course distance in km
-  let courseDistKm = 42.195;
-  const crs = (targetRace.course || targetCourseFallback).toLowerCase();
-  if (crs.includes('하프') || crs.includes('21')) courseDistKm = 21.0975;
-  else if (crs.includes('10')) courseDistKm = 10.0;
-  else if (crs.includes('5')) courseDistKm = 5.0;
+  let courseDistKm = targetRace.customDistanceKm || 42.195;
+  if (!targetRace.customDistanceKm) {
+    const crs = (targetRace.course || targetCourseFallback).toLowerCase();
+    if (crs.includes('하프') || crs.includes('21')) courseDistKm = 21.0975;
+    else if (crs.includes('10')) courseDistKm = 10.0;
+    else if (crs.includes('5')) courseDistKm = 5.0;
+    else courseDistKm = parseCourseDistKm(crs);
+  }
 
   // Determine target finish time and pace
   let finishTime = targetRace.targetTime || '';
@@ -256,10 +260,14 @@ export function analyzeSingleRacePlan(
     else paceIntensityLevel = '중강도 (Moderate)';
   }
 
-  // Check if race day falls within this active week (Monday ~ Sunday)
+  // Check if race day falls within this active week (Monday ~ Sunday) and is today or future
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const [ry, rm, rd] = targetRace.date.split('T')[0].split('-').map(Number);
+  const raceDate = new Date(ry, (rm || 1) - 1, rd || 1, 0, 0, 0, 0);
   const currentWeekMonday = getWeekMondayDate(now);
   const currentWeekSunday = new Date(currentWeekMonday.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
-  const isRaceThisWeek = raceDate >= currentWeekMonday && raceDate <= currentWeekSunday;
+  const isRaceThisWeek = raceDate >= todayMidnight && raceDate <= currentWeekSunday;
   const dayNameList: DayOfWeek[] = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   const raceDayOfWeek = dayNameList[raceDate.getDay()];
   const isMondayRace = raceDayOfWeek === '월요일';
@@ -583,24 +591,26 @@ export function analyzeAllUpcomingRacesForTrainingPlan(
 ): TargetRacePlanAnalysis[] {
   if (!races || races.length === 0) return [];
 
-  const now = new Date();
-  const todayMs = now.getTime();
+  const todayStr = getTodayDateStr();
 
-  // Find upcoming races strictly sorted by proximity (가장 가까운 대회부터 우선 정렬)
+  // Find upcoming races strictly sorted by proximity (오늘 또는 미래 대회만, 과거 대회 및 완주 완료 대회 엄격 제외)
   const upcomingRaces = [...races]
     .filter((r) => {
-      const raceDate = new Date(r.date);
-      return !isNaN(raceDate.getTime()) && raceDate.getTime() >= todayMs - 24 * 60 * 60 * 1000;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      if (!r.date) return false;
+      // Exclude races marked as completed or with actual record
+      if (r.status === 'completed' || r.actualRecord) return false;
 
+      const dDay = calculateDDay(r.date, todayStr);
+      // Strictly upcoming: today or future only (daysDiff >= 0 and not isPassed).
+      // Yesterday or earlier (dDay.isPassed === true or daysDiff < 0) is strictly EXCLUDED!
+      return !dDay.isPassed && dDay.daysDiff >= 0;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Do NOT treat past completed races as upcoming target races!
+  // If there are no upcoming races, return empty array so runner is in normal maintenance/aerobic phase.
   if (upcomingRaces.length === 0) {
-    const pastRaces = [...races].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    if (pastRaces.length > 0) {
-      upcomingRaces.push(pastRaces[0]);
-    }
+    return [];
   }
 
   return upcomingRaces.map((race) => analyzeSingleRacePlan(race, goals, targetCourseFallback));
@@ -674,7 +684,7 @@ export function analyzeRunnerState(
   const targetRacePlan = analyzeTargetRaceForTrainingPlan(races, goals, targetRaceCourse);
   const matchedTargetRace = targetRacePlan
     ? races.find((r) => r.id === targetRacePlan.raceId || (r.name === targetRacePlan.raceName && r.date === targetRacePlan.raceDate))
-    : [...races].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+    : null;
   const targetRace = matchedTargetRace;
 
   let importanceGrade: RaceWeightDetail['importanceGrade'] =
@@ -1721,16 +1731,21 @@ export function generateWeeklyTrainingPlan(
         },
       ];
 
-      const lsdTitle = isTaper
+      const isRaceInFuture = targetRacePlan && targetRacePlan.raceDate >= dateStr && targetRacePlan.dDayDays >= 0;
+      const lsdTitle = isTaper && isRaceInFuture
         ? `[대회 테이퍼링 · 목표 페이스(${effectiveRacePace}) 점검] ${targetRacePlan.raceName.slice(0, 10)} D-${targetRacePlan.dDayDays}일 LSD ${actualLsdDist}km`
-        : targetRacePlan
+        : targetRacePlan && isRaceInFuture
         ? `[포인트: 장거리] ${targetRacePlan.raceName.slice(0, 14)} D-${targetRacePlan.dDayDays}일 대비 LSD ${actualLsdDist}km`
+        : targetRacePlan && !isRaceInFuture
+        ? `[포인트: 장거리] ${targetRacePlan.raceName.slice(0, 14)} 완주 후 회복 지속주 (LSD ${actualLsdDist}km)`
         : `[포인트: 장거리] 주말 장거리 지속주(LSD) ${actualLsdDist}km`;
 
-      const lsdDesc = isTaper
+      const lsdDesc = isTaper && isRaceInFuture
         ? `대회 D-${targetRacePlan.dDayDays}일 테이퍼링 감량 LSD입니다. 목표 페이스(${effectiveRacePace}/km) 감각을 점검하고 피로를 털어내기 위해 주행 거리를 ${actualLsdDist}km로 축소 조율했습니다.`
-        : targetRacePlan
+        : targetRacePlan && isRaceInFuture
         ? `${targetRacePlan.raceName} (${targetRacePlan.course}) 대비 ${targetRacePlan.periodizationPhase}. 목표 페이스(${effectiveRacePace}/km) 감각 유지 및 에너지 대사 적응.`
+        : targetRacePlan && !isRaceInFuture
+        ? `${targetRacePlan.raceName} 대회 완주 후 다리 근육의 피로를 털어내며 기초 지구력을 유지하는 부드러운 회복 지속주입니다.`
         : `${targetRaceCourse} 완주를 위한 심폐 및 글리코겐 고갈 적응 훈련. 5km/10km/15km 지점 수분 및 뉴트리션 섭취 시뮬레이션.`;
 
       return {
@@ -2271,8 +2286,9 @@ export function enrichWeeklyPlanWithActualSessions(
     // Flexible Saturday Rest and Sunday Shakeout before Next Monday's Race Check
     const nextWeekMon = new Date(currentWeekMonday.getTime() + 7 * 86400000);
     const nextWeekMonStr = formatLocalDateStr(nextWeekMon);
-    const raceOnNextMon = (races || []).find((r) => r.date === nextWeekMonStr) ||
-      (targetRacePlan && (targetRacePlan.raceDate === nextWeekMonStr || targetRacePlan.dDayDays === 1) ? targetRacePlan : null);
+    // Strictly require the race to be on NEXT week's Monday and strictly in the future of the planned day (dateStr)
+    const raceOnNextMon = (races || []).find((r) => r.date === nextWeekMonStr && r.date > dateStr) ||
+      (targetRacePlan && targetRacePlan.raceDate === nextWeekMonStr && targetRacePlan.raceDate > dateStr ? targetRacePlan : null);
     const nextMonRaceName = raceOnNextMon ? ('name' in raceOnNextMon ? raceOnNextMon.name : raceOnNextMon.raceName) : '';
 
     if (pDay.day === '토요일' && !isPastDay && raceOnNextMon) {

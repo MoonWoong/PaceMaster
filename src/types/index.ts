@@ -23,7 +23,8 @@ export interface RegisteredRace {
   id: string;
   name: string;
   date: string; // YYYY-MM-DD
-  course: string; // 풀, 하프, 10K 등
+  course: string; // 풀, 하프, 10K, 기타 등
+  customDistanceKm?: number; // 기타 코스 직접 입력 거리 (km, 예: 7.5, 32)
   location: string;
   websiteUrl?: string;
   isTarget?: boolean;
@@ -31,6 +32,15 @@ export interface RegisteredRace {
   priority?: 'A' | 'B' | 'C'; // 대회 중요도 우선순위: A(메인목표), B(중간점검), C(연습대회)
   importance?: 'A-Race (메인 목표)' | 'B-Race (중간 점검)' | 'C-Race (연습 대회)' | string;
   createdAt: string;
+
+  // Actual Race Record, Bib Number & History
+  bibNumber?: string; // 배번호 (예: "#11111", "A-1024")
+  actualRecord?: string; // 실제 완주 기록 (예: "01:29:45", "03:15:20")
+  actualPace?: string; // 실제 평균 페이스 (예: "4'15\"")
+  rank?: string; // 대회 순위 (예: "전체 142위 / 3,500명", "연령대 18위")
+  status?: 'scheduled' | 'completed' | 'dnf' | 'dns'; // 대회 참가 상태
+  raceReview?: string; // 참가 대회 소감 및 후기
+  certificateUrl?: string; // 모바일 기록증/사진 링크
 }
 
 export interface RunningRecords {

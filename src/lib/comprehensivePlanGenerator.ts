@@ -97,7 +97,8 @@ export function getNextMondayStr(from: Date = new Date()): string {
 /**
  * Infer course distance in km with precision
  */
-export function parseCourseKm(courseName: string): number {
+export function parseCourseKm(courseName: string, customDistanceKm?: number): number {
+  if (customDistanceKm && customDistanceKm > 0) return customDistanceKm;
   if (!courseName) return 42.195;
   const lower = courseName.toLowerCase().trim();
   if (lower.includes('풀') || lower.includes('full') || lower.includes('42.195')) return 42.195;
@@ -136,9 +137,10 @@ export function calculateSpecificRacePace(
   targetTime?: string,
   targetPaceDirect?: string,
   fallbackVdot: number = 45,
-  goals?: RunningGoals
+  goals?: RunningGoals,
+  customDistanceKm?: number
 ): { pace: string; finishTime: string } {
-  const dist = parseCourseKm(courseName);
+  const dist = parseCourseKm(courseName, customDistanceKm);
 
   // 1. Direct Target Time provided by user (e.g. "00:59:59" for 10km -> 5'59"/km)
   // When a user specifies a target time, that time and the distance strictly govern the target pace!
@@ -317,7 +319,7 @@ export function generateComprehensivePlan(params: {
   if (!targetRace && settings.goalMode === 'race') {
     const todayStr = formatDate(new Date());
     const upcomingRaces = races
-      .filter((r) => r.date >= todayStr)
+      .filter((r) => r.date >= todayStr && r.status !== 'completed' && !r.actualRecord)
       .sort((a, b) => a.date.localeCompare(b.date));
     targetRace = upcomingRaces.find((r) => r.isTarget || r.priority === 'A') || upcomingRaces[0];
   }
@@ -387,7 +389,7 @@ export function generateComprehensivePlan(params: {
   const isContinuousProgression = settings.goalMode === 'continuous_progression';
 
   // Course classification for volume caps and LSD limits
-  const courseDistKm = parseCourseKm(targetCourseName);
+  const courseDistKm = parseCourseKm(targetCourseName, targetRace?.customDistanceKm);
   const isFullCourse = courseDistKm >= 40;
   const isHalfCourse = !isFullCourse && (courseDistKm >= 18 || targetCourseName.includes('하프') || targetCourseName.includes('21'));
   const is10kCourse = !isFullCourse && !isHalfCourse && (courseDistKm >= 9 || targetCourseName.includes('10'));
@@ -568,7 +570,7 @@ export function generateComprehensivePlan(params: {
       targetWeeklyKm = baselineWeeklyKm;
     }
     if (raceInThisWeek) {
-      const raceDist = parseCourseKm(raceInThisWeek.course);
+      const raceDist = parseCourseKm(raceInThisWeek.course, raceInThisWeek.customDistanceKm);
       if (raceDist >= targetWeeklyKm) {
         targetWeeklyKm = Math.round((raceDist + (raceDist >= 40 ? 3.0 : 5.0)) * 10) / 10;
       } else {
@@ -620,7 +622,7 @@ export function generateComprehensivePlan(params: {
 
     if (raceInThisWeek) {
       totalPlannedSessions++;
-      const raceDist = parseCourseKm(raceInThisWeek.course);
+      const raceDist = parseCourseKm(raceInThisWeek.course, raceInThisWeek.customDistanceKm);
       const isMainTarget = targetRace && raceInThisWeek.id === targetRace.id;
       const thisRacePaceInfo = isMainTarget
         ? { pace: effectiveTargetPace, finishTime: effectiveTargetFinishTime }
@@ -629,7 +631,8 @@ export function generateComprehensivePlan(params: {
             raceInThisWeek.targetTime,
             undefined,
             vdot,
-            goals
+            goals,
+            raceInThisWeek.customDistanceKm
           );
 
       const rDate = parseLocalDate(raceInThisWeek.date);
@@ -1130,7 +1133,7 @@ export function generateComprehensivePlan(params: {
       const raceOnThisDay = races.find((r) => r.date === dateStr);
       if (raceOnThisDay) {
         totalPlannedSessions++;
-        const raceDist = parseCourseKm(raceOnThisDay.course);
+        const raceDist = parseCourseKm(raceOnThisDay.course, raceOnThisDay.customDistanceKm);
         const isMainTarget = targetRace && raceOnThisDay.id === targetRace.id;
 
         // ACCURATELY CALCULATE PACE FOR THIS SPECIFIC RACE!
@@ -1141,7 +1144,8 @@ export function generateComprehensivePlan(params: {
               raceOnThisDay.targetTime,
               undefined,
               vdot,
-              goals
+              goals,
+              raceOnThisDay.customDistanceKm
             );
 
         return {
