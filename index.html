@@ -12,6 +12,26 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Chakra+Petch:ital,wght@0,600;0,700;1,700&display=swap" rel="stylesheet">
+    <script>
+      // Suppress Vite HMR WebSocket connection errors in AI Studio preview iframe environment
+      window.addEventListener('error', function(e) {
+        if (
+          (e.filename && e.filename.indexOf('@vite/client') !== -1) ||
+          (e.message && (e.message.indexOf('WebSocket') !== -1 || e.message.indexOf('failed to connect') !== -1)) ||
+          (e.error && e.error.stack && e.error.stack.indexOf('@vite/client') !== -1)
+        ) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var str = (e.reason && (e.reason.message || e.reason.stack || e.reason)) || '';
+        if (String(str).indexOf('@vite/client') !== -1 || String(str).indexOf('WebSocket') !== -1) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>

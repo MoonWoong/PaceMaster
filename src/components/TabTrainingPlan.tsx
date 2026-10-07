@@ -52,6 +52,7 @@ import {
   DayOfWeek,
 } from '../lib/comprehensivePlanGenerator';
 import { parseTimeToSeconds, formatSecondsToTime, formatPace } from '../lib/vdot';
+import { calculateDDay } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
 
 const STORAGE_KEY_PLAN_SETTINGS = 'pacemaster_training_plan_settings';
@@ -77,7 +78,8 @@ export interface StoredPlanSettings {
 
 const loadStoredPlanSettings = (
   savedPlan: ComprehensiveTrainingPlan | null,
-  nearestTargetRace: RegisteredRace | undefined
+  nearestTargetRace: RegisteredRace | undefined,
+  upcomingRaces: RegisteredRace[] = []
 ): StoredPlanSettings => {
   let fromStorage: Partial<StoredPlanSettings> | null = null;
   try {
@@ -93,11 +95,25 @@ const loadStoredPlanSettings = (
   const today = getTodayDateStr();
   const nextMon = getNextMondayStr();
 
+  // Validate targetRaceId: it MUST exist in upcomingRaces!
+  // If stored race has passed or is invalid, fallback to nearest upcoming race!
+  const storedRaceId = fromStorage?.targetRaceId !== undefined ? fromStorage.targetRaceId : s?.targetRaceId;
+  const isStoredRaceStillUpcoming = upcomingRaces.some((r) => r.id === storedRaceId);
+  const targetRaceId = isStoredRaceStillUpcoming
+    ? (storedRaceId || '')
+    : (nearestTargetRace?.id || '');
+
+  const matchedRace = upcomingRaces.find((r) => r.id === targetRaceId) || nearestTargetRace;
+
   // Determine start date and mode
   let startMode: 'today' | 'next_monday' | 'custom' = fromStorage?.startDateMode || 'next_monday';
   let initialStartDate = nextMon;
 
-  if (startMode === 'today') {
+  // If the target race is sooner than next Monday, force startMode to 'today'!
+  if (matchedRace && matchedRace.date < nextMon) {
+    startMode = 'today';
+    initialStartDate = today;
+  } else if (startMode === 'today') {
     initialStartDate = today;
   } else if (startMode === 'next_monday') {
     initialStartDate = nextMon;
@@ -108,13 +124,20 @@ const loadStoredPlanSettings = (
   }
 
   const goalMode = fromStorage?.goalMode || s?.goalMode || (nearestTargetRace ? 'race' : 'continuous_progression');
-  const targetRaceId = fromStorage?.targetRaceId !== undefined ? fromStorage.targetRaceId : (s?.targetRaceId || nearestTargetRace?.id || '');
-  const targetCourse = fromStorage?.targetCourse || s?.targetCourse || nearestTargetRace?.course || '10K';
+  const targetCourse = isStoredRaceStillUpcoming
+    ? (fromStorage?.targetCourse || s?.targetCourse || matchedRace?.course || '10K')
+    : (matchedRace?.course || '10K');
   const customDistanceKm = fromStorage?.customDistanceKm || '10';
-  const targetTime = fromStorage?.targetTime || s?.targetTime || nearestTargetRace?.targetTime || '00:59:59';
-  const targetPace = fromStorage?.targetPace || s?.targetPace || "5'59\"";
+  const targetTime = isStoredRaceStillUpcoming
+    ? (fromStorage?.targetTime || s?.targetTime || matchedRace?.targetTime || '00:59:59')
+    : (matchedRace?.targetTime || '00:59:59');
+  const targetPace = isStoredRaceStillUpcoming
+    ? (fromStorage?.targetPace || s?.targetPace || "5'59\"")
+    : "5'59\"";
   const durationPreset = fromStorage?.durationPreset || s?.durationPreset || (nearestTargetRace ? 'to_target_race' : '12weeks');
-  const endDate = fromStorage?.endDate || s?.endDate || '';
+  const endDate = durationPreset === 'to_target_race' && matchedRace
+    ? matchedRace.date
+    : (fromStorage?.endDate || s?.endDate || (matchedRace?.date || ''));
   const trainingDays = fromStorage?.trainingDays || s?.trainingDays || ['화요일', '목요일', '토요일', '일요일'];
   const speedDay = fromStorage?.speedDay !== undefined ? fromStorage.speedDay : (s?.speedDay !== undefined ? s.speedDay : '화요일');
   const speedWorkoutTypes = fromStorage?.speedWorkoutTypes || s?.speedWorkoutTypes || ['인터벌', '언덕훈련', '템포런'];
@@ -211,19 +234,27 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   // Active Month for Monthly View
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(() => new Date());
 
+  // Upcoming races strictly today or future, excluding completed and past races
+  const upcomingRaces = useMemo(() => {
+    const todayStr = getTodayDateStr();
+    return races
+      .filter((r) => {
+        if (!r.date || r.status === 'completed' || r.actualRecord) return false;
+        const dDay = calculateDDay(r.date, todayStr);
+        return !dDay.isPassed && dDay.daysDiff >= 0;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [races]);
+
   // Default nearest upcoming race
   const nearestTargetRace = useMemo(() => {
-    const today = formatDate(new Date());
-    const upcoming = races
-      .filter((r) => r.date >= today)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    return upcoming.find((r) => r.isTarget || r.priority === 'A') || upcoming[0];
-  }, [races]);
+    return upcomingRaces.find((r) => r.isTarget || r.priority === 'A') || upcomingRaces[0];
+  }, [upcomingRaces]);
 
   // Form State for Plan Generation (restored from recent settings)
   const initialLoadedSettings = useMemo(() => {
-    return loadStoredPlanSettings(savedPlan, nearestTargetRace);
-  }, [savedPlan, nearestTargetRace]);
+    return loadStoredPlanSettings(savedPlan, nearestTargetRace, upcomingRaces);
+  }, [savedPlan, nearestTargetRace, upcomingRaces]);
 
   const [formDurationPreset, setFormDurationPreset] = useState<
     'to_target_race' | '4weeks' | '8weeks' | '12weeks' | '16weeks' | 'custom'
@@ -349,9 +380,39 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     }
   };
 
+  // Target race currently selected in the form or fallback
+  const targetForPreset = useMemo(() => {
+    return upcomingRaces.find((r) => r.id === formTargetRaceId) || nearestTargetRace;
+  }, [upcomingRaces, formTargetRaceId, nearestTargetRace]);
+
+  const targetRaceDDayInfo = useMemo(() => {
+    return targetForPreset ? calculateDDay(targetForPreset.date) : null;
+  }, [targetForPreset]);
+
+  const calculatedWeeksToRace = useMemo(() => {
+    if (!targetForPreset) return 12;
+    const sDate = formStartDate ? parseLocalDate(formStartDate) : new Date();
+    const sMon = getMonday(sDate);
+    const rDate = parseLocalDate(targetForPreset.date);
+    const rMon = getMonday(rDate);
+    const diffMs = rMon.getTime() - sMon.getTime();
+    return Math.max(1, Math.min(26, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
+  }, [targetForPreset, formStartDate]);
+
+  const handleSelectToTargetRacePreset = () => {
+    setFormDurationPreset('to_target_race');
+    if (targetForPreset) {
+      setFormEndDate(targetForPreset.date);
+      if (formStartDateMode === 'next_monday' && targetForPreset.date < getNextMondayStr()) {
+        setFormStartDateMode('today');
+        setFormStartDate(getTodayDateStr());
+      }
+    }
+  };
+
   const handleSelectRace = (raceId: string) => {
     setFormTargetRaceId(raceId);
-    const r = races.find((item) => item.id === raceId);
+    const r = upcomingRaces.find((item) => item.id === raceId) || races.find((item) => item.id === raceId);
     if (r) {
       setFormTargetCourse(r.course);
       const dist = parseCourseKm(r.course);
@@ -365,6 +426,13 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
         const rec = calculateSpecificRacePace(r.course, undefined, undefined, currentVDOT, goals);
         setFormTargetTime(rec.finishTime);
         setFormTargetPace(rec.pace);
+      }
+      if (formDurationPreset === 'to_target_race') {
+        setFormEndDate(r.date);
+        if (formStartDateMode === 'next_monday' && r.date < getNextMondayStr()) {
+          setFormStartDateMode('today');
+          setFormStartDate(getTodayDateStr());
+        }
       }
     }
   };
@@ -445,12 +513,27 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     setIsGenerating(true);
     try {
       let durationWeeks = 12;
-      if (formDurationPreset === '4weeks') durationWeeks = 4;
-      if (formDurationPreset === '8weeks') durationWeeks = 8;
-      if (formDurationPreset === '12weeks') durationWeeks = 12;
-      if (formDurationPreset === '16weeks') durationWeeks = 16;
+      if (formDurationPreset === 'to_target_race' && targetForPreset) {
+        durationWeeks = calculatedWeeksToRace;
+      } else if (formDurationPreset === '4weeks') durationWeeks = 4;
+      else if (formDurationPreset === '8weeks') durationWeeks = 8;
+      else if (formDurationPreset === '12weeks') durationWeeks = 12;
+      else if (formDurationPreset === '16weeks') durationWeeks = 16;
+      else if (formDurationPreset === 'custom' && formEndDate) {
+        const sDate = formStartDate ? parseLocalDate(formStartDate) : new Date();
+        const sMon = getMonday(sDate);
+        const eDate = parseLocalDate(formEndDate);
+        const eMon = getMonday(eDate);
+        const diffMs = eMon.getTime() - sMon.getTime();
+        durationWeeks = Math.max(1, Math.min(26, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
+      }
 
-      const matchedRace = races.find((r) => r.id === formTargetRaceId);
+      const effectiveEndDate =
+        formDurationPreset === 'to_target_race' && targetForPreset
+          ? targetForPreset.date
+          : formEndDate;
+
+      const matchedRace = upcomingRaces.find((r) => r.id === formTargetRaceId) || targetForPreset;
       const effectiveCourse = formGoalMode === 'continuous_progression'
         ? '지속발전'
         : formTargetCourse === '직접입력'
@@ -459,10 +542,10 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
       const settings: TrainingPlanPeriodSettings = {
         startDate: formStartDate || formatDate(getMonday(new Date())),
-        endDate: formEndDate,
+        endDate: effectiveEndDate,
         durationWeeks,
         durationPreset: formDurationPreset,
-        targetRaceId: formGoalMode === 'race' ? formTargetRaceId : undefined,
+        targetRaceId: formGoalMode === 'race' ? (matchedRace?.id || formTargetRaceId) : undefined,
         targetRaceName: formGoalMode === 'race' ? matchedRace?.name : undefined,
         targetCourse: effectiveCourse,
         targetTime: formGoalMode !== 'continuous_progression' ? formTargetTime : undefined,
@@ -706,7 +789,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               {activePlan.settings.goalMode === 'race' && activePlan.targetRaceSummary ? (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-900 border border-rose-300 flex items-center gap-1">
                   <Trophy className="w-3.5 h-3.5 text-rose-700" />
-                  {activePlan.targetRaceSummary.raceName} ({activePlan.targetRaceSummary.course}) D-{activePlan.targetRaceSummary.dDayWeeks}주
+                  {activePlan.targetRaceSummary.raceName} ({activePlan.targetRaceSummary.course}) {activePlan.targetRaceSummary.dDayText} · {activePlan.targetRaceSummary.raceDate}
                 </span>
               ) : activePlan.settings.goalMode === 'target_goal' && activePlan.targetRaceSummary ? (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
@@ -730,6 +813,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             </h2>
             <p className="text-xs sm:text-sm text-stone-600 mt-1">
               기간: <span className="font-semibold text-stone-800">{activePlan.weeks[0]?.startDateStr} ~ {activePlan.weeks[activePlan.weeks.length - 1]?.endDateStr}</span>
+              {activePlan.targetRaceSummary?.raceDate && (
+                <span className="text-rose-900 font-medium"> (대회일: {activePlan.targetRaceSummary.raceDate})</span>
+              )}
               {' · '}
               {activePlan.runnerAnalysisSummary.progressionDescription}
             </p>
@@ -1909,21 +1995,39 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-rose-950 mb-1">
-                      목표 마라톤 대회 선택
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-rose-950">
+                        목표 마라톤 대회 선택 (참가 예정 대회)
+                      </label>
+                      {upcomingRaces.length > 0 && (
+                        <span className="text-[11px] text-rose-800 font-bold">
+                          총 {upcomingRaces.length}개 예정 대회
+                        </span>
+                      )}
+                    </div>
                     <select
                       value={formTargetRaceId}
                       onChange={(e) => handleSelectRace(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold border border-rose-300 bg-white"
                     >
-                      {races.length === 0 && <option value="">등록된 대회가 없습니다 (직접 코스 선택)</option>}
-                      {races.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name} ({r.course}) - {r.date} [{r.priority || 'A'}등급] {r.targetTime ? `(목표 ${r.targetTime})` : ''}
-                        </option>
-                      ))}
+                      {upcomingRaces.length === 0 ? (
+                        <option value="">참가 예정인 대회가 없습니다 (새 대회 등록 또는 직접 코스 선택)</option>
+                      ) : (
+                        upcomingRaces.map((r) => {
+                          const dDay = calculateDDay(r.date);
+                          return (
+                            <option key={r.id} value={r.id}>
+                              {r.name} ({r.course}) - {r.date} [{dDay.text}] [{r.priority || 'A'}등급] {r.targetTime ? `(목표 ${r.targetTime})` : ''}
+                            </option>
+                          );
+                        })
+                      )}
                     </select>
+                    {upcomingRaces.length === 0 && (
+                      <p className="text-[11px] text-rose-700 mt-1">
+                        💡 완료되었거나 지난 대회가 제외되었습니다. 참가할 새 마라톤 대회를 '내 정보'에서 등록하시면 실시간 연동됩니다.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -2177,18 +2281,25 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   훈련 기간 설정
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {formGoalMode === 'race' && nearestTargetRace && (
+                  {formGoalMode === 'race' && targetForPreset && (
                     <button
                       type="button"
-                      onClick={() => setFormDurationPreset('to_target_race')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold cursor-pointer text-left ${
+                      onClick={handleSelectToTargetRacePreset}
+                      className={`p-2.5 rounded-xl border text-xs font-bold cursor-pointer text-left transition-all ${
                         formDurationPreset === 'to_target_race'
-                          ? 'bg-emerald-900 text-white border-emerald-950'
+                          ? 'bg-emerald-900 text-white border-emerald-950 ring-2 ring-emerald-500/40 shadow-xs'
                           : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
                       }`}
                     >
-                      <div>🏆 대회 D-Day까지</div>
-                      <div className="text-[10px] opacity-75 font-normal">대회일까지 자동 계산</div>
+                      <div className="flex items-center justify-between">
+                        <span>🏆 대회 D-Day까지 ({calculatedWeeksToRace}주)</span>
+                        {formDurationPreset === 'to_target_race' && (
+                          <span className="text-[10px] text-amber-300 font-extrabold">선택됨</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] opacity-80 font-mono mt-0.5 truncate">
+                        {targetForPreset.name} ({targetRaceDDayInfo?.text || targetForPreset.date})
+                      </div>
                     </button>
                   )}
 
@@ -2315,6 +2426,19 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           onChange={(e) => setFormEndDate(e.target.value)}
                           className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold border border-stone-300 bg-white"
                         />
+                      </div>
+                    )}
+                    {formDurationPreset === 'to_target_race' && targetForPreset && (
+                      <div>
+                        <label className="block text-[11px] text-emerald-800 font-bold mb-1">
+                          목표 대회일 (자동 종료일)
+                        </label>
+                        <div className="w-full px-3 py-1.5 rounded-xl text-xs font-mono font-bold border border-emerald-300 bg-emerald-50 text-emerald-950 flex items-center justify-between">
+                          <span>{targetForPreset.date} ({targetRaceDDayInfo?.text})</span>
+                          <span className="text-[10px] text-emerald-700 bg-emerald-200/70 px-1.5 py-0.5 rounded font-sans">
+                            {calculatedWeeksToRace}주 플랜
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

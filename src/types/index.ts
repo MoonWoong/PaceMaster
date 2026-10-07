@@ -296,6 +296,8 @@ export interface ComprehensiveTrainingPlan {
     raceName: string;
     raceDate: string;
     dDayWeeks: number;
+    dDayDays?: number;
+    dDayText?: string;
     course: string;
     priority: string;
     targetTime?: string;

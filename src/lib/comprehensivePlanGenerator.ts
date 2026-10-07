@@ -15,6 +15,7 @@ import {
 import { getTrainingPaces, formatPace, parseTimeToSeconds, parsePaceToSeconds, calculateVDOT } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 import { analyzeRunnerState, inferWorkoutType } from './trainingPlanGenerator';
+import { calculateDDay } from './marathonData';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
@@ -314,12 +315,22 @@ export function generateComprehensivePlan(params: {
   // Target race matching (if goalMode is 'race')
   let targetRace: RegisteredRace | undefined = undefined;
   if (settings.goalMode === 'race' && settings.targetRaceId) {
-    targetRace = races.find((r) => r.id === settings.targetRaceId);
+    const candidate = races.find((r) => r.id === settings.targetRaceId);
+    if (candidate) {
+      const dDayInfo = calculateDDay(candidate.date);
+      // Valid if not passed and not completed
+      if (!dDayInfo.isPassed && candidate.status !== 'completed' && !candidate.actualRecord) {
+        targetRace = candidate;
+      }
+    }
   }
   if (!targetRace && settings.goalMode === 'race') {
-    const todayStr = formatDate(new Date());
     const upcomingRaces = races
-      .filter((r) => r.date >= todayStr && r.status !== 'completed' && !r.actualRecord)
+      .filter((r) => {
+        if (!r.date || r.status === 'completed' || r.actualRecord) return false;
+        const dDayInfo = calculateDDay(r.date);
+        return !dDayInfo.isPassed && dDayInfo.daysDiff >= 0;
+      })
       .sort((a, b) => a.date.localeCompare(b.date));
     targetRace = upcomingRaces.find((r) => r.isTarget || r.priority === 'A') || upcomingRaces[0];
   }
@@ -327,13 +338,24 @@ export function generateComprehensivePlan(params: {
   // Duration preset calculations
   if (settings.durationPreset === 'to_target_race' && targetRace) {
     const raceDate = parseLocalDate(targetRace.date);
-    const diffMs = raceDate.getTime() - startMonday.getTime();
-    const diffWeeks = Math.max(2, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)));
-    totalWeeks = Math.min(24, diffWeeks);
+    // Align race day to the end of its week so full race week is included
+    const raceWeekMonday = getMonday(raceDate);
+    // If startMonday is after raceWeekMonday (e.g. startDate was next monday but race is this week),
+    // clamp startMonday to raceWeekMonday so race week is covered
+    if (startMonday.getTime() > raceWeekMonday.getTime()) {
+      startMonday = raceWeekMonday;
+    }
+    const diffMs = raceWeekMonday.getTime() - startMonday.getTime();
+    const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
+    totalWeeks = Math.min(26, diffWeeks);
   } else if (settings.durationPreset === 'custom' && settings.endDate) {
     const end = parseLocalDate(settings.endDate);
-    const diffMs = end.getTime() - startMonday.getTime();
-    const diffWeeks = Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)));
+    const endMonday = getMonday(end);
+    if (startMonday.getTime() > endMonday.getTime()) {
+      startMonday = endMonday;
+    }
+    const diffMs = endMonday.getTime() - startMonday.getTime();
+    const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
     totalWeeks = Math.min(26, diffWeeks);
   } else if (settings.durationPreset === '4weeks') {
     totalWeeks = 4;
@@ -343,6 +365,8 @@ export function generateComprehensivePlan(params: {
     totalWeeks = 12;
   } else if (settings.durationPreset === '16weeks') {
     totalWeeks = 16;
+  } else if (settings.durationWeeks && settings.durationWeeks > 0) {
+    totalWeeks = settings.durationWeeks;
   }
 
   totalWeeks = Math.max(1, Math.min(26, totalWeeks));
@@ -2105,20 +2129,29 @@ export function generateComprehensivePlan(params: {
   // Target race summary
   const targetRaceSummary =
     targetRace
-      ? {
-          raceName: targetRace.name,
-          raceDate: targetRace.date,
-          dDayWeeks: Math.max(0, Math.ceil((new Date(targetRace.date).getTime() - new Date().getTime()) / (7 * 86400000))),
-          course: targetCourseName,
-          priority: targetRace.priority || 'A',
-          targetTime: effectiveTargetFinishTime,
-          targetPace: effectiveTargetPace,
-        }
+      ? (() => {
+          const dDayInfo = calculateDDay(targetRace.date);
+          const dDayDays = Math.max(0, dDayInfo.daysDiff);
+          const dDayWeeks = Math.max(0, Math.ceil(dDayDays / 7));
+          return {
+            raceName: targetRace.name,
+            raceDate: targetRace.date,
+            dDayWeeks,
+            dDayDays,
+            dDayText: dDayInfo.text,
+            course: targetCourseName,
+            priority: targetRace.priority || 'A',
+            targetTime: effectiveTargetFinishTime,
+            targetPace: effectiveTargetPace,
+          };
+        })()
       : settings.goalMode === 'target_goal' && settings.targetCourse
       ? {
           raceName: `목표 ${settings.targetCourse} 기록 달성`,
           raceDate: settings.endDate || formatDate(new Date(startMonday.getTime() + (totalWeeks * 7 - 1) * 86400000)),
           dDayWeeks: totalWeeks,
+          dDayDays: totalWeeks * 7,
+          dDayText: `D-${totalWeeks * 7}`,
           course: settings.targetCourse,
           priority: 'A',
           targetTime: effectiveTargetFinishTime,

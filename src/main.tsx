@@ -10,6 +10,27 @@ if (typeof window !== 'undefined') {
     window.location.reload();
   });
 
+  // Ignore Vite HMR WebSocket errors in AI Studio preview iframe environment
+  window.addEventListener('error', (event) => {
+    if (
+      event.filename?.includes('@vite/client') ||
+      event.message?.includes('WebSocket') ||
+      event.message?.includes('failed to connect') ||
+      event.error?.stack?.includes('@vite/client')
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonStr = String(event.reason?.message || event.reason?.stack || event.reason || '');
+    if (reasonStr.includes('WebSocket') || reasonStr.includes('@vite/client')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
