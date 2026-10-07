@@ -396,7 +396,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     const rDate = parseLocalDate(targetForPreset.date);
     const rMon = getMonday(rDate);
     const diffMs = rMon.getTime() - sMon.getTime();
-    return Math.max(1, Math.min(26, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
+    return Math.max(1, Math.min(104, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
   }, [targetForPreset, formStartDate]);
 
   const handleSelectToTargetRacePreset = () => {
@@ -525,7 +525,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
         const eDate = parseLocalDate(formEndDate);
         const eMon = getMonday(eDate);
         const diffMs = eMon.getTime() - sMon.getTime();
-        durationWeeks = Math.max(1, Math.min(26, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
+        durationWeeks = Math.max(1, Math.min(104, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1));
       }
 
       const effectiveEndDate =

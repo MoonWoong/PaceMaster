@@ -347,7 +347,7 @@ export function generateComprehensivePlan(params: {
     }
     const diffMs = raceWeekMonday.getTime() - startMonday.getTime();
     const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
-    totalWeeks = Math.min(26, diffWeeks);
+    totalWeeks = Math.min(104, diffWeeks);
   } else if (settings.durationPreset === 'custom' && settings.endDate) {
     const end = parseLocalDate(settings.endDate);
     const endMonday = getMonday(end);
@@ -356,7 +356,7 @@ export function generateComprehensivePlan(params: {
     }
     const diffMs = endMonday.getTime() - startMonday.getTime();
     const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
-    totalWeeks = Math.min(26, diffWeeks);
+    totalWeeks = Math.min(104, diffWeeks);
   } else if (settings.durationPreset === '4weeks') {
     totalWeeks = 4;
   } else if (settings.durationPreset === '8weeks') {
@@ -369,7 +369,7 @@ export function generateComprehensivePlan(params: {
     totalWeeks = settings.durationWeeks;
   }
 
-  totalWeeks = Math.max(1, Math.min(26, totalWeeks));
+  totalWeeks = Math.max(1, Math.min(104, totalWeeks));
 
   // 3. Target Pace Calculation (supports targetRace OR target_goal without a race!)
   const paces = getTrainingPaces(vdot > 28 ? vdot : 45);
@@ -2272,7 +2272,7 @@ export function generateComprehensivePlan(params: {
   }
 
   const coachingSummary = isHalfCourse
-    ? `현재 VDOT ${vdot}(하프 PB 1:39:35)에서 목표 하프 1:29:59(Sub-130, VDOT 51.0) 달성을 위한 26주 마스터플랜입니다. 주간 마일리지는 하프 최적 상한선인 피크 ${peakWeeklyKm}km로 정밀 제한하여 부상 위험을 차단하고, 수요일 4'10"~4'15"/km 역치런과 토요일 21km LSD를 통해 4'15" 페이스 경제성을 완벽하게 체화하도록 설계되었습니다.`
+    ? `현재 VDOT ${vdot}에서 목표 하프 ${effectiveTargetFinishTime} 달성을 위한 ${totalWeeks}주 마스터플랜입니다. 주간 마일리지는 하프 최적 상한선인 피크 ${peakWeeklyKm}km로 정밀 제한하여 부상 위험을 차단하고, 수요일 역치런과 주말 LSD를 통해 ${effectiveTargetPace} 페이스 경제성을 완벽하게 체화하도록 설계되었습니다.`
     : `현재 기량(VDOT ${vdot})과 목표(${targetCourseName} ${effectiveTargetFinishTime})를 과학적으로 매칭한 주기화 플랜입니다. 체계적인 3:1 웨이브로 피로를 제어하며 목표를 달성합니다.`;
 
   const fitnessAudit: PlanFitnessAudit = {
