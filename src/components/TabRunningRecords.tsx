@@ -2171,38 +2171,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
           </div>
         )}
 
-        {/* Shoe Rotation Guidance Banner */}
-        <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs mb-5 min-w-0 w-full text-stone-800">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl flex-shrink-0">👟</span>
-            <div className="min-w-0">
-              <span className="font-bold text-emerald-950">스마트 러닝화 로테이션 추천 시스템: </span>
-              <span className="text-stone-700 keep-all">
-                훈련 강도(스피드/장거리/조깅)에 맞추고, 자주 안 신은 신발을 골고루 돌려 신도록 배정하여 미드솔 수명을 보존하고 부상을 예방합니다.
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-            <span className="text-[11px] text-stone-600 font-mono whitespace-nowrap">
-              보유 신발: <strong className="text-stone-900">{shoes.length}켤레</strong>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                if (onNavigateToShoes) {
-                  onNavigateToShoes();
-                } else {
-                  setShowShoeAnalytics((prev) => !prev);
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-stone-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs whitespace-nowrap"
-              title="내 정보의 보유 러닝화 로테이션 & 마일리지 수명 관리 섹션으로 이동"
-            >
-              <Footprints className="w-3.5 h-3.5 text-emerald-700" />
-              <span>러닝화 로테이션·수명 관리 바로가기</span>
-            </button>
-          </div>
-        </div>
 
         {/* Shoe Mileage Analytics Card (Expandable in Running Records tab) */}
         {showShoeAnalytics && (
@@ -2842,44 +2810,6 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                             )}
                           </div>
                         </div>
-
-                        {/* Quick switch to another owned shoe */}
-                        {shoes.length > 0 && (
-                          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0 max-w-full">
-                            <select
-                              value={dayPlan.recommendedShoe?.shoeName || ''}
-                              onChange={async (e) => {
-                                const chosenName = e.target.value;
-                                const chosenShoe = shoes.find((s) => s.name === chosenName);
-                                const updatedPlan = activePlan.map((d, dIdx) =>
-                                  dIdx === idx
-                                    ? {
-                                        ...d,
-                                        recommendedShoe: chosenShoe
-                                          ? {
-                                              shoeId: chosenShoe.id,
-                                              shoeName: chosenShoe.name,
-                                              brand: chosenShoe.brand,
-                                              category: chosenShoe.category,
-                                              reason: '사용자 직접 선택 러닝화',
-                                            }
-                                          : undefined,
-                                      }
-                                    : d
-                                );
-                                await onSaveWeeklyPlan(updatedPlan, weeklyPlanSettings);
-                              }}
-                              className="bg-white border border-stone-300 hover:border-emerald-500 rounded-lg px-2 py-1 text-[11px] text-stone-800 focus:outline-none focus:border-emerald-500 cursor-pointer max-w-[180px] sm:max-w-[200px] truncate shadow-2xs"
-                            >
-                              <option value="">러닝화 직접 변경...</option>
-                              {shoes.map((s) => (
-                                <option key={s.id} value={s.name}>
-                                  [{s.brand}] {s.name} ({s.category})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>

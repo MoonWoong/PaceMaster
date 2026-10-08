@@ -775,6 +775,190 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     setCurrentMonthDate(new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 1));
   };
 
+  // D-Day Countdown & Training Weeks Visual Progress Calculation
+  const planProgressBarData = useMemo(() => {
+    if (!activePlan || !activePlan.weeks || activePlan.weeks.length === 0) return null;
+
+    const todayStr = getTodayDateStr();
+    const todayDate = parseLocalDate(todayStr);
+
+    const firstWeek = activePlan.weeks[0];
+    const lastWeek = activePlan.weeks[activePlan.weeks.length - 1];
+    const planStartDateStr = firstWeek.startDateStr;
+
+    // Target race info
+    const isRaceMode = activePlan.settings.goalMode === 'race' && !!activePlan.targetRaceSummary;
+    const isTargetGoalMode = activePlan.settings.goalMode === 'target_goal';
+
+    const targetTitle = activePlan.targetRaceSummary?.raceName || (
+      isTargetGoalMode
+        ? `목표 ${activePlan.settings.targetCourse || '10K'} 기록 달성`
+        : '체계적 점진적 과부하 사이클 완성'
+    );
+    const targetCourse = activePlan.targetRaceSummary?.course || activePlan.settings.targetCourse || '마라톤';
+    const targetDateStr = activePlan.targetRaceSummary?.raceDate || lastWeek.endDateStr;
+
+    // D-Day calculation
+    const dDayInfo = calculateDDay(targetDateStr, todayStr);
+    const remainingDays = Math.max(0, dDayInfo.daysDiff);
+
+    // Days calculation
+    const startMs = parseLocalDate(planStartDateStr).getTime();
+    const targetMs = parseLocalDate(targetDateStr).getTime();
+    const todayMs = todayDate.getTime();
+
+    const totalPlanDays = Math.max(1, Math.round((targetMs - startMs) / 86400000));
+    const daysElapsed = Math.max(0, Math.min(totalPlanDays, Math.round((todayMs - startMs) / 86400000)));
+
+    // Week progress calculation
+    const currentWeekIdx = activePlan.weeks.findIndex((w) => w.isCurrentWeek);
+    const totalWeeks = activePlan.totalWeeks;
+
+    let currentWeekNum = 1;
+    let daysIntoWeek = 1;
+
+    if (currentWeekIdx >= 0) {
+      currentWeekNum = currentWeekIdx + 1;
+      const curWeekStart = parseLocalDate(activePlan.weeks[currentWeekIdx].startDateStr);
+      daysIntoWeek = Math.max(1, Math.min(7, Math.round((todayMs - curWeekStart.getTime()) / 86400000) + 1));
+    } else if (todayStr < planStartDateStr) {
+      currentWeekNum = 0; // Not started yet
+      daysIntoWeek = 0;
+    } else {
+      currentWeekNum = totalWeeks; // Completed
+      daysIntoWeek = 7;
+    }
+
+    // Progress percentage that fills up as training weeks progress
+    let progressPercent = 0;
+    if (todayStr < planStartDateStr) {
+      progressPercent = 0;
+    } else if (todayStr >= targetDateStr || dDayInfo.isPassed) {
+      progressPercent = 100;
+    } else if (currentWeekIdx >= 0) {
+      const fractionalWeeks = currentWeekIdx + (daysIntoWeek - 1) / 7;
+      progressPercent = Math.min(100, Math.max(1, Math.round((fractionalWeeks / totalWeeks) * 100)));
+    } else {
+      progressPercent = Math.min(100, Math.max(1, Math.round((daysElapsed / totalPlanDays) * 100)));
+    }
+
+    // Active week phase
+    const activeWeekObj = currentWeekIdx >= 0 ? activePlan.weeks[currentWeekIdx] : (todayStr < planStartDateStr ? firstWeek : lastWeek);
+    const currentPhase = activeWeekObj?.phase || '빌드업기';
+
+    // Mileage completed
+    const totalCompletedKm = Math.round(activePlan.weeks.reduce((acc, w) => acc + (w.completedKm || 0), 0) * 10) / 10;
+    const mileagePercent = activePlan.totalPlannedKm > 0 ? Math.min(100, Math.round((totalCompletedKm / activePlan.totalPlannedKm) * 100)) : 0;
+
+    return {
+      targetTitle,
+      targetCourse,
+      targetDateStr,
+      planStartDateStr,
+      dDayInfo,
+      remainingDays,
+      totalPlanDays,
+      daysElapsed,
+      totalWeeks,
+      currentWeekNum,
+      daysIntoWeek,
+      progressPercent,
+      currentPhase,
+      totalCompletedKm,
+      mileagePercent,
+      isRaceMode,
+    };
+  }, [activePlan]);
+
+  // Current Week Achievement Rate Data (주간 계획 거리 대비 기록한 훈련 거리)
+  const currentWeekProgressData = useMemo(() => {
+    if (!activePlan || !activePlan.weeks || activePlan.weeks.length === 0) return null;
+
+    const todayStr = getTodayDateStr();
+    const currentWeekIdx = activePlan.weeks.findIndex((w) => w.isCurrentWeek);
+    const targetWeek =
+      currentWeekIdx >= 0
+        ? activePlan.weeks[currentWeekIdx]
+        : todayStr < activePlan.weeks[0].startDateStr
+        ? activePlan.weeks[0]
+        : activePlan.weeks[activePlan.weeks.length - 1];
+
+    if (!targetWeek) return null;
+
+    // Planned distance for this week
+    const plannedKm = Math.round(
+      (targetWeek.targetWeeklyKm || targetWeek.days.reduce((s, d) => s + (d.distanceKm || 0), 0)) * 10
+    ) / 10;
+
+    // Recorded sessions during this week's date range
+    const sessionsInWeek = sessions.filter(
+      (s) => s.date >= targetWeek.startDateStr && s.date <= targetWeek.endDateStr
+    );
+    const sessionsKm = Math.round(
+      sessionsInWeek.reduce((sum, s) => sum + (s.totalDistanceKm || 0), 0) * 10
+    ) / 10;
+
+    // Recorded from day actualSession
+    const daysKm = Math.round(
+      targetWeek.days.reduce((sum, d) => sum + (d.actualSession ? d.actualSession.totalDistanceKm : 0), 0) * 10
+    ) / 10;
+
+    const recordedKm = Math.round(
+      Math.max(sessionsKm, daysKm, targetWeek.completedKm || 0) * 10
+    ) / 10;
+
+    const achievementPercent = plannedKm > 0
+      ? Math.round((recordedKm / plannedKm) * 100)
+      : recordedKm > 0
+      ? 100
+      : 0;
+
+    const remainingKm = Math.max(0, Math.round((plannedKm - recordedKm) * 10) / 10);
+    const overAchievedKm = recordedKm > plannedKm ? Math.round((recordedKm - plannedKm) * 10) / 10 : 0;
+
+    // Daily breakdown for this week
+    const dayProgressList = targetWeek.days.map((dayItem) => {
+      const sessionOnDay = dayItem.dateStr ? sessions.find((s) => s.date === dayItem.dateStr) : undefined;
+      const dayActualKm = sessionOnDay
+        ? sessionOnDay.totalDistanceKm
+        : dayItem.actualSession
+        ? dayItem.actualSession.totalDistanceKm
+        : 0;
+      const isCompleted = dayItem.isCompleted || !!dayItem.actualSession || !!sessionOnDay;
+      const isToday = !!dayItem.dateStr && dayItem.dateStr === todayStr;
+
+      return {
+        ...dayItem,
+        sessionOnDay,
+        dayActualKm,
+        isCompleted,
+        isToday,
+      };
+    });
+
+    const completedWorkoutsCount = dayProgressList.filter((d) => d.isCompleted && d.dayActualKm > 0).length;
+    const plannedWorkoutDaysCount = dayProgressList.filter((d) => d.distanceKm > 0).length;
+
+    return {
+      weekNumber: targetWeek.weekNumber,
+      weekLabel: targetWeek.weekLabel,
+      startDateStr: targetWeek.startDateStr,
+      endDateStr: targetWeek.endDateStr,
+      phase: targetWeek.phase,
+      phaseBadgeColor: targetWeek.phaseBadgeColor,
+      focus: targetWeek.focus,
+      plannedKm,
+      recordedKm,
+      achievementPercent,
+      remainingKm,
+      overAchievedKm,
+      completedWorkoutsCount,
+      plannedWorkoutDaysCount,
+      days: dayProgressList,
+      sessionsInWeek,
+    };
+  }, [activePlan, sessions]);
+
   return (
     <div id="training-plan-section" tabIndex={-1} className="space-y-6 text-stone-800 animate-fadeIn focus:outline-none scroll-mt-6">
       {/* 1. Header Banner & Plan Executive Summary */}
@@ -920,6 +1104,367 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Visual Progress Bar: Remaining days until target race & week progression */}
+        {planProgressBarData && (
+          <div className="mt-5 pt-5 border-t border-stone-200/90 space-y-3.5">
+            {/* Top Row: Title, Target Race Info & D-Day Counter */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="p-1.5 rounded-lg bg-rose-100 text-rose-800 border border-rose-300 flex-shrink-0 shadow-2xs">
+                  <Trophy className="w-4 h-4 text-rose-700" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <strong className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
+                      {planProgressBarData.targetTitle}
+                    </strong>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-700 border border-stone-200">
+                      {planProgressBarData.targetCourse}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span>훈련 시작: <strong className="text-stone-700 font-mono">{planProgressBarData.planStartDateStr}</strong></span>
+                    <span>→</span>
+                    <span>대회 결전: <strong className="text-rose-900 font-mono font-bold">{planProgressBarData.targetDateStr}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* D-Day & Progress % Badges */}
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                {planProgressBarData.dDayInfo.isToday ? (
+                  <span className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-500 text-white font-black text-xs sm:text-sm shadow-md animate-pulse flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-amber-200" />
+                    <span>🏆 D-Day 오늘 대회 결전일!</span>
+                  </span>
+                ) : !planProgressBarData.dDayInfo.isPassed ? (
+                  <span className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
+                    <Target className="w-4 h-4 text-rose-700" />
+                    <span>{planProgressBarData.dDayInfo.text}</span>
+                    <span className="text-[11px] font-normal text-rose-800/80">({planProgressBarData.remainingDays}일 남음)</span>
+                  </span>
+                ) : (
+                  <span className="px-3 py-1.5 rounded-xl bg-stone-100 border border-stone-300 text-stone-700 font-bold text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                    <span>대회 완주 ({planProgressBarData.dDayInfo.text})</span>
+                  </span>
+                )}
+
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-950 border border-emerald-300 font-black text-xs sm:text-sm font-athletic shadow-2xs">
+                  {planProgressBarData.progressPercent}% 진행
+                </span>
+              </div>
+            </div>
+
+            {/* Main Visual Progress Bar Track */}
+            <div className="space-y-1.5">
+              <div className="relative w-full h-5 sm:h-6 rounded-full bg-stone-100 p-0.5 border border-stone-300/80 shadow-inner overflow-hidden">
+                {/* Background milestone ticks */}
+                <div className="absolute inset-0 flex justify-between px-2 items-center pointer-events-none opacity-20 z-0">
+                  <span className="h-full w-px bg-stone-400" />
+                  <span className="h-full w-px bg-stone-400" />
+                  <span className="h-full w-px bg-stone-400" />
+                  <span className="h-full w-px bg-stone-400" />
+                  <span className="h-full w-px bg-stone-400" />
+                </div>
+
+                {/* Filled Gradient Bar */}
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-600 via-teal-500 via-amber-500 to-rose-600 transition-all duration-700 ease-out shadow-sm relative flex items-center justify-end pr-1 z-10"
+                  style={{ width: `${Math.max(3, planProgressBarData.progressPercent)}%` }}
+                >
+                  {/* Subtle Shimmer highlight */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse rounded-full" />
+                  
+                  {/* Runner Pin on Bar Head */}
+                  <span className="text-xs sm:text-sm select-none filter drop-shadow">
+                    {planProgressBarData.progressPercent >= 100 ? '🏁' : '🏃'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Milestones Bar Legend */}
+              <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono px-1">
+                <span className="flex items-center gap-1">
+                  <span>🚩 플랜 시작 ({planProgressBarData.planStartDateStr.slice(5)})</span>
+                </span>
+                <span className="hidden sm:inline">
+                  {planProgressBarData.currentWeekNum > 0 && planProgressBarData.currentWeekNum <= planProgressBarData.totalWeeks ? (
+                    <strong className="text-emerald-800 font-sans font-bold">
+                      📍 현재 {planProgressBarData.currentWeekNum}주차 진행 중 ({planProgressBarData.currentPhase.split(' ')[0]})
+                    </strong>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-1 font-bold text-rose-900">
+                  <span>🏁 결전 레이스 ({planProgressBarData.targetDateStr.slice(5)})</span>
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Mini Detail Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
+                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
+                  <Calendar className="w-3 h-3 text-emerald-700" />
+                  대회까지 남은 일수
+                </div>
+                <div className="text-sm font-black text-rose-900 font-athletic mt-0.5">
+                  {planProgressBarData.dDayInfo.isToday ? '오늘 당일 (0일)' : `${planProgressBarData.remainingDays}일`}
+                </div>
+                <div className="text-[10px] text-stone-500 font-mono">
+                  {planProgressBarData.dDayInfo.text}
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
+                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
+                  <TrendingUp className="w-3 h-3 text-blue-700" />
+                  주차 진행 현황
+                </div>
+                <div className="text-sm font-black text-stone-900 font-athletic mt-0.5">
+                  {planProgressBarData.currentWeekNum}
+                  <span className="text-[11px] font-normal text-stone-500"> / {planProgressBarData.totalWeeks}주차</span>
+                </div>
+                <div className="text-[10px] text-stone-500 truncate">
+                  {planProgressBarData.currentPhase.split(' ')[0]}
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
+                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
+                  <Clock className="w-3 h-3 text-amber-700" />
+                  누적 경과 일수
+                </div>
+                <div className="text-sm font-black text-stone-900 font-athletic mt-0.5">
+                  {planProgressBarData.daysElapsed}
+                  <span className="text-[11px] font-normal text-stone-500"> / {planProgressBarData.totalPlanDays}일</span>
+                </div>
+                <div className="text-[10px] text-stone-500 font-mono">
+                  {planProgressBarData.progressPercent}% 타임라인
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
+                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
+                  <Footprints className="w-3 h-3 text-teal-700" />
+                  훈련 마일리지 소화
+                </div>
+                <div className="text-sm font-black text-emerald-900 font-athletic mt-0.5">
+                  {planProgressBarData.totalCompletedKm}
+                  <span className="text-[11px] font-normal text-stone-500"> / {activePlan.totalPlannedKm}km</span>
+                </div>
+                <div className="text-[10px] text-stone-500 font-mono">
+                  {planProgressBarData.mileagePercent}% 달성
+                </div>
+              </div>
+            </div>
+
+            {/* Current Week Achievement Section: 주간 계획 거리 대비 내가 기록한 훈련의 거리 */}
+            {currentWeekProgressData && (
+              <div className="pt-2">
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70 border border-emerald-500/35 shadow-xs space-y-3.5">
+                  {/* Top Bar: Title, Week Label, Badge */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="p-1.5 rounded-lg bg-emerald-700 text-white shadow-2xs">
+                        <Zap className="w-4 h-4 text-amber-300" />
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">
+                            현재 {currentWeekProgressData.weekNumber}주차 달성률
+                          </h4>
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white text-stone-700 border border-emerald-300 font-mono shadow-2xs">
+                            {currentWeekProgressData.startDateStr.slice(5)} ~ {currentWeekProgressData.endDateStr.slice(5)}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${currentWeekProgressData.phaseBadgeColor}`}>
+                            {currentWeekProgressData.phase.split(' ')[0]}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-stone-500 mt-0.5">
+                          주간 계획 거리 대비 내가 기록한 훈련의 거리 달성 현황
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Achievement Rate Pill */}
+                    <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                      {currentWeekProgressData.achievementPercent >= 100 ? (
+                        <span className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-xs sm:text-sm shadow-xs flex items-center gap-1.5 font-athletic">
+                          <CheckCircle2 className="w-4 h-4 text-amber-200" />
+                          <span>{currentWeekProgressData.achievementPercent}% 주간 목표 완수!</span>
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-950 border border-emerald-300 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5 font-athletic">
+                          <Target className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{currentWeekProgressData.achievementPercent}% 달성 중</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Main Metric Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white/95 rounded-xl p-3 sm:p-3.5 border border-emerald-200/80 shadow-2xs">
+                    {/* 1. 내가 기록한 훈련 거리 */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 flex-shrink-0">
+                        <Footprints className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-stone-500 font-medium">내가 기록한 훈련 거리</div>
+                        <div className="text-base sm:text-lg font-black text-emerald-900 font-athletic tracking-tight flex items-baseline gap-1">
+                          <span>{currentWeekProgressData.recordedKm}</span>
+                          <span className="text-xs font-semibold text-stone-500">km</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 2. 주간 계획 목표 거리 */}
+                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 pt-2 sm:pt-0 sm:pl-3">
+                      <div className="p-2.5 rounded-xl bg-stone-100 text-stone-700 flex-shrink-0">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-stone-500 font-medium">주간 계획 목표 거리</div>
+                        <div className="text-base sm:text-lg font-black text-stone-800 font-athletic tracking-tight flex items-baseline gap-1">
+                          <span>{currentWeekProgressData.plannedKm}</span>
+                          <span className="text-xs font-semibold text-stone-500">km</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. 목표 달성 및 잔여 현황 */}
+                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 pt-2 sm:pt-0 sm:pl-3">
+                      <div className={`p-2.5 rounded-xl flex-shrink-0 ${currentWeekProgressData.achievementPercent >= 100 ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {currentWeekProgressData.achievementPercent >= 100 ? (
+                          <Award className="w-5 h-5 text-amber-700" />
+                        ) : (
+                          <TrendingUp className="w-5 h-5 text-blue-700" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-stone-500 font-medium">
+                          {currentWeekProgressData.achievementPercent >= 100 ? '초과 달성 마일리지' : '이번 주 남은 거리'}
+                        </div>
+                        <div className={`text-base sm:text-lg font-black font-athletic tracking-tight flex items-baseline gap-1 ${
+                          currentWeekProgressData.achievementPercent >= 100 ? 'text-amber-700' : 'text-blue-900'
+                        }`}>
+                          {currentWeekProgressData.achievementPercent >= 100 ? (
+                            <>
+                              <span>+{currentWeekProgressData.overAchievedKm}</span>
+                              <span className="text-xs font-semibold text-stone-500">km 초과 완주</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{currentWeekProgressData.remainingKm}</span>
+                              <span className="text-xs font-semibold text-stone-500">km 남음</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar Track */}
+                  <div className="space-y-1">
+                    <div className="relative w-full h-3.5 sm:h-4 rounded-full bg-stone-200/80 p-0.5 border border-stone-300/80 shadow-inner overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ease-out shadow-xs relative flex items-center justify-end pr-1 ${
+                          currentWeekProgressData.achievementPercent >= 100
+                            ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500'
+                            : 'bg-gradient-to-r from-emerald-600 to-teal-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, Math.max(3, currentWeekProgressData.achievementPercent))}%`,
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-pulse rounded-full" />
+                        <span className="text-[9px] select-none filter drop-shadow">
+                          {currentWeekProgressData.achievementPercent >= 100 ? '🎉' : '🏃'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono px-0.5">
+                      <span>0.0km (시작)</span>
+                      <span className="font-bold text-emerald-900">
+                        기록: {currentWeekProgressData.recordedKm}km / 계획: {currentWeekProgressData.plannedKm}km ({currentWeekProgressData.achievementPercent}%)
+                      </span>
+                      <span>목표 {currentWeekProgressData.plannedKm}km</span>
+                    </div>
+                  </div>
+
+                  {/* 7-Day Mini Status Row */}
+                  <div className="pt-1 border-t border-emerald-200/60 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-stone-700 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                        이번 주 요일별 훈련 현황
+                        <span className="text-stone-400 font-normal">
+                          (완료 {currentWeekProgressData.completedWorkoutsCount}회 / 계획 {currentWeekProgressData.plannedWorkoutDaysCount}회)
+                        </span>
+                      </span>
+                      {onOpenLogWorkout && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenLogWorkout(getTodayDateStr())}
+                          className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" />
+                          <span>오늘 훈련 기록</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                      {currentWeekProgressData.days.map((d, dayIdx) => {
+                        return (
+                          <div
+                            key={d.dateStr || `${d.day}-${dayIdx}`}
+                            className={`p-1.5 sm:p-2 rounded-xl text-center border transition-all ${
+                              d.isToday
+                                ? 'ring-2 ring-emerald-600 border-emerald-400 bg-emerald-50/90 shadow-2xs font-semibold'
+                                : d.isCompleted && d.dayActualKm > 0
+                                ? 'bg-emerald-100/80 border-emerald-300 text-emerald-950'
+                                : d.distanceKm > 0
+                                ? 'bg-white border-stone-200 text-stone-700'
+                                : 'bg-stone-50 border-stone-200/60 text-stone-400'
+                            }`}
+                          >
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[11px] font-bold">{d.dayShort}</span>
+                              {d.isToday && (
+                                <span className="text-[8px] px-1 rounded bg-emerald-700 text-white font-extrabold leading-tight">
+                                  오늘
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[9px] text-stone-400 font-mono mt-0.5">
+                              {d.dateStr ? `${d.dateStr.slice(8)}일` : ''}
+                            </div>
+                            <div className="mt-1 text-[11px] font-black font-athletic">
+                              {d.isCompleted && d.dayActualKm > 0 ? (
+                                <span className="text-emerald-800 flex items-center justify-center gap-0.5">
+                                  <Check className="w-3 h-3 text-emerald-700 inline" />
+                                  {d.dayActualKm}k
+                                </span>
+                              ) : d.distanceKm > 0 ? (
+                                <span className="text-stone-700">{d.distanceKm}k</span>
+                              ) : (
+                                <span className="text-stone-400 font-normal text-[10px]">휴식</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* 1.5 Goal-Fitness Match Audit Report (목표-실력 정합성 & AI 코칭 진단 리포트) */}
