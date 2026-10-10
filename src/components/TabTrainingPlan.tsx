@@ -39,7 +39,9 @@ import {
   TrainingSession,
   RunningRecords,
   SpeedWorkoutType,
+  IntensityCategory,
 } from '../types';
+import { WeeklyTrainingLoadCard, enrichPlanWithTrainingLoads } from './WeeklyTrainingLoadCard';
 import {
   generateComprehensivePlan,
   formatDate,
@@ -186,14 +188,143 @@ const ALL_DAYS: DayOfWeek[] = [
   '일요일',
 ];
 
-const SPEED_WORKOUT_TYPES: { id: SpeedWorkoutType; label: string; desc: string; icon: string }[] = [
-  { id: '인터벌', label: '1000m 인터벌', desc: 'VO2max 극대화 (1000m 질주 + 400m 조깅 휴식 4~6세트)', icon: '⚡' },
-  { id: '언덕훈련', label: '언덕 파워 질주 (Hill Repeats)', desc: '경사도 5~8% 언덕 전력 질주로 하지 근력·심폐·케이던스 폭발력 강화', icon: '⛰️' },
-  { id: '템포런', label: '젖산 역치(LT) 템포런', desc: '젖산 축적 억제 및 대회 페이스 유지력 향상 역치 지속주', icon: '🔥' },
-  { id: '800m 인터벌', label: '800m 야소 인터벌', desc: '마라톤 완주 시간 예측 및 스피드 피치 강화', icon: '⏱️' },
-  { id: '1~3k 인터벌', label: '1~3km 롱 인터벌', desc: '하프/풀코스 후반 스피드 내구성 배양 지속 질주', icon: '🚀' },
-  { id: '빌드업주', label: '빌드업주 (점진 가속)', desc: '이지런에서 시작하여 목표 대회 페이스까지 점진적 가속', icon: '📈' },
-  { id: '변속주(파틀렉)', label: '파틀렉 (변속주)', desc: '지형과 속도 변화를 즐기는 유산소 변속 달리기', icon: '🔄' },
+export interface PointWorkoutDefinition {
+  id: SpeedWorkoutType;
+  label: string;
+  desc: string;
+  icon: string;
+  tier: 'low' | 'moderate' | 'high';
+  tierLabel: string;
+  zoneBadge: string;
+  badgeBg: string;
+}
+
+const SPEED_WORKOUT_TYPES: PointWorkoutDefinition[] = [
+  // 🟢 저강도 포인트 (존3 구간 - Zone 3 Aerobic Power)
+  {
+    id: '존3 마라톤 페이스주',
+    label: '존3 마라톤 페이스주 (M-Pace)',
+    desc: '풀코스 목표 페이스 정속 지속주. 젖산 축적 없이 유산소 파워와 실전 순항 리듬을 최적화',
+    icon: '🎯',
+    tier: 'low',
+    tierLabel: '저 - 존3구간',
+    zoneBadge: 'Zone 3 (마라톤 페이스)',
+    badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  },
+  {
+    id: '존3 모더레이트런',
+    label: '존3 모더레이트런 (Steady)',
+    desc: '이지런(Zone 2)보다 빠르고 역치(Zone 4)보다 안정적인 중간 유산소 지구력 자극주',
+    icon: '🟢',
+    tier: 'low',
+    tierLabel: '저 - 존3구간',
+    zoneBadge: 'Zone 3 (모더레이트 유산소)',
+    badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  },
+  {
+    id: '존3 유산소 역치주',
+    label: '존3 유산소 역치주 (AeT)',
+    desc: '유산소 역치(AeT) 부근으로 달려 지방 대사율과 심폐 베이스를 극한까지 끌어올림',
+    icon: '🔋',
+    tier: 'low',
+    tierLabel: '저 - 존3구간',
+    zoneBadge: 'Zone 3 (유산소 역치 AeT)',
+    badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  },
+
+  // 🟡 중강도 포인트 (역치 구간 - Zone 4 Threshold)
+  {
+    id: '템포런',
+    label: '젖산 역치(LT) 템포런',
+    desc: '젖산 축적 억제 및 대회 페이스 유지력 향상 20~40분 역치 지속주',
+    icon: '🔥',
+    tier: 'moderate',
+    tierLabel: '중 - 역치구간',
+    zoneBadge: 'Zone 4 (젖산역치 페이스)',
+    badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+  },
+  {
+    id: '크루즈 인터벌',
+    label: '크루즈 인터벌 (LT Cruise)',
+    desc: '1~2km 역치 페이스 질주 + 짧은 1분 조깅 휴식 반복. 젖산 역치 자극을 안전하게 분할 누적',
+    icon: '🚢',
+    tier: 'moderate',
+    tierLabel: '중 - 역치구간',
+    zoneBadge: 'Zone 4 (크루즈 역치)',
+    badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+  },
+  {
+    id: '빌드업주',
+    label: '빌드업주 (점진 가속)',
+    desc: '이지런에서 시작하여 후반부 역치/대회 페이스까지 점진적 가속 (네거티브 스플릿)',
+    icon: '📈',
+    tier: 'moderate',
+    tierLabel: '중 - 역치구간',
+    zoneBadge: 'Zone 3~4 (점진 가속)',
+    badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+  },
+  {
+    id: '변속주(파틀렉)',
+    label: '파틀렉 (자유 변속주)',
+    desc: '지형과 속도 변화를 즐기는 유산소 변속 달리기 (질주와 조깅의 유연한 반복)',
+    icon: '🔄',
+    tier: 'moderate',
+    tierLabel: '중 - 역치구간',
+    zoneBadge: 'Zone 3~4 (자유 변속)',
+    badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
+  },
+
+  // 🔴 고강도 포인트 (역치 이상 인터벌 등 - Zone 5 VO2max & Anaerobic)
+  {
+    id: '인터벌',
+    label: '1000m 인터벌 (VO2max)',
+    desc: '최대 산소 섭취량 극대화 (1000m 질주 + 400m 조깅 휴식 4~6세트)',
+    icon: '⚡',
+    tier: 'high',
+    tierLabel: '고 - 역치 이상 인터벌',
+    zoneBadge: 'Zone 5 (VO2max)',
+    badgeBg: 'bg-rose-100 text-rose-800 border-rose-300',
+  },
+  {
+    id: '800m 인터벌',
+    label: '800m 야소 인터벌',
+    desc: '마라톤 완주 시간 예측 및 스피드 피치 강화 (800m 질주 + 400m 회복)',
+    icon: '⏱️',
+    tier: 'high',
+    tierLabel: '고 - 역치 이상 인터벌',
+    zoneBadge: 'Zone 5 (야소 800)',
+    badgeBg: 'bg-rose-100 text-rose-800 border-rose-300',
+  },
+  {
+    id: '1~3k 인터벌',
+    label: '1~3km 롱 인터벌',
+    desc: '하프/풀코스 후반 스피드 내구성 배양 지속 질주 (1500m~3000m 반복)',
+    icon: '🚀',
+    tier: 'high',
+    tierLabel: '고 - 역치 이상 인터벌',
+    zoneBadge: 'Zone 4~5 (롱 인터벌)',
+    badgeBg: 'bg-rose-100 text-rose-800 border-rose-300',
+  },
+  {
+    id: '언덕훈련',
+    label: '언덕 파워 질주 (Hill Repeats)',
+    desc: '경사도 5~8% 언덕 전력 질주로 하지 근력·심폐·케이던스 폭발력 강화',
+    icon: '⛰️',
+    tier: 'high',
+    tierLabel: '고 - 역치 이상 인터벌',
+    zoneBadge: 'Zone 4~5 (언덕 파워)',
+    badgeBg: 'bg-rose-100 text-rose-800 border-rose-300',
+  },
+  {
+    id: '400m 숏 인터벌',
+    label: '400m 숏 인터벌 (Speed Reps)',
+    desc: '트랙 400m 쾌속 질주 + 200m 걷기/조깅 휴식 8~12세트. 러닝 이코노미와 최고 속도 향상',
+    icon: '💨',
+    tier: 'high',
+    tierLabel: '고 - 역치 이상 인터벌',
+    zoneBadge: 'Zone 5+ (무산소 스피드)',
+    badgeBg: 'bg-rose-100 text-rose-800 border-rose-300',
+  },
 ];
 
 export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
@@ -278,6 +409,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   const [formSpeedDay, setFormSpeedDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.speedDay);
   // Multi-selection speed workout types:
   const [formSpeedTypes, setFormSpeedTypes] = useState<SpeedWorkoutType[]>(() => initialLoadedSettings.speedWorkoutTypes);
+  const [speedTypeTierFilter, setSpeedTypeTierFilter] = useState<'all' | 'low' | 'moderate' | 'high'>('all');
   const [formLongRunDay, setFormLongRunDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.longRunDay);
   const [formBaseWeeklyKm, setFormBaseWeeklyKm] = useState<string>(() => initialLoadedSettings.baseWeeklyKm);
 
@@ -447,8 +579,15 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     }
   };
 
+  // Local state for optimistic updates during one-click intensity conversions
+  const [optimisticPlan, setOptimisticPlan] = useState<ComprehensiveTrainingPlan | null>(null);
+
+  useEffect(() => {
+    setOptimisticPlan(null);
+  }, [savedPlan]);
+
   // Initialize or fallback active plan
-  const activePlan = useMemo<ComprehensiveTrainingPlan>(() => {
+  const baseActivePlan = useMemo<ComprehensiveTrainingPlan>(() => {
     if (savedPlan && savedPlan.weeks && savedPlan.weeks.length > 0) {
       return savedPlan;
     }
@@ -479,7 +618,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       baseWeeklyKm: parseFloat(formBaseWeeklyKm) || 36,
       updatedAt: new Date().toISOString(),
     };
-    return generateComprehensivePlan({
+    const initialPlan = generateComprehensivePlan({
       vdot: currentVDOT,
       settings: initialSettings,
       trainingSessions: sessions,
@@ -487,7 +626,67 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       races,
       goals,
     });
+    return enrichPlanWithTrainingLoads(
+      initialPlan,
+      currentVDOT,
+      {},
+      sessions,
+      'actual'
+    );
   }, [savedPlan, currentVDOT, sessions, shoes, races, goals]);
+
+  const activePlan = optimisticPlan || baseActivePlan;
+
+  // Handle One-Click Category Override (고강도 / 중강도 / 저강도(존3) / 장거리 / 회복/휴식)
+  const handleUpdateCategoryOverride = async (dayKey: string, newCat: IntensityCategory) => {
+    const nextOverrides: Record<string, IntensityCategory> = {
+      ...(activePlan.categoryOverrides || {}),
+      [dayKey]: newCat,
+    };
+    const updatedPlan = enrichPlanWithTrainingLoads(
+      activePlan,
+      currentVDOT || activePlan.runnerAnalysisSummary?.currentVdot || 38,
+      nextOverrides,
+      sessions,
+      'actual'
+    );
+    setOptimisticPlan(updatedPlan);
+    await onSavePlan(updatedPlan);
+  };
+
+  const handleResetCategoryOverrides = async () => {
+    const updatedPlan = enrichPlanWithTrainingLoads(
+      { ...activePlan, categoryOverrides: {} },
+      currentVDOT || activePlan.runnerAnalysisSummary?.currentVdot || 38,
+      {},
+      sessions,
+      'actual'
+    );
+    setOptimisticPlan(updatedPlan);
+    await onSavePlan(updatedPlan);
+  };
+
+  // Auto-enrich any existing plan that was saved before training load fields were added
+  useEffect(() => {
+    if (savedPlan && savedPlan.weeks && savedPlan.weeks.length > 0) {
+      const isMissingLoads =
+        savedPlan.totalPlanLoadScore === undefined ||
+        savedPlan.weeks.some(
+          (w) => w.totalLoadScore === undefined || w.days.some((d) => d.trainingLoad === undefined)
+        );
+
+      if (isMissingLoads) {
+        const enriched = enrichPlanWithTrainingLoads(
+          savedPlan,
+          currentVDOT || savedPlan.runnerAnalysisSummary?.currentVdot || 38,
+          savedPlan.categoryOverrides,
+          sessions,
+          'actual'
+        );
+        onSavePlan(enriched);
+      }
+    }
+  }, [savedPlan, currentVDOT, sessions, onSavePlan]);
 
   // Set initial active week to current week
   useEffect(() => {
@@ -569,7 +768,16 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
         goals,
       });
 
-      await onSavePlan(newPlan);
+      const enrichedPlan = enrichPlanWithTrainingLoads(
+        newPlan,
+        currentVDOT,
+        {},
+        sessions,
+        'actual'
+      );
+
+      setOptimisticPlan(enrichedPlan);
+      await onSavePlan(enrichedPlan);
       setIsSettingsOpen(false);
       setSelectedWeekIdx(0);
     } catch (err) {
@@ -1775,13 +1983,22 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 )}
               </div>
 
-              <div className="flex items-center gap-4 text-xs">
+              <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
                 <div>
                   <span className="text-stone-300">주간 목표 볼륨: </span>
                   <span className="text-base font-black text-amber-300 font-athletic">
                     {currentWeek.targetWeeklyKm}km
                   </span>
                 </div>
+                {currentWeek.totalLoadScore !== undefined && (
+                  <div className="flex items-center gap-1.5 bg-stone-800/80 px-2.5 py-1 rounded-xl border border-stone-700/60" title="플랜에 저장된 주간 총 훈련 부하">
+                    <span className="text-stone-300 text-xs">주간 부하: </span>
+                    <span className="text-base font-black text-rose-300 font-athletic flex items-center gap-1">
+                      <Flame className="w-4 h-4 text-rose-400" />
+                      {currentWeek.totalLoadScore}pt
+                    </span>
+                  </div>
+                )}
                 {currentWeek.completedKm !== undefined && currentWeek.completedKm > 0 && (
                   <div>
                     <span className="text-stone-300">실제 완료: </span>
@@ -1820,6 +2037,19 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               </div>
             )}
           </div>
+
+          {/* Weekly Training Load & Intensity Distribution Visualization (Interval vs Recovery vs Long Run) */}
+          <WeeklyTrainingLoadCard
+            currentWeek={currentWeek}
+            allWeeks={activePlan.weeks}
+            selectedWeekIdx={selectedWeekIdx}
+            onSelectWeek={(idx) => setSelectedWeekIdx(idx)}
+            runnerVdot={currentVDOT || activePlan.runnerAnalysisSummary?.currentVdot || 38}
+            sessions={sessions}
+            categoryOverrides={activePlan.categoryOverrides || {}}
+            onUpdateCategoryOverride={handleUpdateCategoryOverride}
+            onResetCategoryOverrides={handleResetCategoryOverrides}
+          />
 
           {/* 7-Day Workout Cards (월 ~ 일) */}
           <div className="space-y-3.5">
@@ -1864,6 +2094,25 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                             <span className={`w-1.5 h-1.5 rounded-full ${typeColor.dot}`} />
                             {dayItem.type}
                           </span>
+
+                          {/* Stored Training Load Badge */}
+                          {dayItem.trainingLoad !== undefined && dayItem.distanceKm > 0 && (
+                            <span
+                              className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-800 border border-stone-200 flex items-center gap-1 shadow-2xs"
+                              title={`플랜에 저장된 부하값: ${dayItem.trainingLoad}pt (${dayItem.loadMultiplier || 1.0}x 배수)${dayItem.userCategoryOverride ? ' [원클릭 수동 강도 변환 반영됨]' : ''}`}
+                            >
+                              <Flame className="w-3 h-3 text-amber-500" />
+                              <span>부하 {dayItem.trainingLoad}pt</span>
+                              {dayItem.loadMultiplier ? (
+                                <span className="text-[9px] text-stone-500 font-normal">({dayItem.loadMultiplier}x)</span>
+                              ) : null}
+                              {dayItem.userCategoryOverride && (
+                                <span className="text-[9px] text-teal-700 bg-teal-50 px-1 rounded font-bold border border-teal-200">
+                                  수동
+                                </span>
+                              )}
+                            </span>
+                          )}
 
                           {isPointWorkout && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-900 text-amber-300">
@@ -2003,8 +2252,23 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
                       {/* 3. Recommended Shoe & Quick Action Row */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-stone-200/60 text-xs">
-                        {/* Recommended Shoe */}
-                        {dayItem.recommendedShoe ? (
+                        {/* Shoe Display: Actual Worn vs Recommended */}
+                        {dayItem.actualSession?.shoeName ? (
+                          <div className="flex items-center gap-2 text-stone-700">
+                            <span className="p-1 rounded-md bg-emerald-100 text-emerald-800">
+                              <Footprints className="w-3.5 h-3.5" />
+                            </span>
+                            <span>
+                              실제 착용 러닝화:{' '}
+                              <strong className="text-emerald-950 font-bold">
+                                {dayItem.actualSession.shoeName}
+                              </strong>
+                              <span className="ml-1.5 px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                                훈련 기록 연동
+                              </span>
+                            </span>
+                          </div>
+                        ) : dayItem.recommendedShoe ? (
                           <div className="flex items-center gap-2 text-stone-600">
                             <Footprints className="w-4 h-4 text-rose-700 flex-shrink-0" />
                             <span>
@@ -2271,7 +2535,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             {/* Metrics */}
             {selectedDayDetail.day.distanceKm > 0 ? (
-              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs">
+              <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs">
                 <div>
                   <span className="text-stone-500">목표 거리:</span>
                   <div className="text-base font-black text-stone-900 font-athletic">
@@ -2284,10 +2548,21 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     {selectedDayDetail.day.targetPace}/km
                   </div>
                 </div>
+                <div>
+                  <span className="text-stone-500">훈련 부하:</span>
+                  <div className="text-base font-black text-rose-600 font-athletic flex items-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{selectedDayDetail.day.trainingLoad ?? '-'}pt</span>
+                    {selectedDayDetail.day.loadMultiplier ? (
+                      <span className="text-[10px] text-stone-500 font-mono">({selectedDayDetail.day.loadMultiplier}x)</span>
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-stone-50 text-xs text-stone-500 font-semibold">
-                완전 휴식 및 리커버리 데이입니다.
+              <div className="p-3 rounded-xl bg-stone-50 text-xs text-stone-500 font-semibold flex items-center justify-between">
+                <span>완전 휴식 및 리커버리 데이입니다.</span>
+                <span className="font-bold text-stone-700">부하: 0pt</span>
               </div>
             )}
 
@@ -3069,23 +3344,113 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   </div>
                 </div>
 
-                {/* Speed Workout Types Multi-Selection */}
+                {/* Point Workout Types Multi-Selection with 3-Tier Classification */}
                 {formSpeedDay !== '없음' && (
-                  <div className="space-y-2 pt-2 border-t border-stone-200">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-xs font-bold text-stone-800">
-                        ⚡ 스피드 포인트 훈련 종류 다중 선택 (로테이션 순환 적용)
-                      </label>
-                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  <div className="space-y-2.5 pt-2 border-t border-stone-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <div>
+                        <label className="block text-xs font-bold text-stone-900">
+                          🎯 포인트 훈련 종류 다중 선택 &amp; 3대 강도 체계적 분류
+                        </label>
+                        <span className="text-[11px] text-stone-500">
+                          저 - 존3구간 · 중 - 역치구간 · 고 - 역치 이상 인터벌 등 원하는 훈련 조합을 자유롭게 등록
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 self-start sm:self-auto">
                         {formSpeedTypes.length}개 선택됨
                       </span>
                     </div>
-                    <p className="text-[11px] text-stone-500">
-                      다중 선택 시 포인트 훈련 요일에 각 훈련이 주차별로 골고루 돌아가며 배정됩니다. 언덕훈련이 포함되어 있습니다.
-                    </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                      {SPEED_WORKOUT_TYPES.map((t) => {
+                    {/* Quick Preset Combos */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold text-stone-500">⚡ 추천 조합:</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormSpeedTypes(['존3 마라톤 페이스주', '템포런', '인터벌', '언덕훈련'])
+                        }
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all cursor-pointer"
+                        title="저강도 존3 M페이스 + 중강도 역치 템포 + 고강도 인터벌 & 언덕의 균형 잡힌 풀코스 조합"
+                      >
+                        🎯 마라톤 풀코스 균형형
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormSpeedTypes(['존3 마라톤 페이스주', '존3 모더레이트런', '템포런', '크루즈 인터벌'])
+                        }
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all cursor-pointer"
+                        title="부상 위험을 줄이고 유산소 베이스 및 젖산 역치를 집중 다지는 조합"
+                      >
+                        🟢 유산소 베이스 &amp; 역치 빌드
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormSpeedTypes(['인터벌', '800m 인터벌', '템포런', '400m 숏 인터벌'])
+                        }
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 transition-all cursor-pointer"
+                        title="VO2max 및 스피드 피치를 빠르게 끌어올리는 고강도 중심 조합"
+                      >
+                        🔴 스피드 &amp; 인터벌 파워
+                      </button>
+                    </div>
+
+                    {/* Tier Filter Tabs */}
+                    <div className="flex items-center gap-1 pt-1 overflow-x-auto text-[11px] font-bold">
+                      <button
+                        type="button"
+                        onClick={() => setSpeedTypeTierFilter('all')}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
+                          speedTypeTierFilter === 'all'
+                            ? 'bg-stone-900 text-white border-stone-900 shadow-2xs'
+                            : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                        }`}
+                      >
+                        전체 보기 ({SPEED_WORKOUT_TYPES.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSpeedTypeTierFilter('low')}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                          speedTypeTierFilter === 'low'
+                            ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span>🟢 저 - 존3구간</span>
+                        <span>(3)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSpeedTypeTierFilter('moderate')}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                          speedTypeTierFilter === 'moderate'
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                            : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        <span>🟡 중 - 역치구간</span>
+                        <span>(4)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSpeedTypeTierFilter('high')}
+                        className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
+                          speedTypeTierFilter === 'high'
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                            : 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                        }`}
+                      >
+                        <span>🔴 고 - 역치 이상 인터벌</span>
+                        <span>(5)</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      {SPEED_WORKOUT_TYPES.filter(
+                        (t) => speedTypeTierFilter === 'all' || t.tier === speedTypeTierFilter
+                      ).map((t) => {
                         const isSelected = formSpeedTypes.includes(t.id);
                         const orderIdx = formSpeedTypes.indexOf(t.id);
                         return (
@@ -3098,22 +3463,27 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                                 : 'bg-white/60 border-stone-200 text-stone-500 hover:bg-white'
                             }`}
                           >
-                            <div className="space-y-0.5">
-                              <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
-                                <span>{t.icon}</span>
-                                <span>{t.label}</span>
-                                {t.id === '언덕훈련' && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-orange-100 text-orange-800 border border-orange-200">
-                                    파워 강화
-                                  </span>
-                                )}
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm">{t.icon}</span>
+                                <span className="font-bold text-xs text-stone-900 truncate">
+                                  {t.label}
+                                </span>
+                                <span
+                                  className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold border ${t.badgeBg}`}
+                                >
+                                  {t.tierLabel}
+                                </span>
                               </div>
                               <div className="text-[10px] text-stone-500 line-clamp-1">
                                 {t.desc}
                               </div>
+                              <div className="text-[10px] font-mono text-stone-400">
+                                {t.zoneBadge}
+                              </div>
                             </div>
 
-                            <div className="flex-shrink-0 flex items-center gap-1">
+                            <div className="flex-shrink-0 flex items-center gap-1 pt-0.5">
                               {isSelected && (
                                 <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 w-5 h-5 rounded-full flex items-center justify-center">
                                   {orderIdx + 1}
@@ -3137,9 +3507,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     {/* Rotation Sequence Banner */}
                     <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-[11px] text-emerald-950 flex items-center gap-2">
                       <span className="text-base flex-shrink-0">🔄</span>
-                      <div>
+                      <div className="min-w-0">
                         <strong>주차별 순환 순서: </strong>
-                        <span>
+                        <span className="text-emerald-900">
                           {formSpeedTypes.map((type, i) => `${i + 1}주차: ${type}`).join(' → ')} (이후 반복)
                         </span>
                       </div>

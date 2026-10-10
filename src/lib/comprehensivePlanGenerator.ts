@@ -13,7 +13,7 @@ import {
   PlanFitnessAudit,
 } from '../types';
 import { getTrainingPaces, formatPace, parseTimeToSeconds, parsePaceToSeconds, calculateVDOT } from './vdot';
-import { attachShoeRecommendationsToPlan } from './shoeRecommender';
+import { attachShoeRecommendationsToPlan, createShoeRotationTracker } from './shoeRecommender';
 import { analyzeRunnerState, inferWorkoutType } from './trainingPlanGenerator';
 import { calculateDDay } from './marathonData';
 
@@ -270,6 +270,160 @@ export function normalizeStagesDistance(stages: WorkoutStage[], totalDist: numbe
 }
 
 /**
+ * Intelligently select speed workout type for each week based on:
+ * 1. Long run load (avoids explosive VO2max intervals on heavy 28~35km LSD weeks to prevent fatigue injury)
+ * 2. Periodization phase (Base, Build, Peak, Deload, Taper, Race Week)
+ * 3. Non-repetitive rotation (prevents duplicate workout types in consecutive weeks)
+ * 4. Recency balancing & pseudo-random organic variety
+ */
+export function selectIntelligentSpeedWorkoutType(params: {
+  availableTypes: SpeedWorkoutType[];
+  weekNum: number;
+  totalWeeks: number;
+  phase: PlanPeriodizationPhase;
+  longRunKm: number;
+  targetWeeklyKm: number;
+  isFullCourse: boolean;
+  isDeload: boolean;
+  isTaper: boolean;
+  isRaceWeek: boolean;
+  lastUsedSpeedType: SpeedWorkoutType | null;
+  lastUsedWeekMap: Partial<Record<SpeedWorkoutType, number>>;
+}): SpeedWorkoutType {
+  const {
+    availableTypes,
+    weekNum,
+    phase,
+    longRunKm,
+    isFullCourse,
+    isDeload,
+    isTaper,
+    isRaceWeek,
+    lastUsedSpeedType,
+    lastUsedWeekMap,
+  } = params;
+
+  if (!availableTypes || availableTypes.length === 0) {
+    return '템포런';
+  }
+  if (availableTypes.length === 1) {
+    return availableTypes[0];
+  }
+
+  const isHeavyLongRunWeek =
+    (isFullCourse && longRunKm >= 28.0) ||
+    (!isFullCourse && longRunKm >= 18.0) ||
+    phase === '목표 페이스 특화기 (Peak)';
+
+  const scoredCandidates = availableTypes.map((type, idx) => {
+    let score = 100;
+
+    // A. Heavy Long Run Week Adjustment:
+    // When weekend LSD is massive (28~35km), explosive intervals (1000m, 800m, 400m) cause excessive neuromuscular fatigue & injury risk.
+    // Favor Zone 3 Marathon Pace, Moderate Run, Lactate Threshold Tempo, Cruise Intervals (1~3k), or Progressive Buildup run!
+    if (isHeavyLongRunWeek) {
+      if (type === '존3 마라톤 페이스주') score += 75; // Ultimate synergy with marathon LSD! Builds race pace feel with minimal tear
+      else if (type === '존3 모더레이트런') score += 65;
+      else if (type === '존3 유산소 역치주') score += 60;
+      else if (type === '템포런') score += 65; // Best synergy with marathon LSD
+      else if (type === '크루즈 인터벌') score += 60; // Cruise aerobic endurance
+      else if (type === '1~3k 인터벌') score += 55; // Cruise aerobic endurance
+      else if (type === '빌드업주') score += 45; // Progressive acceleration with low acute tear
+      else if (type === '변속주(파틀렉)') score += 15;
+      else if (type === '언덕훈련') score -= 30; // Heavy calf/tendon load right before 30km+ long run
+      else if (type === '인터벌') score -= 65; // High acute tear clash with 30km+ LSD
+      else if (type === '800m 인터벌') score -= 65;
+      else if (type === '400m 숏 인터벌') score -= 70;
+    }
+
+    // B. Recovery / Deload Week
+    if (isDeload) {
+      if (type === '존3 모더레이트런') score += 55; // Gentle steady aerobic volume
+      else if (type === '변속주(파틀렉)') score += 50; // Playful, enjoyable
+      else if (type === '존3 마라톤 페이스주') score += 40;
+      else if (type === '빌드업주') score += 40;
+      else if (type === '존3 유산소 역치주') score += 35;
+      else if (type === '템포런') score += 25;
+      else if (type === '크루즈 인터벌') score += 20;
+      else if (type === '언덕훈련') score += 15;
+      else if (type === '인터벌') score -= 45; // Avoid maximal anaerobic burnout
+      else if (type === '800m 인터벌') score -= 45;
+      else if (type === '400m 숏 인터벌') score -= 50;
+      else if (type === '1~3k 인터벌') score -= 25;
+    }
+
+    // C. Base Phase (Early weeks)
+    if (phase === '기초 유산소 구축기 (Base)') {
+      if (type === '존3 유산소 역치주') score += 60; // Aerobic capacity expansion
+      else if (type === '존3 모더레이트런') score += 55;
+      else if (type === '언덕훈련') score += 50; // Neuromuscular power & tendon stiffness
+      else if (type === '존3 마라톤 페이스주') score += 45;
+      else if (type === '변속주(파틀렉)') score += 40;
+      else if (type === '빌드업주') score += 30;
+      else if (type === '템포런') score += 25;
+      else if (type === '크루즈 인터벌') score += 25;
+      else if (type === '인터벌') score -= 30;
+      else if (type === '800m 인터벌') score -= 30;
+      else if (type === '400m 숏 인터벌') score -= 35;
+    }
+
+    // D. Build Phase (Moderate long runs 18~26km)
+    if (phase === '스피드/지구력 빌드업기 (Build)' && !isHeavyLongRunWeek && !isDeload) {
+      if (type === '인터벌') score += 50; // Open VO2max ceiling!
+      else if (type === '800m 인터벌') score += 50;
+      else if (type === '400m 숏 인터벌') score += 45;
+      else if (type === '크루즈 인터벌') score += 40;
+      else if (type === '언덕훈련') score += 30;
+      else if (type === '템포런') score += 25;
+      else if (type === '1~3k 인터벌') score += 25;
+      else if (type === '존3 마라톤 페이스주') score += 35;
+    }
+
+    // E. Race Week / Tapering
+    if (isRaceWeek) {
+      if (type === '400m 숏 인터벌') score += 40; // Short light strides for neural sharpness
+      else if (type === '빌드업주') score += 35;
+      else if (type === '존3 마라톤 페이스주') score += 30; // Pace reminder
+      else if (type === '인터벌') score += 25; // Short sharp awakening
+      else if (type === '템포런') score += 20;
+      else if (type === '언덕훈련') score -= 40; // Avoid eccentric soreness right before race
+      else if (type === '1~3k 인터벌') score -= 30;
+    } else if (isTaper) {
+      if (type === '존3 마라톤 페이스주') score += 35;
+      else if (type === '템포런') score += 30;
+      else if (type === '크루즈 인터벌') score += 25;
+      else if (type === '인터벌') score += 25;
+      else if (type === '빌드업주') score += 25;
+      else if (type === '언덕훈련') score -= 20;
+    }
+
+    // F. Prevent Consecutive Duplication
+    if (type === lastUsedSpeedType && availableTypes.length > 1) {
+      score -= 160;
+    }
+
+    // G. Recency Bonus: Reward types not used for several weeks to balance variety
+    const lastUsedWeek = lastUsedWeekMap[type];
+    if (lastUsedWeek !== undefined) {
+      const weeksSince = weekNum - lastUsedWeek;
+      score += Math.min(60, weeksSince * 15);
+    } else {
+      score += 30; // First time bonus
+    }
+
+    // H. Pseudo-random Organic Jitter (Seed-based, deterministic)
+    // Avoids completely rigid round-robin cycling
+    const hash = ((weekNum * 23 + idx * 37 + (type.charCodeAt(0) || 0) * 13) % 17);
+    score += hash;
+
+    return { type, score };
+  });
+
+  scoredCandidates.sort((a, b) => b.score - a.score);
+  return scoredCandidates[0].type;
+}
+
+/**
  * Comprehensive Training Plan Generator
  */
 export function generateComprehensivePlan(params: {
@@ -438,7 +592,12 @@ export function generateComprehensivePlan(params: {
   const weeks: PlanWeek[] = [];
   let totalPlannedKm = 0;
   let totalPlannedSessions = 0;
+  let totalPlanLoadScore = 0;
   const todayStr = formatDate(new Date());
+
+  let lastUsedSpeedType: SpeedWorkoutType | null = null;
+  const lastUsedWeekMap: Partial<Record<SpeedWorkoutType, number>> = {};
+  const shoeRotationTracker = createShoeRotationTracker(shoes, trainingSessions);
 
   for (let w = 1; w <= totalWeeks; w++) {
     const weekMonday = new Date(startMonday.getTime() + (w - 1) * 7 * 24 * 60 * 60 * 1000);
@@ -620,23 +779,52 @@ export function generateComprehensivePlan(params: {
     const speedDay = settings.speedDay || '화요일';
     const longRunDay = settings.longRunDay || '일요일';
 
-    // Rotate speed workout type for this week!
-    const activeSpeedType = speedTypes[(w - 1) % speedTypes.length];
-
     const isRaceWeek = phase === '대회 직전 조정기 (Race Week)';
     const isTaper = phase === '테이퍼링 감량기 (Tapering)';
     const isDeload = phase === '회복 및 디로드 (Recovery)';
 
-    const maxLsdLimit = isFullCourse ? 32.0 : isHalfCourse ? 21.5 : is10kCourse ? 15.0 : 11.0;
+    // For Full Marathon:
+    // If preparing over a longer period (e.g. totalWeeks >= 20, such as 1-year plans) or high baseline volume,
+    // allow peak LSD up to 35.0km (32~35km golden range for full marathon peak).
+    const maxLsdLimit = isFullCourse
+      ? (totalWeeks >= 20 || baselineWeeklyKm >= 50 ? 35.0 : 32.0)
+      : isHalfCourse
+      ? 21.5
+      : is10kCourse
+      ? 15.0
+      : 11.0;
     const minLsdLimit = isFullCourse ? 12.0 : isHalfCourse ? 10.0 : is10kCourse ? 7.0 : 5.0;
     const lsdRatio = isFullCourse
-      ? (isDeload ? 0.32 : isTaper ? 0.35 : 0.42)
+      ? (isDeload ? 0.32 : isTaper ? 0.35 : (phase === '목표 페이스 특화기 (Peak)' ? 0.44 : 0.42))
       : isHalfCourse
       ? (isDeload ? 0.28 : isTaper ? 0.30 : 0.35)
       : (isDeload ? 0.24 : isTaper ? 0.26 : 0.28);
 
     let longRunKm = Math.round(targetWeeklyKm * lsdRatio * 10) / 10;
     longRunKm = Math.max(minLsdLimit, Math.min(maxLsdLimit, longRunKm));
+
+    const isHeavyLongRunWeek =
+      (isFullCourse && longRunKm >= 28.0) ||
+      (!isFullCourse && longRunKm >= 18.0) ||
+      phase === '목표 페이스 특화기 (Peak)';
+
+    // Intelligently select speed workout type considering weekly long run load, periodization phase & variety
+    const activeSpeedType = selectIntelligentSpeedWorkoutType({
+      availableTypes: speedTypes,
+      weekNum: w,
+      totalWeeks,
+      phase,
+      longRunKm,
+      targetWeeklyKm,
+      isFullCourse,
+      isDeload,
+      isTaper,
+      isRaceWeek,
+      lastUsedSpeedType,
+      lastUsedWeekMap,
+    });
+    lastUsedSpeedType = activeSpeedType;
+    lastUsedWeekMap[activeSpeedType] = w;
 
     const maxSpeedLimit = isFullCourse ? 14.0 : isHalfCourse ? 11.5 : is10kCourse ? 9.0 : 7.0;
     let speedKm = Math.round(targetWeeklyKm * (isRaceWeek ? 0.15 : isDeload ? 0.18 : 0.22) * 10) / 10;
@@ -1787,11 +1975,15 @@ export function generateComprehensivePlan(params: {
             dayShort,
             dateStr,
             type: '인터벌',
-            title: `롱 크루즈 인터벌 ${reps}세트 (${speedKm}km)`,
+            title: isHeavyLongRunWeek
+              ? `[장거리 부하 완화] 마라톤 순항 크루즈 인터벌 ${reps}세트 (${speedKm}km)`
+              : `롱 크루즈 인터벌 ${reps}세트 (${speedKm}km)`,
             distanceKm: speedKm,
             targetPace: thresholdPace,
             targetZone: 'Zone 4~5 (크루즈 인터벌)',
-            description: `워밍업 ${warmupKm}km 후 1500m 질주(${thresholdPace}) + 500m 조깅 휴식 ${reps}세트 반복 + 쿨다운 ${cooldownKm}km.`,
+            description: isHeavyLongRunWeek
+              ? `주말 장거리 LSD(${longRunKm}km)의 대형 부하를 고려하여 다리 관절 충격을 완화하고 마라톤 유산소 역치 지속력을 다듬는 크루즈 인터벌입니다. (워밍업 ${warmupKm}km + 1500m 질주(${thresholdPace}) + 500m 조깅 휴식 ${reps}세트 + 쿨다운 ${cooldownKm}km)`
+              : `워밍업 ${warmupKm}km 후 1500m 질주(${thresholdPace}) + 500m 조깅 휴식 ${reps}세트 반복 + 쿨다운 ${cooldownKm}km.`,
             purpose: '젖산 역치 지속력과 심폐 한계 극복 능력을 동시에 강화하는 중장거리 핵심 인터벌',
             intensity: '높음',
             isCompleted: false,
@@ -1928,11 +2120,15 @@ export function generateComprehensivePlan(params: {
             dayShort,
             dateStr,
             type: '템포런',
-            title: `점진적 가속 빌드업주 (${speedKm}km)`,
+            title: isHeavyLongRunWeek
+              ? `[장거리 부하 완화] 점진적 가속 빌드업주 (${speedKm}km)`
+              : `점진적 가속 빌드업주 (${speedKm}km)`,
             distanceKm: speedKm,
             targetPace: targetPaceStr,
             targetZone: targetZoneStr,
-            description: descStr,
+            description: isHeavyLongRunWeek
+              ? `주말 대형 롱런(${longRunKm}km)을 앞두고 다리 근육의 폭발적 파열을 방지하며 부드러운 네거티브 스플릿으로 순항 리듬을 점검합니다. ${descStr}`
+              : descStr,
             purpose: '후반 가속 능력(Negative Split) 및 심리적 자신감 고취, 점진적 젖산 대사 적응력 배양',
             intensity: '높음',
             isCompleted: false,
@@ -1991,7 +2187,268 @@ export function generateComprehensivePlan(params: {
           };
         }
 
-        // G. Standard Tempo Run (젖산 역치 템포런)
+        // G. Zone 3 Marathon Pace Steady Run (저강도 포인트 - 존3 마라톤 페이스주)
+        if (activeSpeedType === '존3 마라톤 페이스주') {
+          const warmupKm = speedKm >= 9 ? 2.0 : 1.5;
+          const cooldownKm = speedKm >= 9 ? 1.5 : 1.0;
+          const mainKm = Math.round((speedKm - warmupKm - cooldownKm) * 10) / 10;
+
+          const stages: WorkoutStage[] = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅 및 심박 예열, 유산소 혈류 확장',
+            },
+            {
+              step: `2단계: 본훈련 존3 마라톤 페이스(M-Pace) 지속주 (${mainKm}km)`,
+              distanceKm: mainKm,
+              pace: marathonPace,
+              zone: 'Zone 3 (마라톤 페이스)',
+              focus: `목표 풀코스 마라톤 페이스(${marathonPace}) 정속 순항. 젖산 축적 없이 유산소 파워와 실전 레이스 리듬 완벽 체화`,
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '가벼운 조깅으로 심박수 안정화 및 쿨다운',
+            },
+          ];
+          normalizeStagesDistance(stages, speedKm);
+
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '템포런',
+            title: isHeavyLongRunWeek
+              ? `[장거리 최적 시너지] 존3 마라톤 페이스주 (${speedKm}km)`
+              : `저강도 포인트: 존3 마라톤 페이스주 (${speedKm}km)`,
+            distanceKm: speedKm,
+            targetPace: marathonPace,
+            targetZone: 'Zone 3 (마라톤 페이스)',
+            description: isHeavyLongRunWeek
+              ? `주말 대형 롱런(${longRunKm}km)을 앞두고 다리 관절과 근육 피로를 최소화하면서, 풀코스 실전 목표 페이스(${marathonPace}) 감각을 날카롭게 유지하는 저강도 포인트 세션입니다. (워밍업 ${warmupKm}km + 본훈련 ${mainKm}km + 쿨다운 ${cooldownKm}km)`
+              : `워밍업 ${warmupKm}km 후 존3 마라톤 페이스(${marathonPace})로 ${mainKm}km 정속 지속주 진행 + 쿨다운 ${cooldownKm}km. 젖산 축적 없이 유산소 파워를 기르는 저강도 포인트 훈련입니다.`,
+            purpose: 'Zone 3 유산소 파워 극대화 및 풀코스 마라톤 목표 페이스 정속 지속력 완성 (부상 방지 저강도 포인트)',
+            intensity: '보통',
+            isCompleted: false,
+            stages,
+            actualSession: undefined,
+          };
+        }
+
+        // H. Zone 3 Moderate Run (저강도 포인트 - 존3 모더레이트런)
+        if (activeSpeedType === '존3 모더레이트런') {
+          const warmupKm = speedKm >= 9 ? 1.5 : 1.0;
+          const cooldownKm = speedKm >= 9 ? 1.5 : 1.0;
+          const mainKm = Math.round((speedKm - warmupKm - cooldownKm) * 10) / 10;
+          const moderatePaceSec = Math.round((parsePaceToSeconds(easyMin) + parsePaceToSeconds(marathonPace)) / 2);
+          const moderatePaceStr = formatPace(moderatePaceSec);
+
+          const stages: WorkoutStage[] = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅 및 체온 상승',
+            },
+            {
+              step: `2단계: 본훈련 존3 모더레이트 정속 지속주 (${mainKm}km)`,
+              distanceKm: mainKm,
+              pace: moderatePaceStr,
+              zone: 'Zone 3 (모더레이트 유산소)',
+              focus: `이지런보다 빠르고 역치보다 편안한 Zone 3 중간 유산소 영역(${moderatePaceStr})으로 일정한 보폭 유지`,
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '심박 안정화 및 하체 피로 털기',
+            },
+          ];
+          normalizeStagesDistance(stages, speedKm);
+
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '조깅',
+            title: `저강도 포인트: 존3 모더레이트런 (${speedKm}km)`,
+            distanceKm: speedKm,
+            targetPace: moderatePaceStr,
+            targetZone: 'Zone 3 (모더레이트 유산소)',
+            description: `이지 조깅(Zone 2)과 젖산 역치(Zone 4) 사이의 중간 유산소 지구력(Zone 3, ${moderatePaceStr})을 부드럽게 자극하는 저강도 포인트 세션입니다. (워밍업 ${warmupKm}km + 본훈련 ${mainKm}km + 쿨다운 ${cooldownKm}km)`,
+            purpose: '유산소 대사 효율 개선, 피로 누적 없는 안정적인 마일리지 및 유산소 베이스 확장',
+            intensity: '보통',
+            isCompleted: false,
+            stages,
+            actualSession: undefined,
+          };
+        }
+
+        // I. Zone 3 Aerobic Threshold Run (저강도 포인트 - 존3 유산소 역치주 AeT)
+        if (activeSpeedType === '존3 유산소 역치주') {
+          const warmupKm = speedKm >= 9 ? 2.0 : 1.5;
+          const cooldownKm = speedKm >= 9 ? 1.5 : 1.0;
+          const mainKm = Math.round((speedKm - warmupKm - cooldownKm) * 10) / 10;
+          const aetPaceSec = parsePaceToSeconds(marathonPace) + 8;
+          const aetPaceStr = formatPace(aetPaceSec);
+
+          const stages: WorkoutStage[] = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅 및 관절 가동성 확보',
+            },
+            {
+              step: `2단계: 본훈련 유산소 역치(AeT) 지속주 (${mainKm}km)`,
+              distanceKm: mainKm,
+              pace: aetPaceStr,
+              zone: 'Zone 3 (유산소 역치 AeT)',
+              focus: `젖산 발생 시작 직전의 상한 유산소 구간(${aetPaceStr}). 깊고 규칙적인 복식 호흡 유지`,
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '호흡을 정리하며 심박수 안정화',
+            },
+          ];
+          normalizeStagesDistance(stages, speedKm);
+
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '템포런',
+            title: `저강도 포인트: 존3 유산소 역치(AeT) 지속주 (${speedKm}km)`,
+            distanceKm: speedKm,
+            targetPace: aetPaceStr,
+            targetZone: 'Zone 3 (유산소 역치 AeT)',
+            description: `유산소 역치(Aerobic Threshold) 부근으로 달려 지방 대사율과 심폐 베이스를 극한까지 끌어올리는 저강도 포인트 훈련입니다. (워밍업 ${warmupKm}km + 본훈련 ${mainKm}km + 쿨다운 ${cooldownKm}km)`,
+            purpose: '유산소 역치(AeT) 지점 상향 이동 및 장거리 에너지 대사 효율 극대화',
+            intensity: '보통',
+            isCompleted: false,
+            stages,
+            actualSession: undefined,
+          };
+        }
+
+        // J. Cruise Intervals (중강도 포인트 - 크루즈 인터벌 LT)
+        if (activeSpeedType === '크루즈 인터벌') {
+          const reps = Math.max(2, Math.min(5, Math.floor((speedKm - 2.5) / 1.8)));
+          const mainWorkDist = Math.round(reps * 1.8 * 10) / 10;
+          const remainDist = Math.round((speedKm - mainWorkDist) * 10) / 10;
+          const warmupKm = Math.round(remainDist * 0.55 * 10) / 10;
+          const cooldownKm = Math.round((remainDist - warmupKm) * 10) / 10;
+
+          const stages: WorkoutStage[] = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅 및 심폐 예열',
+            },
+            {
+              step: `2단계: 본훈련 크루즈 역치 인터벌 ${reps}세트 (${mainWorkDist}km)`,
+              distanceKm: mainWorkDist,
+              pace: `질주: ${thresholdPace} (Zone 4) / 회복: ${easyMax} (Zone 1~2)`,
+              zone: 'Zone 4 (크루즈 역치)',
+              focus: `1500m 역치 질주(${thresholdPace}) + 300m 회복 조깅(1분) × ${reps}세트. 젖산 역치 자극을 안전하게 분할 누적`,
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '하체 털기 조깅으로 젖산 신속 제거',
+            },
+          ];
+          normalizeStagesDistance(stages, speedKm);
+
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '템포런',
+            title: isHeavyLongRunWeek
+              ? `[장거리 부하 완화] 분할 역치 크루즈 인터벌 ${reps}세트 (${speedKm}km)`
+              : `중강도 포인트: 크루즈 역치 인터벌 ${reps}세트 (${speedKm}km)`,
+            distanceKm: speedKm,
+            targetPace: thresholdPace,
+            targetZone: 'Zone 4 (크루즈 역치)',
+            description: `1500m 젖산역치 질주(${thresholdPace})와 300m 짧은 조깅 휴식을 ${reps}세트 반복하여 다리 피로를 분산하면서 젖산 한계점을 정복하는 중강도 핵심 세션입니다. (워밍업 ${warmupKm}km + 본훈련 ${mainWorkDist}km + 쿨다운 ${cooldownKm}km)`,
+            purpose: '젖산 역치 한계 속도 내구성을 관절 충격 없이 효과적으로 체득',
+            intensity: '높음',
+            isCompleted: false,
+            stages,
+            actualSession: undefined,
+          };
+        }
+
+        // K. 400m Short Intervals (고강도 포인트 - 400m 숏 인터벌)
+        if (activeSpeedType === '400m 숏 인터벌') {
+          const reps = Math.max(6, Math.min(12, Math.floor((speedKm - 2.5) / 0.6)));
+          const mainWorkDist = Math.round(reps * 0.6 * 10) / 10;
+          const remainDist = Math.round((speedKm - mainWorkDist) * 10) / 10;
+          const warmupKm = Math.round(remainDist * 0.55 * 10) / 10;
+          const cooldownKm = Math.round((remainDist - warmupKm) * 10) / 10;
+          const shortPaceSec = Math.max(180, parsePaceToSeconds(intervalPace) - 8);
+          const shortPaceStr = formatPace(shortPaceSec);
+
+          const stages: WorkoutStage[] = [
+            {
+              step: `1단계: 워밍업 (${warmupKm}km)`,
+              distanceKm: warmupKm,
+              pace: easyMax,
+              zone: 'Zone 1~2',
+              focus: '가벼운 조깅 + 동적 스트레칭 및 50m 질주 2회',
+            },
+            {
+              step: `2단계: 본훈련 400m 숏 인터벌 ${reps}세트 (${mainWorkDist}km)`,
+              distanceKm: mainWorkDist,
+              pace: `질주: ${shortPaceStr} (Zone 5+) / 회복: 천천히 걷기/조깅`,
+              zone: 'Zone 5+ (스피드/무산소)',
+              focus: `트랙 400m 쾌속 질주(${shortPaceStr}) + 200m(90초) 걷기/조깅 휴식 × ${reps}세트. 빠른 지면 반발력과 케이던스 폭발`,
+            },
+            {
+              step: `3단계: 쿨다운 (${cooldownKm}km)`,
+              distanceKm: cooldownKm,
+              pace: `${easyMax} ~ 6'40"`,
+              zone: 'Zone 1 (회복)',
+              focus: '호흡 안정화 및 하체 피로 털기',
+            },
+          ];
+          normalizeStagesDistance(stages, speedKm);
+
+          return {
+            day: dayName,
+            dayShort,
+            dateStr,
+            type: '인터벌',
+            title: `고강도 포인트: 400m 숏 인터벌 ${reps}세트 (${speedKm}km)`,
+            distanceKm: speedKm,
+            targetPace: shortPaceStr,
+            targetZone: 'Zone 5+ (스피드/무산소)',
+            description: `트랙 400m 쾌속 질주(${shortPaceStr})와 200m 휴식을 ${reps}세트 반복하여 러닝 이코노미와 최고 속도 능력을 극대화하는 고강도 스피드 세션입니다. (워밍업 ${warmupKm}km + 본훈련 ${mainWorkDist}km + 쿨다운 ${cooldownKm}km)`,
+            purpose: '빠른 수축 근섬유 활성화, 러닝 이코노미 개선 및 스피드 피치 향상',
+            intensity: '높음',
+            isCompleted: false,
+            stages,
+            actualSession: undefined,
+          };
+        }
+
+        // L. Standard Tempo Run (젖산 역치 템포런)
         const warmupKm = speedKm >= 9 ? 2.0 : 1.5;
         const cooldownKm = speedKm >= 9 ? 1.5 : 1.0;
         const mainKm = Math.round((speedKm - warmupKm - cooldownKm) * 10) / 10;
@@ -2026,11 +2483,15 @@ export function generateComprehensivePlan(params: {
           dayShort,
           dateStr,
           type: '템포런',
-          title: `젖산 역치(LT) 템포런 (${speedKm}km)`,
+          title: isHeavyLongRunWeek
+            ? `[장거리 부하 완화] 레이스 락온 LT 템포런 (${speedKm}km)`
+            : `젖산 역치(LT) 템포런 (${speedKm}km)`,
           distanceKm: speedKm,
           targetPace: thresholdPace,
           targetZone: 'Zone 4 (역치 페이스)',
-          description: `워밍업 ${warmupKm}km 후 본훈련으로 역치 페이스(${thresholdPace}) ${mainKm}km 정속 지속주 진행 + 쿨다운 ${cooldownKm}km. 젖산 축적을 억제하고 페이스를 유지하는 감각을 기릅니다.`,
+          description: isHeavyLongRunWeek
+            ? `주말 장거리 LSD(${longRunKm}km)의 높은 부하를 고려하여 폭발적 인터벌 대신 관절 충격이 적고 실전 페이스 유지력을 높이는 젖산역치(${thresholdPace}) 템포런으로 부하를 최적 조율합니다. (워밍업 ${warmupKm}km + 본훈련 ${mainKm}km + 쿨다운 ${cooldownKm}km)`
+            : `워밍업 ${warmupKm}km 후 본훈련으로 역치 페이스(${thresholdPace}) ${mainKm}km 정속 지속주 진행 + 쿨다운 ${cooldownKm}km. 젖산 축적을 억제하고 페이스를 유지하는 감각을 기릅니다.`,
           purpose: '젖산 역치(Lactate Threshold) 지점을 상향 이동시켜, 마라톤 후반에도 페이스 저하 없이 쾌적하게 질주할 수 있는 지구력 배양',
           intensity: '높음',
           isCompleted: false,
@@ -2096,8 +2557,8 @@ export function generateComprehensivePlan(params: {
     });
     }
 
-    // Attach shoe rotation recommendations to days
-    const daysWithShoes = attachShoeRecommendationsToPlan(days, shoes, trainingSessions);
+    // Attach shoe rotation recommendations to days with multi-week rotation and actual wear history
+    const daysWithShoes = attachShoeRecommendationsToPlan(days, shoes, trainingSessions, w, shoeRotationTracker);
 
     // Calculate planned and completed km for this week
     const weekActualPlannedKm = Math.round(
@@ -2108,6 +2569,55 @@ export function generateComprehensivePlan(params: {
     const completedKm = Math.round(
       daysWithShoes.reduce((sum, d) => sum + (d.actualSession ? d.actualSession.totalDistanceKm : 0), 0) * 10
     ) / 10;
+
+    // Calculate baseline training load scores for days and week
+    let weekLoadSum = 0;
+    const daysWithLoads = daysWithShoes.map((d) => {
+      let multiplier = 1.0;
+      let category: 'highIntensity' | 'moderateIntensity' | 'lowIntensityPoint' | 'longRun' | 'recovery' = 'recovery';
+      const isLowPoint =
+        d.title.includes('존3') ||
+        d.title.includes('M-페이스') ||
+        d.title.includes('모더레이트') ||
+        d.targetZone.includes('존3') ||
+        d.targetZone.includes('Zone 3') ||
+        d.description.includes('존3') ||
+        d.description.includes('Zone 3');
+
+      if (d.type === '휴식' || d.distanceKm === 0) {
+        multiplier = 0;
+        category = 'recovery';
+      } else if (d.type === '인터벌' || d.type === '언덕훈련' || d.type === '대회') {
+        multiplier = 2.8;
+        category = 'highIntensity';
+      } else if (isLowPoint) {
+        multiplier = 1.6;
+        category = 'lowIntensityPoint';
+      } else if (d.type === '템포런') {
+        multiplier = 2.2;
+        category = 'moderateIntensity';
+      } else if (d.type === 'LSD') {
+        multiplier = 1.4;
+        category = 'longRun';
+      } else {
+        multiplier = 1.0;
+        category = 'recovery';
+      }
+
+      const effectiveDist = d.actualSession && d.actualSession.totalDistanceKm > 0 ? d.actualSession.totalDistanceKm : d.distanceKm;
+      const dayLoad = Math.round(effectiveDist * multiplier * 10) / 10;
+      weekLoadSum += dayLoad;
+
+      return {
+        ...d,
+        trainingLoad: dayLoad,
+        loadMultiplier: multiplier,
+        intensityCategory: category,
+      };
+    });
+
+    const weekTotalLoadScore = Math.round(weekLoadSum * 10) / 10;
+    totalPlanLoadScore += weekTotalLoadScore;
 
     weeks.push({
       weekNumber: w,
@@ -2120,7 +2630,10 @@ export function generateComprehensivePlan(params: {
       focus,
       targetWeeklyKm: weekActualPlannedKm,
       completedKm,
-      days: daysWithShoes,
+      totalLoadScore: weekTotalLoadScore,
+      plannedTotalLoadScore: weekTotalLoadScore,
+      categoryOverrides: {},
+      days: daysWithLoads,
       raceInThisWeek,
       isCurrentWeek,
     });
@@ -2304,6 +2817,8 @@ export function generateComprehensivePlan(params: {
     totalWeeks,
     totalPlannedKm: Math.round(totalPlannedKm * 10) / 10,
     totalPlannedSessions,
+    totalPlanLoadScore: Math.round(totalPlanLoadScore * 10) / 10,
+    categoryOverrides: {},
     targetRaceSummary,
     runnerAnalysisSummary: {
       currentVdot: vdot,

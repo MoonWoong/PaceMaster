@@ -89,13 +89,30 @@ export interface TrainingSession {
 }
 
 export type SpeedWorkoutType =
+  // 저강도 포인트 (존3 구간 - Zone 3 Aerobic Power)
+  | '존3 마라톤 페이스주'
+  | '존3 모더레이트런'
+  | '존3 유산소 역치주'
+  // 중강도 포인트 (역치 구간 - Zone 4 Threshold)
+  | '템포런'
+  | '크루즈 인터벌'
+  | '변속주(파틀렉)'
+  | '빌드업주'
+  // 고강도 포인트 (역치 이상 인터벌 등 - Zone 5 VO2max & Anaerobic)
   | '인터벌'
   | '800m 인터벌'
   | '1~3k 인터벌'
-  | '템포런'
-  | '변속주(파틀렉)'
-  | '빌드업주'
-  | '언덕훈련';
+  | '언덕훈련'
+  | '400m 숏 인터벌';
+
+export type WorkoutPointTier = 'low' | 'moderate' | 'high'; // 저 - 존3구간 | 중 - 역치구간 | 고 - 역치 이상 인터벌 등
+
+export type IntensityCategory =
+  | 'highIntensity'
+  | 'moderateIntensity'
+  | 'lowIntensityPoint'
+  | 'longRun'
+  | 'recovery';
 
 export interface WeeklyPlanSettings {
   trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
@@ -202,6 +219,12 @@ export interface WeeklyPlanDay {
     shoeName?: string;
     date: string;
   };
+
+  // 훈련 부하 및 강도 저장 필드 (원클릭 강도 전환 연동)
+  trainingLoad?: number; // 훈련 부하 점수 (pt)
+  loadMultiplier?: number; // 부하 가중치 배수 (2.8x, 2.2x, 1.6x, 1.4x, 1.0x, 0x)
+  intensityCategory?: IntensityCategory; // 5단계 세분화 강도
+  userCategoryOverride?: IntensityCategory; // 러너의 수동 원클릭 강도 전환 오버라이드
 }
 
 export type PlanPeriodizationPhase =
@@ -235,6 +258,11 @@ export interface PlanWeek {
   days: WeeklyPlanDay[];
   raceInThisWeek?: RegisteredRace;
   isCurrentWeek?: boolean;
+
+  // 주간 훈련 부하 저장 필드
+  totalLoadScore?: number; // 주간 실반영 총 부하 점수 (pt)
+  plannedTotalLoadScore?: number; // 주간 계획 기준 총 부하 점수 (pt)
+  categoryOverrides?: Record<string, IntensityCategory>; // 주차별 원클릭 강도 전환 오버라이드 맵
 }
 
 export interface TrainingPlanPeriodSettings {
@@ -312,6 +340,10 @@ export interface ComprehensiveTrainingPlan {
     fatigueRisk: string;
   };
   fitnessAudit?: PlanFitnessAudit;
+
+  // 전체 플랜 훈련 부하 및 원클릭 강도전환 오버라이드 저장
+  totalPlanLoadScore?: number; // 전체 플랜 누적 총 훈련 부하 점수 (pt)
+  categoryOverrides?: Record<string, IntensityCategory>; // 전체 일자별 원클릭 강도 전환 오버라이드 맵 ({ "1_화요일": "highIntensity", ... })
 }
 
 export interface MarathonEvent {

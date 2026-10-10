@@ -2284,7 +2284,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-stone-600 mb-1">훈련 세부 종목</label>
+                    <label className="block text-[11px] text-stone-600 mb-1">포인트 훈련 세부 종목 (저/중/고강도)</label>
                     <select
                       value={customSpeedType}
                       onChange={(e) =>
@@ -2294,12 +2294,24 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       }
                       className="w-full bg-stone-50 border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-rose-400"
                     >
-                      <option value="인터벌">400m 인터벌 (트랙 400m 질주 x 6~10회)</option>
-                      <option value="800m 인터벌">800m 인터벌 (야소 800 / 800m 질주 x 4~6회)</option>
-                      <option value="1~3k 인터벌">1~3k 인터벌 (1~3km 롱 크루즈 인터벌 x 3~5회)</option>
-                      <option value="템포런">템포런 (젖산역치 지속주)</option>
-                      <option value="변속주(파틀렉)">변속주 (파틀렉 Fartlek)</option>
-                      <option value="빌드업주">빌드업주 (네거티브 스플릿)</option>
+                      <optgroup label="🟢 저강도 포인트 (존3 구간 - 유산소 파워 & M-Pace)">
+                        <option value="존3 마라톤 페이스주">🎯 존3 마라톤 페이스주 (M-Pace 지속주)</option>
+                        <option value="존3 모더레이트런">🏃 존3 모더레이트런 (중간 유산소 지속주)</option>
+                        <option value="존3 유산소 역치주">🌿 존3 유산소 역치주 (Aerobic Threshold)</option>
+                      </optgroup>
+                      <optgroup label="🟡 중강도 포인트 (역치 구간 - 젖산역치 & 크루즈)">
+                        <option value="템포런">🔥 템포런 (LT 젖산역치 정속 지속주)</option>
+                        <option value="크루즈 인터벌">⏱️ 크루즈 인터벌 (1~2km 역치 반복, 조깅 휴식)</option>
+                        <option value="1~3k 인터벌">🎯 1~3k 인터벌 (롱 크루즈 인터벌)</option>
+                        <option value="변속주(파틀렉)">⚡ 변속주 / 파틀렉 (페이스 변환 러닝)</option>
+                        <option value="빌드업주">📈 빌드업주 (네거티브 스플릿 점진 가속)</option>
+                      </optgroup>
+                      <optgroup label="🔴 고강도 포인트 (역치 이상 - VO2max & 숏/야소 인터벌)">
+                        <option value="인터벌">⚡ 1000m 인터벌 (VO2max 1km 질주 x 4~6회)</option>
+                        <option value="800m 인터벌">💥 800m 인터벌 (야소 800m 질주 x 5~8회)</option>
+                        <option value="400m 숏 인터벌">🌪️ 400m 숏 인터벌 (트랙 스피드 & 케이던스)</option>
+                        <option value="언덕훈련">⛰️ 언덕 질주 훈련 (경사로 파워 & 근지구력)</option>
+                      </optgroup>
                     </select>
                   </div>
                 </div>
