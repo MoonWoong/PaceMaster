@@ -200,20 +200,20 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
       )}
 
       {/* Top Header & Refresh Control */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 shadow-sm bg-white/95 text-stone-800">
+      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl shadow-xs">
               <Trophy className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-stone-900 flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap">
                 <span>전국 마라톤 대회 일정 검색</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-mono font-bold">
                   {filteredRaces.length}개 대회 (예정)
                 </span>
               </h2>
-              <p className="text-xs text-stone-600">
+              <p className="text-xs text-stone-600 dark:text-stone-400">
                 마라톤GO 실시간 스크래핑 연동 (오늘 기준 지난 대회 자동 제외 · 다가오는 최신 대회 실시간 제공)
               </p>
             </div>
@@ -232,17 +232,17 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
         </div>
 
         {refreshMessage && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-medium">
+          <div className="mb-4 p-3 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 text-xs font-medium">
             {refreshMessage}
           </div>
         )}
 
         {/* Filter Checkboxes Box */}
-        <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-4">
+        <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-4">
           {/* Quick Scope & Status Selector Tabs (MarathonGo style) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-700/80">
             {/* Scope: 국내 / 해외 / 전체 */}
-            <div className="flex items-center gap-1 bg-stone-200/70 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-stone-200/70 dark:bg-stone-800 p-1 rounded-xl">
               {(
                 [
                   { id: '국내', label: `국내 대회 (${counts.domestic})` },
@@ -257,7 +257,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     scopeFilter === tab.id
                       ? 'bg-rose-900 text-white shadow-2xs'
-                      : 'text-stone-600 hover:text-stone-900'
+                      : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
                   }`}
                 >
                   {tab.label}
@@ -267,7 +267,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
 
             {/* Status: 전체 / 접수중 / 접수예정 */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-semibold text-stone-500 mr-1">접수 상태:</span>
+              <span className="text-[11px] font-semibold text-stone-500 dark:text-stone-400 mr-1">접수 상태:</span>
               {(
                 [
                   { id: '전체', label: '전체' },
@@ -282,7 +282,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                   className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer border ${
                     statusFilter === st.id
                       ? 'bg-emerald-800 text-white border-emerald-900 shadow-2xs'
-                      : 'bg-white text-stone-600 border-stone-200 hover:border-emerald-400'
+                      : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-emerald-400'
                   }`}
                 >
                   {st.label}
@@ -299,21 +299,21 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="대회명, 개최 장소, 요일(월/화/수/목/금/토/일), 주관사 검색 (예: 월요일, 서울, JTBC, 춘천, 동아, 경주, 보스턴)..."
-              className="w-full pl-9 pr-4 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           {/* 1. 지역별 필터 (Region Checkboxes) */}
           <div>
-            <div className="text-xs font-semibold text-stone-700 mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-rose-800" />
+                <MapPin className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                 <span>지역 선택 (다중 선택 가능)</span>
               </span>
               {selectedRegions.length > 0 && (
                 <button
                   onClick={() => setSelectedRegions([])}
-                  className="text-[11px] text-stone-500 hover:text-stone-900 font-medium"
+                  className="text-[11px] text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white font-medium"
                 >
                   선택 해제
                 </button>
@@ -329,7 +329,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
                       isChecked
                         ? 'bg-rose-900 text-white font-bold border-rose-900 shadow-2xs'
-                        : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-500 shadow-2xs'
+                        : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:border-emerald-500 shadow-2xs'
                     }`}
                   >
                     {isChecked ? (
@@ -346,15 +346,15 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
 
           {/* 2. 코스별 필터 (Course Checkboxes) */}
           <div>
-            <div className="text-xs font-semibold text-stone-700 mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1">
-                <Trophy className="w-3.5 h-3.5 text-rose-800" />
+                <Trophy className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                 <span>참가 코스 (종목)</span>
               </span>
               {selectedCourses.length > 0 && (
                 <button
                   onClick={() => setSelectedCourses([])}
-                  className="text-[11px] text-stone-500 hover:text-stone-900 font-medium"
+                  className="text-[11px] text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 font-medium"
                 >
                   선택 해제
                 </button>
@@ -369,14 +369,14 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     onClick={() => toggleCourse(crs)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
                       isChecked
-                        ? 'bg-rose-900 text-white font-bold border-rose-900 shadow-2xs'
-                        : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-500 shadow-2xs'
+                        ? 'bg-rose-900 dark:bg-rose-700 text-white font-bold border-rose-900 dark:border-rose-600 shadow-2xs'
+                        : 'bg-white dark:bg-stone-850 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-750 hover:border-emerald-500 shadow-2xs'
                     }`}
                   >
                     {isChecked ? (
                       <CheckSquare className="w-3.5 h-3.5" />
                     ) : (
-                      <Square className="w-3.5 h-3.5 text-stone-400" />
+                      <Square className="w-3.5 h-3.5 text-stone-400 dark:text-stone-500" />
                     )}
                     <span>{crs}</span>
                   </button>
@@ -386,10 +386,10 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
           </div>
 
           {/* 3. 요일별 필터 (Day of Week Checkboxes - Includes Monday and all 7 days) */}
-          <div className="pt-2 border-t border-stone-200">
-            <div className="text-xs font-semibold text-stone-700 mb-2 flex items-center justify-between flex-wrap gap-2">
+          <div className="pt-2 border-t border-stone-200 dark:border-stone-800">
+            <div className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center justify-between flex-wrap gap-2">
               <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-rose-800" />
+                <Calendar className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                 <span>개최 요일 선택 (월~일 전 요일 지원)</span>
               </span>
               <div className="flex items-center gap-2 flex-wrap">
@@ -398,21 +398,21 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                   <button
                     type="button"
                     onClick={selectWeekendOnly}
-                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-stone-700 dark:text-stone-300 hover:text-rose-900 dark:hover:text-rose-300 border border-stone-300 dark:border-stone-700 transition-colors cursor-pointer"
                   >
                     주말(토/일)
                   </button>
                   <button
                     type="button"
                     onClick={selectWeekdayOnly}
-                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 hover:bg-rose-100 text-stone-700 hover:text-rose-900 border border-stone-300 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-stone-700 dark:text-stone-300 hover:text-rose-900 dark:hover:text-rose-300 border border-stone-300 dark:border-stone-700 transition-colors cursor-pointer"
                   >
                     평일(월~금)
                   </button>
                   <button
                     type="button"
                     onClick={selectMondayOnly}
-                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 transition-colors cursor-pointer"
                     title="월요일 대회만 필터링합니다"
                   >
                     월요일({dayCounts['월요일'] || 0})
@@ -422,7 +422,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                 {selectedDays.length > 0 && (
                   <button
                     onClick={() => setSelectedDays([])}
-                    className="text-[11px] text-stone-500 hover:text-stone-900 font-medium cursor-pointer ml-1"
+                    className="text-[11px] text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 font-medium cursor-pointer ml-1"
                   >
                     선택 해제
                   </button>
@@ -433,7 +433,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                   searchQuery) && (
                   <button
                     onClick={resetFilters}
-                    className="text-xs text-rose-800 hover:text-rose-950 font-bold flex items-center gap-1 transition-colors cursor-pointer ml-1"
+                    className="text-xs text-rose-800 hover:text-rose-950 dark:text-rose-400 dark:hover:text-rose-300 font-bold flex items-center gap-1 transition-colors cursor-pointer ml-1"
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>전체 초기화</span>
@@ -452,14 +452,14 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     onClick={() => toggleDay(day)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
                       isChecked
-                        ? 'bg-rose-900 text-white font-bold border-rose-900 shadow-2xs'
-                        : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-500 shadow-2xs'
+                        ? 'bg-rose-900 dark:bg-rose-700 text-white font-bold border-rose-900 dark:border-rose-600 shadow-2xs'
+                        : 'bg-white dark:bg-stone-850 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-750 hover:border-emerald-500 shadow-2xs'
                     }`}
                   >
                     {isChecked ? (
                       <CheckSquare className="w-3.5 h-3.5" />
                     ) : (
-                      <Square className="w-3.5 h-3.5 text-stone-400" />
+                      <Square className="w-3.5 h-3.5 text-stone-400 dark:text-stone-500" />
                     )}
                     <span>{day}</span>
                     <span
@@ -467,8 +467,8 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                         isChecked
                           ? 'bg-rose-950 text-amber-300'
                           : count > 0
-                          ? 'bg-stone-100 text-stone-600'
-                          : 'bg-stone-50 text-stone-400'
+                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+                          : 'bg-stone-50 dark:bg-stone-800/50 text-stone-400 dark:text-stone-500'
                       }`}
                     >
                       {count}
@@ -484,17 +484,17 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
       {/* Race Cards Grid */}
       <section className="space-y-4">
         {filteredRaces.length === 0 ? (
-          <div className="glass-panel p-10 text-center rounded-2xl border border-stone-300 bg-white/95 text-stone-800">
-            <Trophy className="w-12 h-12 text-stone-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-stone-900 mb-1">
+          <div className="glass-panel p-10 text-center rounded-2xl border border-stone-300 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
+            <Trophy className="w-12 h-12 text-stone-400 dark:text-stone-600 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-stone-900 dark:text-stone-100 mb-1">
               선택한 조건의 마라톤 대회가 없습니다.
             </h3>
-            <p className="text-xs text-stone-600 mb-4">
+            <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
               지역이나 코스 필터를 조정하거나 검색어를 변경해 보세요.
             </p>
             <button
               onClick={resetFilters}
-              className="px-4 py-2 text-xs font-bold text-white bg-rose-900 hover:bg-rose-950 rounded-xl transition-all cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-white bg-rose-900 hover:bg-rose-950 dark:bg-rose-700 dark:hover:bg-rose-600 rounded-xl transition-all cursor-pointer"
             >
               전체 대회 보기
             </button>
@@ -506,16 +506,16 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                 const dDay = calculateDDay(race.date);
 
                 const statusBadgeColors: Record<string, string> = {
-                  접수중: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
-                  마감임박: 'bg-rose-100 text-rose-900 border-rose-300 font-bold animate-pulse',
-                  접수예정: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
-                  접수마감: 'bg-stone-100 text-stone-600 border-stone-300 font-medium',
+                  접수중: 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60 font-bold',
+                  마감임박: 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700/60 font-bold animate-pulse',
+                  접수예정: 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700/60 font-bold',
+                  접수마감: 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 font-medium',
                 };
 
                 return (
                   <div
                     key={race.id}
-                    className="rounded-2xl p-5 border border-stone-200/90 hover:border-rose-400/80 bg-white/95 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group text-stone-800"
+                    className="rounded-2xl p-5 border border-stone-200/90 dark:border-stone-800 hover:border-rose-400/80 dark:hover:border-rose-500/80 bg-white/95 dark:bg-stone-900/95 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group text-stone-800 dark:text-stone-100"
                   >
                     <div>
                       {/* Top row: Date, D-day badge, Status */}
@@ -524,14 +524,14 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                           <span className="px-3 py-1 rounded-xl font-black font-athletic text-xs bg-gradient-to-r from-rose-900 to-rose-950 text-amber-300 border border-rose-800 shadow-xs flex-shrink-0">
                             {dDay.text}
                           </span>
-                          <div className="text-xs text-stone-700 font-mono font-bold whitespace-nowrap">
+                          <div className="text-xs text-stone-700 dark:text-stone-300 font-mono font-bold whitespace-nowrap">
                             {race.date} ({race.dayOfWeek})
                           </div>
                         </div>
 
                         <span
                           className={`text-[11px] px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
-                            statusBadgeColors[race.status] || 'bg-stone-100 text-stone-700 border-stone-300'
+                            statusBadgeColors[race.status] || 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
                           }`}
                         >
                           {race.status}
@@ -539,15 +539,15 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-base sm:text-lg font-black text-stone-900 mb-2 transition-colors keep-all group-hover:text-rose-900">
+                      <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-stone-100 mb-2 transition-colors keep-all group-hover:text-rose-900 dark:group-hover:text-rose-400">
                         {race.title}
                       </h3>
 
                       {/* Location */}
-                      <div className="flex items-center gap-1.5 text-xs text-stone-700 font-medium mb-3">
-                        <MapPin className="w-3.5 h-3.5 text-rose-800 flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 text-xs text-stone-700 dark:text-stone-300 font-medium mb-3">
+                        <MapPin className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400 flex-shrink-0" />
                         <span className="truncate">{race.location}</span>
-                        <span className="text-stone-500 whitespace-nowrap">({race.region})</span>
+                        <span className="text-stone-500 dark:text-stone-400 whitespace-nowrap">({race.region})</span>
                       </div>
 
                       {/* Courses */}
@@ -555,7 +555,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                         {race.courses.map((crs) => (
                           <span
                             key={crs}
-                            className="text-[11px] px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-800 border border-stone-200 font-bold whitespace-nowrap shadow-2xs"
+                            className="text-[11px] px-2.5 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 font-bold whitespace-nowrap shadow-2xs"
                           >
                             {crs}
                           </span>
@@ -564,11 +564,11 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="pt-3 border-t border-stone-200 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between gap-2">
                       {/* Add to My Races button */}
                       <button
                         onClick={() => handleRegisterToMyInfo(race, race.courses[0])}
-                        className="px-3 py-1.5 text-xs font-bold text-rose-950 hover:text-white bg-rose-100 hover:bg-rose-900 border border-rose-300 rounded-xl transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap flex-shrink-0 shadow-2xs"
+                        className="px-3 py-1.5 text-xs font-bold text-rose-950 dark:text-rose-200 hover:text-white bg-rose-100 dark:bg-rose-950/50 hover:bg-rose-900 dark:hover:bg-rose-700 border border-rose-300 dark:border-rose-800 rounded-xl transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap flex-shrink-0 shadow-2xs"
                         title="내 정보의 참가 대회 및 D-day 트래커로 등록"
                       >
                         <PlusCircle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -593,7 +593,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
 
             {/* Load More Pagination Bar (MarathonGo style) */}
             {visibleLimit < filteredRaces.length && (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6 border-t border-stone-200">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6 border-t border-stone-200 dark:border-stone-800">
                 <button
                   type="button"
                   onClick={() => setVisibleLimit((prev) => Math.min(filteredRaces.length, prev + 20))}
@@ -608,7 +608,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
                 <button
                   type="button"
                   onClick={() => setVisibleLimit(filteredRaces.length)}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs border border-stone-300 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 font-bold text-xs border border-stone-300 dark:border-stone-700 transition-all cursor-pointer"
                 >
                   전체 펼치기 ({filteredRaces.length}개)
                 </button>

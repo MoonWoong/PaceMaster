@@ -200,22 +200,22 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm overflow-y-auto animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-2xl border border-stone-200 shadow-2xl overflow-hidden my-auto text-stone-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-950/80 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl w-full max-w-2xl border border-stone-200 dark:border-stone-700 shadow-2xl overflow-hidden my-auto text-stone-800 dark:text-stone-100">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-stone-200 bg-stone-50">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-850">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-gradient-to-br from-rose-800 to-rose-950 text-white font-bold shadow-xs">
               <Footprints className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
                 <span>오늘의 러닝 세션 기록</span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-semibold border border-emerald-300">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-700">
                   통합 분석 엔진
                 </span>
               </h2>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 오늘 달린 세션을 기록하면 기존 누적 데이터와 즉시 통합되어 주간 볼륨, ACWR 부하, 권장 회복 시간이 정밀 분석됩니다.
               </p>
             </div>
@@ -223,7 +223,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -233,13 +233,13 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
         {analysisResult ? (
           <div className="p-5 sm:p-6 space-y-5 animate-fadeIn">
             {/* Top Success Banner */}
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
-              <CheckCircle2 className="w-6 h-6 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-start gap-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-stone-900 dark:text-white flex items-center gap-2">
                   <span>훈련 기록 저장 및 통합 분석 완료!</span>
                 </h3>
-                <p className="text-xs text-stone-700 mt-1">
+                <p className="text-xs text-stone-700 dark:text-stone-300 mt-1">
                   오늘 달린 <strong>{analysisResult.workoutDistanceKm} km</strong> ({analysisResult.workoutPace}/km) 세션이 대시보드 및 잔디밭 히트맵에 실시간 반영되었습니다.
                 </p>
               </div>
@@ -248,87 +248,87 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
             {/* 4 Core Sports Science Analytics Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
               {/* 1. Training Load */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-2xs">
+                <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
                   <span>훈련 부하 (TRIMP)</span>
-                  <Flame className="w-3.5 h-3.5 text-amber-600" />
+                  <Flame className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-stone-900 font-athletic">
+                <div className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic">
                   {analysisResult.trainingLoadScore}
-                  <span className="text-xs font-normal text-stone-500 ml-1">점</span>
+                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400 ml-1">점</span>
                 </div>
-                <div className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-0.5">
                   부하 수준: {analysisResult.trainingLoadLevel}
                 </div>
               </div>
 
               {/* 2. Weekly Volume Progress */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-2xs">
+                <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
                   <span>이번 주 누적 볼륨</span>
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-700" />
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-emerald-800 font-athletic">
+                <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-athletic">
                   {analysisResult.thisWeekTotalKm}
-                  <span className="text-xs font-normal text-stone-500 ml-1">km</span>
+                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400 ml-1">km</span>
                 </div>
-                <div className="text-[10px] text-stone-500 mt-0.5">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
                   목표의 {analysisResult.weeklyProgressPercent}% 달성
                 </div>
               </div>
 
               {/* 3. ACWR Ratio */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-2xs">
+                <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
                   <span>ACWR 부하 지수</span>
-                  <Activity className="w-3.5 h-3.5 text-rose-800" />
+                  <Activity className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-rose-900 font-athletic">
+                <div className="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-300 font-athletic">
                   {analysisResult.acwr.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-emerald-800 font-semibold mt-0.5">
+                <div className="text-[10px] text-emerald-800 dark:text-emerald-400 font-semibold mt-0.5">
                   {analysisResult.acwrStatus}
                 </div>
               </div>
 
               {/* 4. Recovery Hours */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 shadow-2xs">
+                <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
                   <span>권장 회복 시간</span>
-                  <Clock className="w-3.5 h-3.5 text-orange-600" />
+                  <Clock className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-orange-800 font-athletic">
+                <div className="text-xl sm:text-2xl font-black text-orange-800 dark:text-orange-300 font-athletic">
                   {analysisResult.recommendedRecoveryHours}
-                  <span className="text-xs font-normal text-stone-500 ml-1">시간</span>
+                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400 ml-1">시간</span>
                 </div>
-                <div className="text-[10px] text-stone-500 mt-0.5">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
                   충분한 수면 권장
                 </div>
               </div>
             </div>
 
             {/* Coach Takeaway & Prescription */}
-            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-2 shadow-2xs">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
-                <Sparkles className="w-4 h-4 text-emerald-700" />
+            <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 space-y-2 shadow-2xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-400">
+                <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                 <span>스포츠 사이언스 코치의 통합 진단 요약</span>
               </div>
-              <p className="text-xs text-stone-700 leading-relaxed font-medium">
+              <p className="text-xs text-stone-700 dark:text-stone-200 leading-relaxed font-medium">
                 {analysisResult.coachTakeaway}
               </p>
-              <div className="pt-2 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600">
-                <span>심박 강도 구간: <strong className="text-rose-900 font-semibold">{analysisResult.intensityZone}</strong></span>
-                <span>80/20 폴라라이즈드 상태: <strong className="text-emerald-800 font-semibold">{analysisResult.aerobicRatioPercent}% 저강도</strong></span>
+              <div className="pt-2 border-t border-stone-200 dark:border-stone-700 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+                <span>심박 강도 구간: <strong className="text-rose-900 dark:text-rose-400 font-semibold">{analysisResult.intensityZone}</strong></span>
+                <span>80/20 폴라라이즈드 상태: <strong className="text-emerald-800 dark:text-emerald-400 font-semibold">{analysisResult.aerobicRatioPercent}% 저강도</strong></span>
                 {analysisResult.shoeName && (
                   <span>
-                    착용 러닝화: <strong className="text-stone-900 font-semibold">{analysisResult.shoeName}</strong> ({analysisResult.shoeUpdatedMileage}km 누적)
+                    착용 러닝화: <strong className="text-stone-900 dark:text-white font-semibold">{analysisResult.shoeName}</strong> ({analysisResult.shoeUpdatedMileage}km 누적)
                   </span>
                 )}
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-stone-200">
+            <div className="flex justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-800">
               <button
                 type="button"
                 onClick={onClose}
@@ -343,7 +343,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
             {/* Workout Type Chips */}
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-2">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">
                 훈련 유형 선택
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -356,12 +356,12 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                       onClick={() => handleSelectWorkoutType(item)}
                       className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-950 font-bold shadow-2xs'
-                          : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-emerald-300'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 text-emerald-950 dark:text-emerald-300 font-bold shadow-2xs'
+                          : 'bg-white dark:bg-stone-800/90 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-750 hover:border-emerald-300 dark:hover:border-emerald-500'
                       }`}
                     >
                       <div className="text-xs font-semibold">{item.label}</div>
-                      <div className="text-[10px] text-stone-500 mt-0.5">
+                      <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">
                         권장 페이스: {item.defaultPace}
                       </div>
                     </button>
@@ -373,7 +373,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
             {/* Date & Title Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   훈련 일자
                 </label>
                 <input
@@ -381,11 +381,11 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold text-stone-800 dark:text-white"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   세션 제목
                 </label>
                 <input
@@ -394,7 +394,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="예: 오늘의 10km 이지 조깅"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold text-stone-800 dark:text-white placeholder-stone-400 dark:placeholder-stone-500"
                 />
               </div>
             </div>
@@ -402,7 +402,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
             {/* Distance & Time & Auto Pace Row */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   러닝 거리 (km)
                 </label>
                 <input
@@ -414,12 +414,12 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                   value={distanceKm}
                   onChange={(e) => setDistanceKm(e.target.value)}
                   placeholder="8.00"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-emerald-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   소요 시간 (시 / 분 / 초)
                 </label>
                 <div className="flex items-center gap-1.5">
@@ -429,41 +429,41 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                     max="23"
                     value={hours}
                     onChange={(e) => setHours(e.target.value)}
-                    className="w-12 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center text-stone-800"
+                    className="w-12 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center text-stone-800 dark:text-white"
                     placeholder="0"
                   />
-                  <span className="text-stone-500 text-xs">h</span>
+                  <span className="text-stone-500 dark:text-stone-400 text-xs">h</span>
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={minutes}
                     onChange={(e) => setMinutes(e.target.value)}
-                    className="w-14 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center font-bold text-stone-900"
+                    className="w-14 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center font-bold text-stone-900 dark:text-white"
                     placeholder="45"
                   />
-                  <span className="text-stone-500 text-xs">m</span>
+                  <span className="text-stone-500 dark:text-stone-400 text-xs">m</span>
                   <input
                     type="number"
                     min="0"
                     max="59"
                     value={seconds}
                     onChange={(e) => setSeconds(e.target.value)}
-                    className="w-14 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center text-stone-800"
+                    className="w-14 px-2 py-2 glass-input rounded-lg text-xs font-mono text-center text-stone-800 dark:text-white"
                     placeholder="00"
                   />
-                  <span className="text-stone-500 text-xs">s</span>
+                  <span className="text-stone-500 dark:text-stone-400 text-xs">s</span>
                 </div>
               </div>
 
               {/* Real-time Calculated Pace */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   자동 환산 평균 페이스
                 </label>
-                <div className="w-full px-3 py-2 rounded-xl bg-stone-50 border border-stone-300 flex items-center justify-between">
-                  <span className="text-xs text-stone-500 font-medium">평균</span>
-                  <span className="text-sm font-extrabold text-rose-900 font-mono font-athletic">
+                <div className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-300 dark:border-stone-750 flex items-center justify-between">
+                  <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">평균</span>
+                  <span className="text-sm font-extrabold text-rose-900 dark:text-rose-400 font-mono font-athletic">
                     {calculatedPace}/km
                   </span>
                 </div>
@@ -473,7 +473,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
             {/* Heart Rate & Zones */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   평균 심박수 (bpm)
                 </label>
                 <input
@@ -482,12 +482,12 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                   max="240"
                   value={avgHr}
                   onChange={(e) => setAvgHr(e.target.value)}
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   최고 심박수 (bpm)
                 </label>
                 <input
@@ -496,12 +496,12 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                   max="240"
                   value={maxHr}
                   onChange={(e) => setMaxHr(e.target.value)}
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono text-stone-800 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   해당 심박 영역
                 </label>
                 <div className={`w-full px-3 py-2 rounded-xl border text-xs font-semibold ${hrZoneInfo.color}`}>
@@ -513,17 +513,17 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
             {/* Shoe Selection & RPE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   착용 러닝화 (마일리지 자동 누적 연동)
                 </label>
                 <select
                   value={selectedShoeId}
                   onChange={(e) => setSelectedShoeId(e.target.value)}
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-medium text-stone-800 bg-white"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-medium text-stone-800 dark:text-white bg-white dark:bg-stone-800"
                 >
-                  <option value="">러닝화 미선택</option>
+                  <option value="" className="dark:bg-stone-800">러닝화 미선택</option>
                   {shoes.map((sh) => (
-                    <option key={sh.id} value={sh.id}>
+                    <option key={sh.id} value={sh.id} className="dark:bg-stone-800">
                       {sh.brand} {sh.name} (현재 {sh.mileage}km)
                     </option>
                   ))}
@@ -532,10 +532,10 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-stone-700">
+                  <label className="text-xs font-semibold text-stone-700 dark:text-stone-300">
                     운동 자각도 (RPE: 1~10)
                   </label>
-                  <span className="text-xs font-bold text-rose-900 font-athletic">
+                  <span className="text-xs font-bold text-rose-900 dark:text-rose-400 font-athletic">
                     {rpe}점 ({parseInt(rpe, 10) <= 4 ? '가벼움' : parseInt(rpe, 10) <= 7 ? '적정 강도' : '고강도/한계'})
                   </span>
                 </div>
@@ -552,7 +552,7 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
 
             {/* Notes */}
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 훈련 메모 및 신체 피드백
               </label>
               <textarea
@@ -560,16 +560,16 @@ export const TodayWorkoutLoggerModal: React.FC<TodayWorkoutLoggerModalProps> = (
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="예: 케이던스 182spm 유지, 후반부 호흡 안정적, 우측 종아리 약간 긴장됨"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs leading-relaxed resize-none text-stone-800"
+                className="w-full px-3 py-2 glass-input rounded-xl text-xs leading-relaxed resize-none text-stone-800 dark:text-white placeholder-stone-400 dark:placeholder-stone-500"
               />
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200 dark:border-stone-800">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2.5 text-xs text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-xl transition-colors cursor-pointer"
               >
                 취소
               </button>

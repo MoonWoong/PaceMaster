@@ -890,21 +890,21 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
       {/* Hidden high-res canvas for drawing */}
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-4xl border border-stone-200 shadow-2xl my-auto text-stone-800">
+      <div className="bg-white dark:bg-stone-900 rounded-2xl p-4 sm:p-6 w-full max-w-4xl border border-stone-200 dark:border-stone-750 shadow-2xl my-auto text-stone-800 dark:text-stone-100">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-stone-200">
+        <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2.5">
             <div className="p-2 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl shadow-xs">
               <Share2 className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
                 <span>러닝 훈련 기록 이미지 공유 카드 생성</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold font-mono">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-semibold font-mono">
                   RunningMoon
                 </span>
               </h3>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-stone-500 dark:text-stone-400">
                 원하는 훈련 데이터만 골라 담아 감각적인 고화질 인증샷을 생성하고 저장/공유하세요.
               </p>
             </div>
@@ -912,7 +912,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-100 transition-colors cursor-pointer"
+            className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-white rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -921,18 +921,18 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* Left Column: Image Preview */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-stone-100 p-4 rounded-xl border border-stone-200 shadow-inner">
-            <div className="text-[11px] text-stone-600 mb-2 flex items-center justify-between w-full px-2">
+          <div className="lg:col-span-7 flex flex-col items-center justify-center bg-stone-100 dark:bg-stone-950/80 p-4 rounded-xl border border-stone-200 dark:border-stone-800 shadow-inner">
+            <div className="text-[11px] text-stone-600 dark:text-stone-300 mb-2 flex items-center justify-between w-full px-2">
               <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 <span>
                   미리보기 ({format === 'square' ? '1:1 피드 1080x1080' : format === 'portrait' ? '4:5 인스타 피드 1080x1350' : '9:16 스토리 1080x1920'})
                 </span>
               </span>
-              <span className="text-emerald-800 font-mono font-semibold">Live Canvas Render</span>
+              <span className="text-emerald-800 dark:text-emerald-400 font-mono font-semibold">Live Canvas Render</span>
             </div>
 
-            <div className="relative max-h-[480px] w-full overflow-hidden rounded-xl border border-stone-300 shadow-2xl flex items-center justify-center bg-stone-950 p-2">
+            <div className="relative max-h-[480px] w-full overflow-hidden rounded-xl border border-stone-300 dark:border-stone-700 shadow-2xl flex items-center justify-center bg-stone-950 p-2">
               {previewDataUrl ? (
                 <img
                   src={previewDataUrl}
@@ -952,7 +952,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
             <div className="space-y-4 max-h-[440px] overflow-y-auto pr-1">
               {/* 1. Format Select */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
                   1️⃣ 카드 규격 (비율 선택)
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -961,8 +961,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => setFormat('square')}
                     className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       format === 'square'
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-500 shadow-2xs'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-500 shadow-2xs'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <span>1:1 피드</span>
@@ -973,8 +973,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => setFormat('portrait')}
                     className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       format === 'portrait'
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-500 shadow-2xs'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-500 shadow-2xs'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <span>4:5 세로</span>
@@ -985,8 +985,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => setFormat('story')}
                     className={`py-2 px-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                       format === 'story'
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-500 shadow-2xs'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-500 shadow-2xs'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <span>9:16 스토리</span>
@@ -997,7 +997,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
               {/* 2. Theme Select */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
                   2️⃣ 디자인 테마 컬러
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1011,18 +1011,18 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                         onClick={() => setTheme(tKey)}
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'bg-emerald-50 border-emerald-500 text-stone-900 shadow-2xs font-bold'
-                            : 'bg-white border-stone-200 text-stone-700 hover:border-stone-300'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 text-stone-900 dark:text-white shadow-2xs font-bold'
+                            : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-stone-300 dark:hover:border-stone-600'
                         }`}
                       >
                         <span className="text-xs">{t.name}</span>
                         <div className="flex items-center gap-1">
                           <span
-                            className="w-3.5 h-3.5 rounded-full border border-stone-300"
+                            className="w-3.5 h-3.5 rounded-full border border-stone-300 dark:border-stone-600"
                             style={{ backgroundColor: t.accent1 }}
                           />
                           <span
-                            className="w-3.5 h-3.5 rounded-full border border-stone-300"
+                            className="w-3.5 h-3.5 rounded-full border border-stone-300 dark:border-stone-600"
                             style={{ backgroundColor: t.accent2 }}
                           />
                         </div>
@@ -1034,13 +1034,13 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
               {/* 3. Laps Options */}
               {hasLaps && (
-                <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-                  <label className="block text-xs font-bold text-stone-800 mb-1.5 flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750">
+                  <label className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-1.5 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
-                      <BarChart2 className="w-3.5 h-3.5 text-rose-800" />
+                      <BarChart2 className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                       <span>3️⃣ 랩 스플릿 구간 표시 ({session.laps.length}개 랩)</span>
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-bold">
                       {lapDisplayMode === 'all'
                         ? '전체 표시'
                         : lapDisplayMode === 'first5'
@@ -1048,7 +1048,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                         : '미포함(안넣기)'}
                     </span>
                   </label>
-                  <p className="text-[11px] text-stone-500 mb-2">
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400 mb-2">
                     모든 랩을 빠짐없이 다 넣거나, 5개만 요약하거나, 아예 안 넣을 수 있습니다.
                   </p>
                   <div className="grid grid-cols-3 gap-1.5">
@@ -1057,8 +1057,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       onClick={() => handleSetLapDisplayMode('all')}
                       className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
                         lapDisplayMode === 'all'
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-400 shadow-2xs'
-                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 shadow-2xs'
+                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                       }`}
                     >
                       <span>전체 랩 표시</span>
@@ -1069,8 +1069,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       onClick={() => handleSetLapDisplayMode('first5')}
                       className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
                         lapDisplayMode === 'first5'
-                          ? 'bg-emerald-100 text-emerald-900 border-emerald-400 shadow-2xs'
-                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                          ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 shadow-2xs'
+                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                       }`}
                     >
                       <span>주요 5개 랩</span>
@@ -1081,8 +1081,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       onClick={() => handleSetLapDisplayMode('none')}
                       className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-0.5 ${
                         lapDisplayMode === 'none'
-                          ? 'bg-rose-100 text-rose-900 border-rose-300 shadow-2xs'
-                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                          ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800 shadow-2xs'
+                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                       }`}
                     >
                       <span>안넣기</span>
@@ -1094,8 +1094,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
 
               {/* 4. Included Metrics Toggle Selection */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-emerald-700" />
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                   <span>4️⃣ 카드에 포함할 훈련 데이터 선택</span>
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1105,16 +1105,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('time')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.time
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Timer className="w-3.5 h-3.5 text-emerald-700" />
+                      <Timer className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                       <span>소요 시간</span>
                     </div>
                     {selectedMetrics.time ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1126,16 +1126,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('pace')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.pace
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-rose-800" />
+                      <Zap className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                       <span>평균 페이스</span>
                     </div>
                     {selectedMetrics.pace ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1147,16 +1147,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('hr')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.hr
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Heart className="w-3.5 h-3.5 text-rose-700" />
+                      <Heart className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" />
                       <span>심박수 (평균/최대)</span>
                     </div>
                     {selectedMetrics.hr ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1168,16 +1168,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('cadence')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.cadence
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Footprints className="w-3.5 h-3.5 text-amber-700" />
+                      <Footprints className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
                       <span>평균 케이던스</span>
                     </div>
                     {selectedMetrics.cadence ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1189,16 +1189,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('calories')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.calories
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-orange-600" />
+                      <Flame className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
                       <span>소모 칼로리</span>
                     </div>
                     {selectedMetrics.calories ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1211,8 +1211,8 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       onClick={() => toggleMetric('shoe')}
                       className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                         selectedMetrics.shoe
-                          ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                       }`}
                     >
                       <div className="flex items-center gap-1.5 truncate">
@@ -1220,7 +1220,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                         <span className="truncate">러닝화 ({session.shoeName})</span>
                       </div>
                       {selectedMetrics.shoe ? (
-                        <CheckSquare className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                        <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 flex-shrink-0" />
                       ) : (
                         <Square className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
                       )}
@@ -1233,16 +1233,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                     onClick={() => toggleMetric('date')}
                     className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                       selectedMetrics.date
-                        ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-rose-800" />
+                      <Calendar className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
                       <span>훈련 날짜</span>
                     </div>
                     {selectedMetrics.date ? (
-                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                     ) : (
                       <Square className="w-3.5 h-3.5 text-stone-400" />
                     )}
@@ -1255,16 +1255,16 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                       onClick={() => toggleMetric('notes')}
                       className={`p-2 rounded-xl border text-xs text-left flex items-center justify-between cursor-pointer transition-colors ${
                         selectedMetrics.notes
-                          ? 'bg-emerald-50 text-emerald-950 border-emerald-400 font-bold'
-                          : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold'
+                          : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <FileText className="w-3.5 h-3.5 text-stone-600" />
+                        <FileText className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
                         <span>훈련 메모/코멘트</span>
                       </div>
                       {selectedMetrics.notes ? (
-                        <CheckSquare className="w-3.5 h-3.5 text-emerald-700" />
+                        <CheckSquare className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                       ) : (
                         <Square className="w-3.5 h-3.5 text-stone-400" />
                       )}
@@ -1275,7 +1275,7 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2 pt-2 border-t border-stone-200">
+            <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-800">
               <div className="grid grid-cols-2 gap-2">
                 {/* Download Button */}
                 <button
@@ -1299,12 +1299,12 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
                 ) : (
                   <button
                     onClick={handleCopyText}
-                    className="w-full py-2.5 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-stone-300 transition-all cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-800 dark:text-stone-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 border border-stone-300 dark:border-stone-700 transition-all cursor-pointer"
                   >
                     {copied ? (
-                      <Check className="w-4 h-4 text-emerald-700" />
+                      <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                     ) : (
-                      <Copy className="w-4 h-4 text-stone-500" />
+                      <Copy className="w-4 h-4 text-stone-500 dark:text-stone-400" />
                     )}
                     <span>{copied ? '복사 완료!' : '텍스트 요약 복사'}</span>
                   </button>
@@ -1315,10 +1315,10 @@ export const TrainingShareModal: React.FC<TrainingShareModalProps> = ({
               {shareSupported && (
                 <button
                   onClick={handleCopyText}
-                  className="w-full py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs flex items-center justify-center gap-2 border border-stone-200 transition-colors cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 text-xs flex items-center justify-center gap-2 border border-stone-200 dark:border-stone-700 transition-colors cursor-pointer"
                 >
                   {copied ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-700" />
+                    <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5 text-stone-400" />
                   )}

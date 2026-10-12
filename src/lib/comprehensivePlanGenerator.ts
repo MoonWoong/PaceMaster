@@ -11,6 +11,8 @@ import {
   PlanPeriodizationPhase,
   SpeedWorkoutType,
   PlanFitnessAudit,
+  MultiRacePlanItem,
+  MultiRacePlanSummary,
 } from '../types';
 import { getTrainingPaces, formatPace, parseTimeToSeconds, parsePaceToSeconds, calculateVDOT } from './vdot';
 import { attachShoeRecommendationsToPlan, createShoeRotationTracker } from './shoeRecommender';
@@ -466,42 +468,55 @@ export function generateComprehensivePlan(params: {
   let startMonday = getMonday(settings.startDate ? parseLocalDate(settings.startDate) : new Date());
   let totalWeeks = settings.durationWeeks || 8;
 
-  // Target race matching (if goalMode is 'race')
+  // Target race & multi-race matching (strictly upcoming & not completed)
+  const allUpcomingRaces = races
+    .filter((r) => {
+      if (!r.date || r.status === 'completed' || r.actualRecord) return false;
+      const dDayInfo = calculateDDay(r.date);
+      return !dDayInfo.isPassed && dDayInfo.daysDiff >= 0;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // Top 2~3 upcoming active races referenced for multi-race periodization
+  const referencedUpcomingRaces = allUpcomingRaces.slice(0, 3);
+
   let targetRace: RegisteredRace | undefined = undefined;
   if (settings.goalMode === 'race' && settings.targetRaceId) {
-    const candidate = races.find((r) => r.id === settings.targetRaceId);
+    const candidate = allUpcomingRaces.find((r) => r.id === settings.targetRaceId);
     if (candidate) {
-      const dDayInfo = calculateDDay(candidate.date);
-      // Valid if not passed and not completed
-      if (!dDayInfo.isPassed && candidate.status !== 'completed' && !candidate.actualRecord) {
-        targetRace = candidate;
-      }
+      targetRace = candidate;
     }
   }
   if (!targetRace && settings.goalMode === 'race') {
-    const upcomingRaces = races
-      .filter((r) => {
-        if (!r.date || r.status === 'completed' || r.actualRecord) return false;
-        const dDayInfo = calculateDDay(r.date);
-        return !dDayInfo.isPassed && dDayInfo.daysDiff >= 0;
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-    targetRace = upcomingRaces.find((r) => r.isTarget || r.priority === 'A') || upcomingRaces[0];
+    targetRace = allUpcomingRaces.find((r) => r.isTarget || r.priority === 'A') || allUpcomingRaces[0];
   }
 
-  // Duration preset calculations
-  if (settings.durationPreset === 'to_target_race' && targetRace) {
-    const raceDate = parseLocalDate(targetRace.date);
-    // Align race day to the end of its week so full race week is included
-    const raceWeekMonday = getMonday(raceDate);
-    // If startMonday is after raceWeekMonday (e.g. startDate was next monday but race is this week),
-    // clamp startMonday to raceWeekMonday so race week is covered
-    if (startMonday.getTime() > raceWeekMonday.getTime()) {
-      startMonday = raceWeekMonday;
+  // Duration preset calculations (including multi-race horizon spanning)
+  if (settings.durationPreset === 'to_target_race') {
+    const primaryRace = targetRace || referencedUpcomingRaces[0];
+    const farthestRefRace = referencedUpcomingRaces[referencedUpcomingRaces.length - 1];
+
+    let raceForDuration = primaryRace;
+    if (farthestRefRace && primaryRace) {
+      const primaryMon = getMonday(parseLocalDate(primaryRace.date));
+      const farthestMon = getMonday(parseLocalDate(farthestRefRace.date));
+      const diffFarthestWeeks = Math.round((farthestMon.getTime() - startMonday.getTime()) / (7 * 86400000)) + 1;
+      // If there is a subsequent race within 24 weeks, extend horizon so both/all 2~3 races are prepared together!
+      if (farthestMon.getTime() > primaryMon.getTime() && diffFarthestWeeks <= 24) {
+        raceForDuration = farthestRefRace;
+      }
     }
-    const diffMs = raceWeekMonday.getTime() - startMonday.getTime();
-    const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
-    totalWeeks = Math.min(104, diffWeeks);
+
+    if (raceForDuration) {
+      const raceDate = parseLocalDate(raceForDuration.date);
+      const raceWeekMonday = getMonday(raceDate);
+      if (startMonday.getTime() > raceWeekMonday.getTime()) {
+        startMonday = raceWeekMonday;
+      }
+      const diffMs = raceWeekMonday.getTime() - startMonday.getTime();
+      const diffWeeks = Math.max(1, Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1);
+      totalWeeks = Math.min(104, diffWeeks);
+    }
   } else if (settings.durationPreset === 'custom' && settings.endDate) {
     const end = parseLocalDate(settings.endDate);
     const endMonday = getMonday(end);
@@ -610,13 +625,32 @@ export function generateComprehensivePlan(params: {
     // Check if any registered race takes place in this week or adjacent days!
     const raceInThisWeek = races.find((r) => r.date >= startDateStr && r.date <= endDateStr);
 
+    const prevWeekMonday = new Date(weekMonday.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const prevWeekSunday = new Date(weekMonday.getTime() - 24 * 60 * 60 * 1000);
+    const prevWeekMondayStr = formatDate(prevWeekMonday);
+    const prevWeekSundayStr = formatDate(prevWeekSunday);
+    const raceInPrevWeek = races.find((r) => r.date >= prevWeekMondayStr && r.date <= prevWeekSundayStr);
+    const raceOnPrevSunday = races.find((r) => r.date === prevWeekSundayStr);
+
     const nextWeekMonday = new Date(weekMonday.getTime() + 7 * 24 * 60 * 60 * 1000);
     const nextWeekMondayStr = formatDate(nextWeekMonday);
     const raceOnNextMonday = races.find((r) => r.date === nextWeekMondayStr);
 
-    const prevWeekSunday = new Date(weekMonday.getTime() - 24 * 60 * 60 * 1000);
-    const prevWeekSundayStr = formatDate(prevWeekSunday);
-    const raceOnPrevSunday = races.find((r) => r.date === prevWeekSundayStr);
+    // Filter upcoming races strictly from this week forward (referenced top 2~3 races)
+    const upcomingFromThisWeek = referencedUpcomingRaces.filter((r) => r.date >= startDateStr);
+    const nearestUpcoming = upcomingFromThisWeek[0];
+    const secondaryUpcoming = upcomingFromThisWeek[1];
+    const tertiaryUpcoming = upcomingFromThisWeek[2];
+
+    const weeksToNearest = nearestUpcoming
+      ? Math.max(0, Math.round((getMonday(parseLocalDate(nearestUpcoming.date)).getTime() - weekMonday.getTime()) / (7 * 86400000)))
+      : 999;
+    const p1 = nearestUpcoming ? (nearestUpcoming.priority || (nearestUpcoming.isTarget ? 'A' : 'B')) : 'A';
+
+    const weeksToSecondary = secondaryUpcoming
+      ? Math.max(0, Math.round((getMonday(parseLocalDate(secondaryUpcoming.date)).getTime() - weekMonday.getTime()) / (7 * 86400000)))
+      : null;
+    const p2 = secondaryUpcoming ? (secondaryUpcoming.priority || (secondaryUpcoming.isTarget ? 'A' : 'B')) : null;
 
     // Determine Periodization Phase & Focus
     let phase: PlanPeriodizationPhase = '스피드/지구력 빌드업기 (Build)';
@@ -625,86 +659,73 @@ export function generateComprehensivePlan(params: {
     let focus = '주간 거리 및 포인트 훈련을 통한 러닝 체력 증진';
     let volumeMultiplier = 1.0;
 
-    if (settings.goalMode === 'race' || settings.goalMode === 'target_goal') {
-      const weeksToTarget = totalWeeks - w;
-      const taperWeeks = totalWeeks >= 8 ? 3 : totalWeeks >= 5 ? 2 : 1;
-      const mainWeeks = totalWeeks - taperWeeks;
-      const peakWeeks = totalWeeks >= 8 ? 1 : 0;
-
-      if (weeksToTarget === 0) {
-        phase = '대회 직전 조정기 (Race Week)';
-        phaseBadgeColor = 'bg-rose-100 text-rose-900 border-rose-300 font-extrabold';
-        phaseDescription = '결전의 날! 가벼운 리듬 점검 및 글리코겐 충전';
-        focus = `${settings.goalMode === 'race' ? targetRace?.name || '목표 대회' : `목표 ${targetCourseName}`} 완주 및 목표 페이스(${effectiveTargetPace}) 실전 달성`;
-        volumeMultiplier = 0.55;
-      } else if (weeksToTarget === 1) {
-        phase = '테이퍼링 감량기 (Tapering)';
-        phaseBadgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
-        phaseDescription = '대회 1주 전: 훈련량 35~40% 감량 및 피로 제거';
-        focus = '피로 누적 해소, 짧고 날카로운 질주로 신경계 각성 유지 및 글리코겐 충전';
+    // 1. Is there a race THIS WEEK?
+    if (raceInThisWeek) {
+      phase = '대회 직전 조정기 (Race Week)';
+      phaseBadgeColor = 'bg-rose-100 text-rose-900 border-rose-300 font-extrabold';
+      volumeMultiplier = 0.55;
+      const thisPriority = raceInThisWeek.priority || (raceInThisWeek.isTarget ? 'A' : 'B');
+      phaseDescription = `결전의 날! [${thisPriority}등급] ${raceInThisWeek.name} (${raceInThisWeek.course}) 실전 출전`;
+      focus = secondaryUpcoming
+        ? `${raceInThisWeek.name} 목표 페이스 완주 및 최고 기량 발휘 (후속: ${secondaryUpcoming.name} D-${weeksToSecondary}주 연계)`
+        : `${raceInThisWeek.name} 완주 및 목표 페이스 실전 달성`;
+    } else if (raceInPrevWeek) {
+      // 2. Was there a race LAST WEEK? (Post-race supercompensation & recovery)
+      phase = '회복 및 디로드 (Recovery)';
+      phaseBadgeColor = 'bg-teal-100 text-teal-900 border-teal-300 font-bold';
+      volumeMultiplier = 0.72;
+      phaseDescription = `[대회 직후 초과회복] 지난주 ${raceInPrevWeek.name} 완주 후 피로 리셋 및 근육/인대 초과회복`;
+      focus = nearestUpcoming
+        ? `가벼운 리커버리 조깅으로 신체 피로 흡수 및 다음 목표 ${nearestUpcoming.name}(D-${weeksToNearest}주, ${nearestUpcoming.course}) 대비 유산소 기반 재정비`
+        : `지난 레이스 데미지 완전 회복 및 스트레칭/폼롤러로 근막 이완`;
+    } else if (nearestUpcoming && weeksToNearest <= 1) {
+      // 3. Imminent nearest race (D-1 week)
+      phase = '테이퍼링 감량기 (Tapering)';
+      phaseBadgeColor = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
+      if (p1 === 'A') {
         volumeMultiplier = 0.65;
-      } else if (weeksToTarget === 2 && taperWeeks >= 3) {
+        phaseDescription = `대회 1주 전 집중 감량: ${nearestUpcoming.name} (${p1}) 볼륨 -35% 테이퍼링 및 피로 완전 제거`;
+        focus = `${nearestUpcoming.name} 결전 7일 전, 짧고 날카로운 질주로 신경계 각성 유지 및 탄수화물 글리코겐 충전`;
+      } else {
+        volumeMultiplier = 0.80;
+        phaseDescription = `대회 1주 전 미니 감량: ${nearestUpcoming.name} (${p1}점검) 볼륨 -20% 조율`;
+        focus = `${nearestUpcoming.name} 실전 점검을 위한 컨디션 조율 및 페이스 테스트 리듬 확인`;
+      }
+      if (secondaryUpcoming) {
+        focus += ` (후속: ${secondaryUpcoming.name} D-${weeksToSecondary}주 유산소 기반 보존)`;
+      }
+    } else if (nearestUpcoming && weeksToNearest === 2) {
+      // 4. Imminent nearest race (D-2 weeks)
+      if (p1 === 'A') {
         phase = '테이퍼링 감량기 (Tapering)';
         phaseBadgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
-        phaseDescription = '대회 2주 전: 훈련량 18~20% 1차 감량 시작';
-        focus = '장거리 거리 서서히 단축, 관절 피로 배제 및 목표 페이스 적응 훈련';
         volumeMultiplier = 0.82;
-      } else if (w === mainWeeks && peakWeeks > 0) {
+        phaseDescription = `대회 2주 전 1차 감량: ${nearestUpcoming.name} (${p1}) LSD 축소 및 페이스 락온`;
+        focus = `${nearestUpcoming.name} 목표 페이스 정밀 적응 및 관절 피로 배제`;
+      } else {
         phase = '목표 페이스 특화기 (Peak)';
         phaseBadgeColor = 'bg-purple-100 text-purple-900 border-purple-300';
-        phaseDescription = '최고 피크 마일리지 달성 및 실전 목표 페이스 락온';
-        focus = `목표 페이스(${effectiveTargetPace}) 집중 지속주 및 최장거리 LSD 완성`;
-        const peakMult = isFullCourse
-          ? Math.round((1.22 + (totalWeeks >= 12 ? 0.14 : 0.08)) * 100) / 100
-          : isHalfCourse
-          ? 1.42
-          : is10kCourse
-          ? 1.26
-          : 1.18;
-        volumeMultiplier = peakMult;
-      } else {
-        const cycleStep = ((w - 1) % 4) + 1; // 1, 2, 3, 4 (3:1 mesocycle wave)
-        const cycleIndex = Math.floor((w - 1) / 4);
-
-        if (cycleStep === 4 && w < mainWeeks) {
-          phase = '회복 및 디로드 (Recovery)';
-          phaseBadgeColor = 'bg-teal-100 text-teal-900 border-teal-300';
-          phaseDescription = `사이클 ${cycleIndex + 1} 초과회복(Supercompensation): 피로 리셋 및 조직 회복`;
-          focus = '훈련량 15~20% 감량 및 이지 리커버리 위주 편성, 다음 단계 도약 준비';
-          const deloadBase = isFullCourse
-            ? 0.88 + cycleIndex * 0.08
-            : isHalfCourse
-            ? 0.88 + cycleIndex * 0.05
-            : 0.88 + cycleIndex * 0.04;
-          volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier * 0.85, deloadBase) * 100) / 100;
-        } else {
-          if (cycleIndex === 0 && cycleStep <= 3) {
-            phase = '기초 유산소 구축기 (Base)';
-            phaseBadgeColor = 'bg-sky-100 text-sky-900 border-sky-300';
-            phaseDescription = `기초 체력 구축 ${cycleStep}단계: 모세혈관 발달 및 유산소 베이스 확장`;
-            focus = '무리 없는 편안한 Zone 2 이지런 마일리지 적립 및 관절/인대 적응';
-          } else {
-            phase = '스피드/지구력 빌드업기 (Build)';
-            phaseBadgeColor = 'bg-emerald-100 text-emerald-900 border-emerald-300';
-            phaseDescription = `스피드/지구력 빌드업 (사이클 ${cycleIndex + 1}): 볼륨 점진 증량 및 역치 페이스 확장`;
-            focus = 'VO2max 인터벌 세트 및 점진적 주말 LSD 거리 확장, 젖산 역치(LT) 강화';
-          }
-
-          if (w === 1) {
-            volumeMultiplier = 1.0;
-          } else {
-            const cycleIncRate = isFullCourse ? 0.12 : isHalfCourse ? 0.08 : is10kCourse ? 0.05 : 0.04;
-            const cycleBase = 1.0 + cycleIndex * cycleIncRate;
-            const stepIncrement = (cycleStep - 1) * 0.035;
-            volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier, cycleBase + stepIncrement) * 100) / 100;
-          }
-        }
+        volumeMultiplier = 0.92;
+        phaseDescription = `대회 2주 전 페이스 점검: ${nearestUpcoming.name} (${p1}점검) 실전 리듬 점검`;
+        focus = `${nearestUpcoming.name} 실전 점검 대비 페이스 적응 템포런 및 실전 감각 정렬`;
       }
-    } else {
-      // Continuous Progression Mode (3:1 Mesocycle)
-      const cycleWeek = ((w - 1) % 4) + 1; // 1, 2, 3, 4
+      if (secondaryUpcoming) {
+        focus += ` (후속: ${secondaryUpcoming.name} D-${weeksToSecondary}주 복합 대비)`;
+      }
+    } else if (nearestUpcoming && weeksToNearest === 3) {
+      // 5. Nearest race D-3 weeks Peak
+      phase = '목표 페이스 특화기 (Peak)';
+      phaseBadgeColor = 'bg-purple-100 text-purple-900 border-purple-300 font-bold';
+      const peakMult = isFullCourse ? 1.25 : isHalfCourse ? 1.30 : 1.20;
+      volumeMultiplier = Math.min(maxVolumeMultiplier, peakMult);
+      phaseDescription = `대회 D-3주 피크 주간: ${nearestUpcoming.name} (${nearestUpcoming.course}) 목표 페이스 극대화`;
+      focus = secondaryUpcoming
+        ? `${nearestUpcoming.name}(${nearestUpcoming.course}) 실전 페이스 지속주 및 ${secondaryUpcoming.name}(D-${weeksToSecondary}주) 기초 지구력 동시 강화`
+        : `${nearestUpcoming.name} 목표 페이스 지속 능력 극대화 및 최고 장거리 LSD 소화`;
+    } else if (settings.goalMode === 'continuous_progression' && referencedUpcomingRaces.length === 0) {
+      // Continuous Progression Mode when no races registered
+      const cycleWeek = ((w - 1) % 4) + 1;
       const mesocycleIndex = Math.floor((w - 1) / 4) + 1;
-
       if (cycleWeek === 4) {
         phase = '회복 및 디로드 (Recovery)';
         phaseBadgeColor = 'bg-teal-100 text-teal-900 border-teal-300';
@@ -730,22 +751,107 @@ export function generateComprehensivePlan(params: {
         focus = '스피드 지속력 극대화 및 최고 장거리 LSD 소화';
         volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier, 1.12 + (mesocycleIndex - 1) * 0.05) * 100) / 100;
       }
-    }
+    } else {
+      // 6. Multi-Race Mesocycle Wave (Base / Build / Peak / Deload)
+      const cycleStep = ((w - 1) % 4) + 1;
+      const cycleIndex = Math.floor((w - 1) / 4);
 
-    // Intermediate Tune-up race adjustment
-    if (raceInThisWeek) {
-      if (settings.goalMode === 'race' && targetRace && raceInThisWeek.id === targetRace.id) {
-        phase = '대회 직전 조정기 (Race Week)';
-        phaseBadgeColor = 'bg-rose-100 text-rose-900 border-rose-300 font-extrabold';
-        phaseDescription = `결전의 날! ${raceInThisWeek.name} (${raceInThisWeek.course}) 메인 레이스 출전`;
-        focus = `목표 페이스(${effectiveTargetPace}) 집중 및 최고 기량 발휘`;
+      if (cycleStep === 4) {
+        phase = '회복 및 디로드 (Recovery)';
+        phaseBadgeColor = 'bg-teal-100 text-teal-900 border-teal-300';
+        phaseDescription = `사이클 ${cycleIndex + 1} 초과회복(Supercompensation): 피로 리셋 및 조직 회복`;
+        focus = '훈련량 15~20% 감량 및 이지 리커버리 위주 편성, 다음 단계 도약 준비';
+        const deloadBase = isFullCourse ? 0.88 + cycleIndex * 0.08 : isHalfCourse ? 0.88 + cycleIndex * 0.05 : 0.88 + cycleIndex * 0.04;
+        volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier * 0.85, deloadBase) * 100) / 100;
+      } else if (cycleIndex === 0 && cycleStep <= 2 && weeksToNearest > 8) {
+        phase = '기초 유산소 구축기 (Base)';
+        phaseBadgeColor = 'bg-sky-100 text-sky-900 border-sky-300';
+        phaseDescription = `기초 체력 구축 ${cycleStep}단계: 모세혈관 발달 및 유산소 베이스 확장`;
+        focus = nearestUpcoming
+          ? `${nearestUpcoming.name} 및 장기 목표 대비 무리 없는 Zone 2 이지런 마일리지 적립`
+          : '무리 없는 편안한 Zone 2 이지런 마일리지 적립 및 관절/인대 적응';
+        volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier, 1.0 + (cycleStep - 1) * 0.04) * 100) / 100;
       } else {
         phase = '스피드/지구력 빌드업기 (Build)';
-        phaseBadgeColor = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
-        phaseDescription = `참가 대회 (${raceInThisWeek.name}) 포함 주간: 실전 감각 및 페이스 배분 점검`;
-        focus = `실전 레이스 감각 점검 및 대회 당일 페이스 테스트 (${raceInThisWeek.priority || 'B'}등급)`;
+        phaseBadgeColor = 'bg-emerald-100 text-emerald-900 border-emerald-300';
+        phaseDescription = `스피드/지구력 빌드업 (사이클 ${cycleIndex + 1}): 볼륨 점진 증량 및 역치 페이스 확장`;
+        if (nearestUpcoming && secondaryUpcoming) {
+          focus = `${nearestUpcoming.name}(D-${weeksToNearest}주, ${nearestUpcoming.course}) 스피드와 ${secondaryUpcoming.name}(D-${weeksToSecondary}주, ${secondaryUpcoming.course}) 지구력을 유기적으로 강화`;
+        } else if (nearestUpcoming) {
+          focus = `${nearestUpcoming.name} 대비 VO2max 인터벌 세트 및 점진적 주말 LSD 거리 확장, 젖산 역치(LT) 강화`;
+        } else {
+          focus = 'VO2max 인터벌 세트 및 점진적 주말 LSD 거리 확장, 젖산 역치(LT) 강화';
+        }
+        const cycleIncRate = isFullCourse ? 0.12 : isHalfCourse ? 0.08 : is10kCourse ? 0.05 : 0.04;
+        const cycleBase = 1.0 + cycleIndex * cycleIncRate;
+        const stepIncrement = (cycleStep - 1) * 0.035;
+        volumeMultiplier = Math.round(Math.min(maxVolumeMultiplier, cycleBase + stepIncrement) * 100) / 100;
       }
     }
+
+    // Multi-Race Context Synthesis for Week W
+    const governingRace = raceInThisWeek || raceInPrevWeek || nearestUpcoming;
+    const governingPriority = governingRace?.priority || (governingRace?.isTarget ? 'A' : 'B');
+    const governingDDayDays = governingRace
+      ? Math.max(0, Math.round((parseLocalDate(governingRace.date).getTime() - weekMonday.getTime()) / 86400000))
+      : 0;
+    const governingDDayWeeks = governingRace ? Math.max(0, Math.ceil(governingDDayDays / 7)) : 0;
+
+    let multiRaceStageNote = '';
+    let secondaryRacesSummaryText = '';
+
+    if (raceInThisWeek) {
+      multiRaceStageNote = `[🏆 D-DAY] ${raceInThisWeek.name} (${raceInThisWeek.course}, ${governingPriority}등급) 결전 레이스 주간`;
+    } else if (raceInPrevWeek) {
+      multiRaceStageNote = `[대회 직후 초과회복] ${raceInPrevWeek.name} 완주 후 피로 회복 및 다음 레이스 전환`;
+    } else if (nearestUpcoming) {
+      if (weeksToNearest <= 1) {
+        multiRaceStageNote = `[D-1주 테이퍼링] ${nearestUpcoming.name} (${nearestUpcoming.course}, ${p1}) 감량 컨디셔닝`;
+      } else if (weeksToNearest === 2) {
+        multiRaceStageNote = `[D-2주 감량/조율] ${nearestUpcoming.name} (${nearestUpcoming.course}, ${p1}) 페이스 락온`;
+      } else if (weeksToNearest === 3) {
+        multiRaceStageNote = `[D-3주 피크] ${nearestUpcoming.name} (${nearestUpcoming.course}) 최고 마일리지 및 페이스 특화`;
+      } else {
+        multiRaceStageNote = `[D-${weeksToNearest}주 빌드업] ${nearestUpcoming.name} (${nearestUpcoming.course}) 대비 훈련`;
+      }
+    }
+
+    if (secondaryUpcoming) {
+      secondaryRacesSummaryText = `후속 목표: ${secondaryUpcoming.name} (${secondaryUpcoming.course}, ${p2 || 'B'}등급) D-${weeksToSecondary}주`;
+      multiRaceStageNote += ` + ${secondaryUpcoming.name}(D-${weeksToSecondary}주) 연계`;
+    }
+    if (tertiaryUpcoming) {
+      const tMon = getMonday(parseLocalDate(tertiaryUpcoming.date));
+      const weeksToTertiary = Math.max(0, Math.round((tMon.getTime() - weekMonday.getTime()) / (7 * 86400000)));
+      secondaryRacesSummaryText += ` · ${tertiaryUpcoming.name} D-${weeksToTertiary}주`;
+    }
+
+    const multiRaceContext = referencedUpcomingRaces.length > 0 ? {
+      governingRaceName: governingRace?.name,
+      governingCourse: governingRace?.course,
+      governingPriority,
+      dDayWeeks: governingDDayWeeks,
+      dDayDays: governingDDayDays,
+      stageNote: multiRaceStageNote,
+      secondaryRacesSummary: secondaryRacesSummaryText,
+      upcomingRaces: upcomingFromThisWeek.slice(0, 3).map((r) => {
+        const daysDiff = Math.max(0, Math.round((parseLocalDate(r.date).getTime() - weekMonday.getTime()) / 86400000));
+        const weeksDiff = Math.max(0, Math.ceil(daysDiff / 7));
+        return {
+          raceName: r.name,
+          course: r.course,
+          priority: r.priority || (r.isTarget ? 'A' : 'B'),
+          dDayWeeks: weeksDiff,
+          dDayDays: daysDiff,
+          status:
+            daysDiff <= 7
+              ? '이번주 대회 (D-Day)'
+              : weeksDiff <= 2
+              ? `D-${weeksDiff}주 (테이퍼링/조율)`
+              : `D-${weeksDiff}주 (대비 훈련)`,
+        };
+      }),
+    } : undefined;
 
     // Calculate Week Target Mileage (balanced with race distance if present)
     let targetWeeklyKm = Math.round(baselineWeeklyKm * volumeMultiplier * 10) / 10;
@@ -2636,7 +2742,91 @@ export function generateComprehensivePlan(params: {
       days: daysWithLoads,
       raceInThisWeek,
       isCurrentWeek,
+      multiRaceContext,
     });
+  }
+
+  // Multi-Race Plan Synthesis (2~3 upcoming races referenced together)
+  let multiRaceSummary: MultiRacePlanSummary | undefined = undefined;
+
+  if (referencedUpcomingRaces.length > 0) {
+    const activeRacesItems: MultiRacePlanItem[] = referencedUpcomingRaces.map((r, idx) => {
+      const rDate = parseLocalDate(r.date);
+      const rMon = getMonday(rDate);
+      const weekNumber = Math.max(1, Math.round((rMon.getTime() - startMonday.getTime()) / (7 * 86400000)) + 1);
+      const dDayInfo = calculateDDay(r.date);
+      const distKm = parseCourseKm(r.course, r.customDistanceKm);
+      const priority = r.priority || (r.isTarget ? 'A' : idx === 0 ? 'A' : 'B');
+      const isMain = targetRace ? r.id === targetRace.id : (priority === 'A' || idx === 0);
+
+      const role: MultiRacePlanItem['role'] =
+        priority === 'A' || isMain
+          ? '메인 목표 레이스'
+          : priority === 'B'
+          ? '실전 점검 및 페이스 테스트'
+          : '서브 목표 레이스';
+
+      // Tailored periodization strategy description per race
+      let periodizationStrategy = '';
+      if (role === '메인 목표 레이스') {
+        periodizationStrategy = `최고의 기량을 집중 발휘하는 핵심 A-Race입니다. 대회 D-2~3주 전부터 2단계 테이퍼링(훈련량 감량 및 글리코겐 충전)과 레이스 페이스 락온을 엄격히 적용합니다.`;
+      } else if (role === '실전 점검 및 페이스 테스트') {
+        periodizationStrategy = `실전 레이스 리듬과 페이스 배분을 시험하는 B-Race 튠업 레이스입니다. 메인 목표 훈련의 기초 체력을 해치지 않도록 미니 감량(-10~15%)과 역치 페이스 테스트로 연계합니다.`;
+      } else {
+        periodizationStrategy = `연습 및 펀런 성격의 C-Race입니다. 무리한 전출력 질주보다는 이지/존3 지속주 감각으로 출전하여 실전 현장감을 익힙니다.`;
+      }
+
+      return {
+        raceId: r.id,
+        raceName: r.name,
+        raceDate: r.date,
+        dDayDays: dDayInfo.daysDiff,
+        dDayWeeks: Math.max(0, Math.ceil(dDayInfo.daysDiff / 7)),
+        dDayText: dDayInfo.text,
+        course: r.course,
+        courseDistKm: distKm,
+        priority,
+        isMainTarget: isMain,
+        targetTime: r.targetTime,
+        targetPace: r.targetTime && distKm > 0 ? formatPace(parseTimeToSeconds(r.targetTime) / distKm) : undefined,
+        role,
+        weekNumber,
+        periodizationStrategy,
+      };
+    });
+
+    let multiRaceStrategyDescription = '';
+    if (referencedUpcomingRaces.length === 1) {
+      const r1 = referencedUpcomingRaces[0];
+      multiRaceStrategyDescription = `단일 목표 대회인 '${r1.name}'(${r1.course}, ${r1.priority || 'A'}등급)에 맞춰 기초 구축 → 빌드업 → 피크 → 테이퍼링의 체계적인 주기화가 적용되었습니다.`;
+    } else if (referencedUpcomingRaces.length === 2) {
+      const r1 = referencedUpcomingRaces[0];
+      const r2 = referencedUpcomingRaces[1];
+      const p1 = r1.priority || 'A';
+      const p2 = r2.priority || 'B';
+      const d1 = calculateDDay(r1.date).daysDiff;
+      const d2 = calculateDDay(r2.date).daysDiff;
+      multiRaceStrategyDescription = `단기 레이스인 '${r1.name}'(D-${d1}일, ${r1.course}, ${p1})와 후속 레이스 '${r2.name}'(D-${d2}일, ${r2.course}, ${p2})를 유기적으로 연계한 듀얼 레이스 복합 주기화 플랜입니다. ${
+        d1 <= 21
+          ? `'${r1.name}' 대비 집중 테이퍼링과 레이스 완주를 우선 달성한 뒤, 대회 직후 초과회복을 거쳐 '${r2.name}'의 특화 훈련(지구력/스피드)으로 자연스럽게 전환합니다.`
+          : `'${r1.name}'의 실전 점검 페이스와 '${r2.name}'의 장거리 유산소 기초 체력을 주중 포인트와 주말 LSD로 나누어 동시에 구축합니다.`
+      }`;
+    } else {
+      const names = referencedUpcomingRaces.map((r) => `${r.name}(${r.course}, ${r.priority || 'A'})`).join(' ➡️ ');
+      multiRaceStrategyDescription = `등록된 3개 대회 일정[${names}]의 남은 기간과 중요도를 다각도로 교차 분석한 트리플 레이스 복합 주기화 플랜입니다. 각 대회의 D-Day 시점에 맞춰 테이퍼링 감량, 대회 출전, 초과회복 및 다음 목표 빌드업이 유기적으로 순환되도록 정밀 조율되었습니다.`;
+    }
+
+    const coachingGuidance =
+      referencedUpcomingRaces.length >= 2
+        ? `💡 [멀티 레이스 코칭 수칙] 1) 메인 대회(A) 직전 1~2주는 다른 대회의 볼륨 욕심을 버리고 테이퍼링 원칙을 철저히 지킵니다. 2) 점검 대회(B)는 마일리지 급감 없이 미니 감량(-10~15%) 후 실전 감각 확인용으로만 활용합니다. 3) 각 대회 출전 후 최소 3~7일간은 충분한 회복 조깅과 스트레칭으로 신체 데미지를 리셋해야 다음 대회까지 부상 없이 완주할 수 있습니다.`
+        : `💡 [단일 레이스 코칭 수칙] 목표 대회의 결전일까지 무리한 급증 없이 주간 5~10% 점진 과부하와 4주차 디로드 회복을 철저히 이행하세요.`;
+
+    multiRaceSummary = {
+      racesCount: referencedUpcomingRaces.length,
+      activeRaces: activeRacesItems,
+      multiRaceStrategyDescription,
+      coachingGuidance,
+    };
   }
 
   // Target race summary
@@ -2820,6 +3010,7 @@ export function generateComprehensivePlan(params: {
     totalPlanLoadScore: Math.round(totalPlanLoadScore * 10) / 10,
     categoryOverrides: {},
     targetRaceSummary,
+    multiRaceSummary,
     runnerAnalysisSummary: {
       currentVdot: vdot,
       baselineWeeklyKm,

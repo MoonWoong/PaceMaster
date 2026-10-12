@@ -68,16 +68,16 @@ export const TabsNav: React.FC<TabsNavProps> = ({
       {/* 
         Container without top border - seamlessly connects into content below
       */}
-      <div className="relative pt-1 px-1 sm:px-2 bg-stone-100/90 border-x-2 border-t-2 border-emerald-600/30 backdrop-blur-md rounded-t-2xl sm:rounded-t-3xl">
+      <div className="relative pt-1 px-1 sm:px-2 bg-stone-100/90 dark:bg-stone-900/90 border-x-2 border-t-2 border-emerald-600/30 dark:border-emerald-500/30 backdrop-blur-md rounded-t-2xl sm:rounded-t-3xl transition-colors">
         {/* Category guide strip */}
-        <div className="flex items-center justify-between px-2 py-1 mb-1 text-[11px] text-stone-600">
+        <div className="flex items-center justify-between px-2 py-1 mb-1 text-[11px] text-stone-600 dark:text-stone-300">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-600" />
-            <span className="font-mono font-bold uppercase tracking-wider text-stone-800">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+            <span className="font-mono font-bold uppercase tracking-wider text-stone-800 dark:text-stone-200">
               상세 관리 탭
             </span>
             <span className="text-stone-400">/</span>
-            <span className="text-emerald-900 font-bold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
+            <span className="text-emerald-900 dark:text-emerald-300 font-bold truncate max-w-[180px] xs:max-w-none whitespace-nowrap">
               {activeTab === 'my_info' && '내 신체 스펙 & 러닝화 보관함'}
               {activeTab === 'running_records' && '러닝 기록 분석 & 가민 CSV 세션'}
               {activeTab === 'training_plan' && '기간 맞춤 훈련 계획표 (주/월간 주기화)'}
@@ -102,8 +102,8 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                 onClick={() => handleTabClick(tab.id)}
                 className={`relative group flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-3 sm:py-3.5 rounded-t-xl sm:rounded-t-2xl cursor-pointer select-none transition-colors duration-150 ${
                   isActive
-                    ? 'bg-white border-t-2 border-x border-emerald-600 border-b-transparent shadow-md text-stone-900 font-bold z-20'
-                    : 'bg-stone-200/60 hover:bg-white/70 border-t border-x border-stone-200 border-b border-emerald-600/30 text-stone-600 hover:text-stone-900'
+                    ? 'bg-white dark:bg-stone-900 border-t-2 border-x border-emerald-600 dark:border-emerald-500 border-b-transparent shadow-md text-stone-900 dark:text-stone-100 font-bold z-20'
+                    : 'bg-stone-200/60 dark:bg-stone-800/60 hover:bg-white/70 dark:hover:bg-stone-800 border-t border-x border-stone-200 dark:border-stone-700/80 border-b border-emerald-600/30 dark:border-emerald-500/20 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100'
                 }`}
               >
                 {/* Active Top Accent Line Glow */}
@@ -114,8 +114,8 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                 <div
                   className={`p-1.5 sm:p-2 rounded-xl transition-colors shrink-0 ${
                     isActive
-                      ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-500/40'
-                      : 'bg-white/80 text-stone-500 group-hover:bg-rose-50 group-hover:text-rose-800'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-500/40'
+                      : 'bg-white/80 dark:bg-stone-800/90 text-stone-500 dark:text-stone-400 group-hover:bg-rose-50 dark:group-hover:bg-rose-950/50 group-hover:text-rose-800 dark:group-hover:text-rose-300'
                   }`}
                 >
                   <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -125,7 +125,7 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                   <div className="flex items-center justify-center sm:justify-start gap-1.5">
                     <span
                       className={`text-xs sm:text-sm font-black tracking-tight truncate ${
-                        isActive ? 'text-stone-900' : 'text-stone-700 group-hover:text-stone-900'
+                        isActive ? 'text-stone-900 dark:text-stone-100' : 'text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100'
                       }`}
                     >
                       {tab.label}
@@ -133,8 +133,8 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                     <span
                       className={`hidden md:inline-block text-[9px] px-1.5 py-0.5 rounded-md font-semibold font-mono ${
                         isActive
-                          ? 'bg-rose-100 text-rose-900 border border-rose-300'
-                          : 'bg-stone-200 text-stone-700 border border-stone-300'
+                          ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-200 border border-rose-300 dark:border-rose-800'
+                          : 'bg-stone-200 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700'
                       }`}
                     >
                       {tab.badge}
@@ -142,7 +142,7 @@ export const TabsNav: React.FC<TabsNavProps> = ({
                   </div>
                   <div
                     className={`hidden sm:block text-[10px] mt-0.5 truncate ${
-                      isActive ? 'text-emerald-800 font-bold' : 'text-stone-500'
+                      isActive ? 'text-emerald-800 dark:text-emerald-400 font-bold' : 'text-stone-500 dark:text-stone-400'
                     }`}
                   >
                     {tab.sublabel}

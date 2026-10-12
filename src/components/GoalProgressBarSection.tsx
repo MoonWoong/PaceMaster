@@ -136,21 +136,21 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
   const content = (
     <>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-stone-200 relative z-10 text-stone-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-stone-200 dark:border-stone-800 relative z-10 text-stone-800 dark:text-stone-100">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-rose-100 text-rose-900 border border-rose-300 shadow-sm">
-            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-rose-800" />
+          <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700 shadow-sm">
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-rose-800 dark:text-rose-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-1.5">
+              <h3 className="text-sm sm:text-base font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
                 <span>러닝 목표 달성도</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-900 font-bold border border-rose-200">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-800">
                   Goal Progress
                 </span>
               </h3>
             </div>
-            <p className="text-[11px] text-stone-500 mt-0.5">
+            <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
               설정한 거리별 목표 완주 시간 대비 현재 최고 기록(PB)의 달성률을 정밀 계산합니다.
             </p>
           </div>
@@ -158,9 +158,9 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
 
         {/* Overall Average Progress Badge & Edit Link */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-            <span className="text-[10px] text-stone-500 font-medium">평균 달성도:</span>
-            <span className="text-xs sm:text-sm font-black text-rose-900 font-athletic">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 shadow-2xs">
+            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">평균 달성도:</span>
+            <span className="text-xs sm:text-sm font-black text-rose-900 dark:text-rose-300 font-athletic">
               {avgProgress}%
             </span>
           </div>
@@ -169,7 +169,7 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
             <button
               type="button"
               onClick={onNavigateToGoals}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-stone-700 hover:text-stone-900 border border-stone-300 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-xs font-semibold text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white border border-stone-300 dark:border-stone-700 transition-all cursor-pointer"
             >
               <span>목표 수정</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -185,8 +185,8 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
             key={idx}
             className={`p-4 rounded-2xl border transition-all ${
               item.isAchieved
-                ? 'bg-emerald-50/70 border-emerald-300 shadow-sm'
-                : 'bg-stone-50/90 border-stone-200 hover:border-emerald-300 shadow-2xs'
+                ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 shadow-sm'
+                : 'bg-stone-50/90 dark:bg-stone-850/90 border-stone-200 dark:border-stone-800 hover:border-emerald-300 dark:hover:border-emerald-600 shadow-2xs'
             }`}
           >
             {/* Card Header: Course Name & Status Badge */}
@@ -197,12 +197,12 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
                   item.isAchieved
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                     : item.progressPct >= 80
-                    ? 'bg-orange-100 text-orange-900 border-orange-300'
+                    ? 'bg-orange-100 dark:bg-orange-950/60 text-orange-900 dark:text-orange-300 border-orange-300 dark:border-orange-700'
                     : item.progressPct >= 50
-                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                    : 'bg-stone-100 text-stone-700 border-stone-300'
+                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                    : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
                 }`}
               >
                 {item.isAchieved ? '달성 완료' : `${item.progressPct}% 진행`}
@@ -210,24 +210,24 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
             </div>
 
             {/* Target vs Current PB Stats */}
-            <div className="grid grid-cols-2 gap-2 text-xs mb-3 p-2.5 rounded-xl bg-white border border-stone-200 font-mono shadow-2xs">
+            <div className="grid grid-cols-2 gap-2 text-xs mb-3 p-2.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 font-mono shadow-2xs">
               <div>
-                <div className="text-[10px] text-stone-500 font-sans">현재 최고기록(PB)</div>
-                <div className="text-xs font-bold text-stone-900 mt-0.5 font-athletic">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-sans">현재 최고기록(PB)</div>
+                <div className="text-xs font-bold text-stone-900 dark:text-white mt-0.5 font-athletic">
                   {item.pbTime || '--:--:--'}
                 </div>
-                <div className="text-[10px] text-stone-500 font-sans mt-0.5">
-                  페이스: <strong className="text-stone-700">{item.pbPaceFormatted || '-'}</strong>
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-sans mt-0.5">
+                  페이스: <strong className="text-stone-700 dark:text-stone-200">{item.pbPaceFormatted || '-'}</strong>
                 </div>
               </div>
 
               <div>
-                <div className="text-[10px] text-rose-900 font-sans font-semibold">목표 완주시간</div>
-                <div className="text-xs font-bold text-rose-900 mt-0.5 font-athletic">
+                <div className="text-[10px] text-rose-900 dark:text-rose-300 font-sans font-semibold">목표 완주시간</div>
+                <div className="text-xs font-bold text-rose-900 dark:text-rose-300 mt-0.5 font-athletic">
                   {item.targetTime || '--:--:--'}
                 </div>
-                <div className="text-[10px] text-rose-700 font-sans mt-0.5">
-                  페이스: <strong className="text-rose-900">{item.targetPaceFormatted || '-'}</strong>
+                <div className="text-[10px] text-rose-700 dark:text-rose-400 font-sans mt-0.5">
+                  페이스: <strong className="text-rose-900 dark:text-rose-300">{item.targetPaceFormatted || '-'}</strong>
                 </div>
               </div>
             </div>
@@ -235,23 +235,23 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
             {/* Progress Bar & Percentage */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[11px] text-stone-500">달성률</span>
+                <span className="text-[11px] text-stone-500 dark:text-stone-400">달성률</span>
                 <span
                   className={`text-sm font-black font-athletic ${
                     item.isAchieved
-                      ? 'text-emerald-700'
+                      ? 'text-emerald-700 dark:text-emerald-400'
                       : item.progressPct >= 80
-                      ? 'text-orange-600'
+                      ? 'text-orange-600 dark:text-orange-400'
                       : item.progressPct >= 50
-                      ? 'text-amber-600'
-                      : 'text-stone-700'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-stone-700 dark:text-stone-300'
                   }`}
                 >
                   {item.progressPct}%
                 </span>
               </div>
 
-              <div className="w-full h-2 rounded-full bg-stone-200 border border-stone-300/60 overflow-hidden p-0.5">
+              <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-700 border border-stone-300/60 dark:border-stone-600 overflow-hidden p-0.5">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
                     item.isAchieved
@@ -270,13 +270,13 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
               <div className="pt-1 flex items-center justify-between text-[11px] gap-2">
                 <span
                   className={`font-medium keep-all ${
-                    item.isAchieved ? 'text-emerald-800' : 'text-stone-600'
+                    item.isAchieved ? 'text-emerald-800 dark:text-emerald-300' : 'text-stone-600 dark:text-stone-300'
                   }`}
                 >
                   {item.gapText}
                 </span>
                 {item.isAchieved && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                 )}
               </div>
             </div>
@@ -288,14 +288,14 @@ export const GoalProgressBarSection: React.FC<GoalProgressBarSectionProps> = ({
 
   if (isNested) {
     return (
-      <div className="w-full pt-4 mt-4 border-t border-stone-200 relative">
+      <div className="w-full pt-4 mt-4 border-t border-stone-200 dark:border-stone-800 relative">
         {content}
       </div>
     );
   }
 
   return (
-    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-emerald-600/20 bg-white/95 shadow-md relative overflow-hidden">
+    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-emerald-600/20 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 shadow-md relative overflow-hidden text-stone-800 dark:text-stone-100">
       {content}
     </section>
   );

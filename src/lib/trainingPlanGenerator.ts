@@ -680,8 +680,10 @@ export function analyzeRunnerState(
     lastWeekSunday.getDate()
   ).padStart(2, '0')}(일)`;
 
-  // Evaluate Target Race Plan & Weighting (가장 가까운 참가대회부터 중요도, 강도 분석)
-  const targetRacePlan = analyzeTargetRaceForTrainingPlan(races, goals, targetRaceCourse);
+  // Evaluate Target Race Plan & Weighting (가장 가까운 참가대회부터 중요도, 강도 분석 및 2~3개 대회 복합 연계)
+  const allUpcomingRacePlans = analyzeAllUpcomingRacesForTrainingPlan(races, goals, targetRaceCourse);
+  const targetRacePlan = allUpcomingRacePlans.length > 0 ? allUpcomingRacePlans[0] : null;
+  const secondaryRacePlan = allUpcomingRacePlans.length > 1 ? allUpcomingRacePlans[1] : null;
   const matchedTargetRace = targetRacePlan
     ? races.find((r) => r.id === targetRacePlan.raceId || (r.name === targetRacePlan.raceName && r.date === targetRacePlan.raceDate))
     : null;
@@ -733,7 +735,7 @@ export function analyzeRunnerState(
           taperingVolumeCutPct: targetRacePlan.taperingVolumeCutPct,
           taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
           taperScaleNote: targetRacePlan.taperScaleNote,
-          weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}) 대비: ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 테이퍼링 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 정상 가동'})`,
+          weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}) 대비: ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 테이퍼링 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 정상 가동'})${secondaryRacePlan ? ` + 후속 ${secondaryRacePlan.raceName}(D-${secondaryRacePlan.dDayDays}일, ${secondaryRacePlan.course}) 연계` : ''}`,
           isEasyRunCruiseLoad: targetRacePlan.isEasyRunCruiseLoad,
           easyRunCruiseNote: targetRacePlan.easyRunCruiseNote,
         }
@@ -968,12 +970,12 @@ export function analyzeRunnerState(
       taperingVolumeCutPct: targetRacePlan.taperingVolumeCutPct,
       taperingLsdDistKm: targetRacePlan.taperingLsdDistKm,
       taperScaleNote: targetRacePlan.taperScaleNote,
-      weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}): ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 감량 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 볼륨 가동'}${targetRacePlan.taperScaleNote ? ` · ${targetRacePlan.taperScaleNote}` : ''})`,
+      weightedGuidance: `[${importanceGrade} · ${targetRacePlan.paceIntensityLevel}] ${targetRacePlan.raceName} (D-${targetRacePlan.dDayDays}일, ${targetRacePlan.course}): ${targetRacePlan.periodizationPhase} 반영 (가중치 x${importanceWeight}${targetRacePlan.taperingVolumeCutPct > 0 ? `, 감량 -${targetRacePlan.taperingVolumeCutPct}%` : ', 100% 볼륨 가동'}${targetRacePlan.taperScaleNote ? ` · ${targetRacePlan.taperScaleNote}` : ''})${secondaryRacePlan ? ` + 후속 ${secondaryRacePlan.raceName}(D-${secondaryRacePlan.dDayDays}일, ${secondaryRacePlan.course}) 복합 연계` : ''}`,
       isEasyRunCruiseLoad: targetRacePlan.isEasyRunCruiseLoad,
       easyRunCruiseNote: targetRacePlan.easyRunCruiseNote,
     };
 
-    mileageAdjustmentNote = `[참가 대회 가중치 & 테이퍼링 정밀 조율] ${targetRacePlan.raceName} (${importanceGrade}, ${targetRacePlan.paceIntensityLevel}) 대비: ${targetRacePlan.taperScaleNote || `${targetRacePlan.periodizationPhase} 반영`}. 주간 볼륨 ${targetWeeklyVolume}km 세팅. ${mileageAdjustmentNote}`;
+    mileageAdjustmentNote = `[참가 대회 가중치 & 테이퍼링 정밀 조율] ${targetRacePlan.raceName} (${importanceGrade}, ${targetRacePlan.paceIntensityLevel}) 대비: ${targetRacePlan.taperScaleNote || `${targetRacePlan.periodizationPhase} 반영`}${secondaryRacePlan ? ` (후속 목표: ${secondaryRacePlan.raceName} D-${secondaryRacePlan.dDayDays}일 [${secondaryRacePlan.importanceGrade.split(' ')[0]}] 유산소 기반 연계)` : ''}. 주간 볼륨 ${targetWeeklyVolume}km 세팅. ${mileageAdjustmentNote}`;
     intensityAdjustmentNote = `[대회 페이스 강도 조율] ${targetRacePlan.taperingIntensityStrategy || '목표 대회 페이스에 맞춘 정밀 인터벌/템포런 훈련을 핵심 포인트로 배치합니다.'} ${intensityAdjustmentNote}`;
   }
 

@@ -6,6 +6,7 @@ import { SecurityPromptModal } from './components/SecurityPromptModal';
 import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
+import { ThemeProvider } from './lib/themeContext';
 
 import { TabRunningRecords } from './components/TabRunningRecords';
 import { TabMarathonRaces } from './components/TabMarathonRaces';
@@ -424,50 +425,51 @@ export default function App() {
   const currentVDOT = bestVdotCalc.vdot;
 
   return (
-    <div className="relative min-h-screen text-stone-800 flex flex-col items-center justify-start p-3 sm:p-6 lg:p-8">
-      {/* 
-        1. 배경화면: 따사로운 봄 햇살 아래 푸른 잔디밭과 붉은 우레탄/클레이 육상 트랙이 펼쳐진 야외 운동장 배경
-        2027 경주마라톤 버건디 컬러 & 싱그러운 봄의 초록 잔디 테마
-      */}
-      <StadiumTrackBackground />
+    <ThemeProvider>
+      <div className="relative min-h-screen text-stone-800 dark:text-stone-100 flex flex-col items-center justify-start p-3 sm:p-6 lg:p-8 transition-colors duration-200">
+        {/* 
+          1. 배경화면: 따사로운 봄 햇살 아래 푸른 잔디밭과 붉은 우레탄/클레이 육상 트랙이 펼쳐진 야외 운동장 배경
+          2027 경주마라톤 버건디 컬러 & 싱그러운 봄의 초록 잔디 테마 (다크 모드 시 몰입감 넘치는 야간 스타디움 조명 연출)
+        */}
+        <StadiumTrackBackground />
 
-      {/* Main Glassmorphism Container */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col smooth-scroll-surface">
-        {/* Header */}
-        <Header
-          currentVDOT={currentVDOT}
-          races={races}
-          onOpenDbConfig={() => setIsDbModalOpen(true)}
-        />
+        {/* Main Glassmorphism Container */}
+        <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col smooth-scroll-surface">
+          {/* Header */}
+          <Header
+            currentVDOT={currentVDOT}
+            races={races}
+            onOpenDbConfig={() => setIsDbModalOpen(true)}
+          />
 
-        {/* 1. Nearest Marathon Target Race D-Day Hero Widget */}
-        <MarathonDDayHeroWidget
-          races={races}
-          goals={runningGoals}
-          records={runningRecords}
-          onNavigateToRaces={handleNavigateToRaces}
-          onNavigateToGoals={handleNavigateToGoals}
-          onNavigateToPlan={handleNavigateToPlan}
-          onUpdateRace={handleUpdateRace}
-        />
+          {/* 1. Nearest Marathon Target Race D-Day Hero Widget */}
+          <MarathonDDayHeroWidget
+            races={races}
+            goals={runningGoals}
+            records={runningRecords}
+            onNavigateToRaces={handleNavigateToRaces}
+            onNavigateToGoals={handleNavigateToGoals}
+            onNavigateToPlan={handleNavigateToPlan}
+            onUpdateRace={handleUpdateRace}
+          />
 
-        {/* 2. Dashboard 7-Day Distance Bar Chart */}
-        <WeeklyDistanceBarChart
-          sessions={trainingSessions}
-          onNavigateToRecords={() => setActiveTab('running_records')}
-        />
+          {/* 2. Dashboard 7-Day Distance Bar Chart */}
+          <WeeklyDistanceBarChart
+            sessions={trainingSessions}
+            onNavigateToRecords={() => setActiveTab('running_records')}
+          />
 
-        {/* 3 Main Tabs Nav (내 정보, 러닝기록, 마라톤 대회) */}
-        <TabsNav
-          activeTab={activeTab}
-          onChangeTab={setActiveTab}
-          shoesCount={shoes.length}
-          sessionsCount={trainingSessions.length}
-          racesCount={races.length}
-        />
+          {/* 3 Main Tabs Nav (내 정보, 러닝기록, 마라톤 대회) */}
+          <TabsNav
+            activeTab={activeTab}
+            onChangeTab={setActiveTab}
+            shoesCount={shoes.length}
+            sessionsCount={trainingSessions.length}
+            racesCount={races.length}
+          />
 
-        {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
-        <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-white/95 border-b-2 border-x-2 border-emerald-600/30 shadow-xl mb-8 text-stone-800">
+          {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
+          <main className="w-full pb-16 pt-6 px-1 sm:px-3 rounded-b-2xl sm:rounded-b-3xl bg-white/95 dark:bg-stone-900/95 border-b-2 border-x-2 border-emerald-600/30 dark:border-emerald-500/30 shadow-xl mb-8 text-stone-800 dark:text-stone-100 transition-colors">
           {activeTab === 'my_info' && (
             <TabMyInfo
               physicalInfo={physicalInfo}
@@ -586,11 +588,11 @@ export default function App() {
         </Suspense>
 
         {/* Footer */}
-        <footer className="w-full text-center py-6 text-xs text-stone-600 border-t border-emerald-900/15">
-          <p className="mb-1 font-semibold text-emerald-950">
+        <footer className="w-full text-center py-6 text-xs text-stone-600 dark:text-stone-400 border-t border-emerald-900/15 dark:border-stone-800">
+          <p className="mb-1 font-semibold text-emerald-950 dark:text-emerald-400">
             PaceMaster · 2027 경주마라톤 정조준 러닝 대시보드
           </p>
-          <p className="text-[11px] text-stone-500">
+          <p className="text-[11px] text-stone-500 dark:text-stone-400">
             Firebase Firestore Multi-device Cloud Sync Ready · Gyeongju Marathon Heritage Edition
           </p>
         </footer>
@@ -634,6 +636,7 @@ export default function App() {
           />
         </Suspense>
       )}
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }

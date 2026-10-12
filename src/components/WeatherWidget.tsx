@@ -530,7 +530,7 @@ export const WeatherWidget: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsPopoverOpen((prev) => !prev)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-stone-50/90 hover:bg-stone-100 border border-stone-200 hover:border-emerald-500/40 text-left transition-all cursor-pointer shadow-xs group"
+        className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-50/90 dark:bg-stone-850 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-emerald-500/40 text-left transition-all cursor-pointer shadow-xs group"
         title="오늘의 날씨 및 러닝 추천 복장 보기"
         aria-label="오늘의 날씨 정보"
       >
@@ -544,13 +544,13 @@ export const WeatherWidget: React.FC = () => {
           )}
         </div>
 
-        <div className="flex flex-col">
-          <div className="text-[10px] text-stone-500 font-medium leading-none flex items-center gap-1">
+        <div className="flex flex-col justify-center">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none flex items-center gap-1">
             <span className="truncate max-w-[60px]">{locationName}</span>
             <span>•</span>
             <span>{config.label}</span>
           </div>
-          <div className="text-xs sm:text-sm font-black text-stone-900 font-athletic flex items-center gap-1 mt-0.5">
+          <div className="text-xs sm:text-sm font-black text-stone-900 dark:text-white font-athletic flex items-center gap-1 mt-0.5">
             {currentWeather ? (
               <>
                 <span>{currentWeather.temp}°C</span>
@@ -575,7 +575,7 @@ export const WeatherWidget: React.FC = () => {
             onClick={() => setIsPopoverOpen(false)}
           >
             <div
-              className="w-full max-w-sm sm:max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain p-3.5 sm:p-5 rounded-2xl bg-white border border-stone-200 shadow-2xl text-stone-800 my-auto"
+              className="w-full max-w-sm sm:max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl text-stone-800 dark:text-stone-100 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <WeatherPopupCard
@@ -681,49 +681,49 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
 
       {/* Current Metrics Grid */}
       <div className="grid grid-cols-3 gap-2 my-2.5">
-        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
-          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
-            <Thermometer className="w-3 h-3 text-rose-700" />
+        <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 text-center">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center justify-center gap-1">
+            <Thermometer className="w-3 h-3 text-rose-700 dark:text-rose-400" />
             <span>현재 기온</span>
           </div>
-          <div className="text-base font-black text-stone-900 font-athletic mt-0.5">
+          <div className="text-base font-black text-stone-900 dark:text-white font-athletic mt-0.5">
             {currentWeather.temp}°C
           </div>
         </div>
 
-        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
-          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
-            <Droplets className="w-3 h-3 text-emerald-700" />
+        <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 text-center">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center justify-center gap-1">
+            <Droplets className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
             <span>체감 / 습도</span>
           </div>
-          <div className="text-xs font-bold text-emerald-800 font-athletic mt-0.5">
+          <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300 font-athletic mt-0.5">
             {currentWeather.feelsLike}°C
-            <span className="text-[10px] text-stone-500 font-normal font-sans ml-1">
+            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-normal font-sans ml-1">
               ({currentWeather.humidity}%)
             </span>
           </div>
         </div>
 
-        <div className="p-2 rounded-xl bg-stone-50 border border-stone-200 text-center">
-          <div className="text-[10px] text-stone-500 flex items-center justify-center gap-1">
-            <Wind className="w-3 h-3 text-amber-700" />
+        <div className="p-2 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 text-center">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center justify-center gap-1">
+            <Wind className="w-3 h-3 text-amber-700 dark:text-amber-400" />
             <span>풍속</span>
           </div>
-          <div className="text-xs font-bold text-amber-800 font-athletic mt-0.5">
+          <div className="text-xs font-bold text-amber-800 dark:text-amber-300 font-athletic mt-0.5">
             {currentWeather.windSpeed}{' '}
-            <span className="text-[10px] text-stone-500 font-normal font-sans">km/h</span>
+            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-normal font-sans">km/h</span>
           </div>
         </div>
       </div>
 
       {/* Running Gear Advice */}
       {gearAdvice && (
-        <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-1.5">
-          <div className="flex items-center gap-1.5 text-emerald-900 font-bold text-[11px] whitespace-nowrap">
+        <div className="p-2.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-1.5">
+          <div className="flex items-center gap-1.5 text-emerald-900 dark:text-emerald-300 font-bold text-[11px] whitespace-nowrap">
             <span>🏃‍♂️ 오늘의 러닝 복장 가이드</span>
           </div>
-          <div className="text-stone-900 font-semibold text-[11px] keep-all">{gearAdvice.gear}</div>
-          <p className="text-[10px] text-stone-600 leading-relaxed border-t border-emerald-200/50 pt-1 keep-all">
+          <div className="text-stone-900 dark:text-white font-semibold text-[11px] keep-all">{gearAdvice.gear}</div>
+          <p className="text-[10px] text-stone-600 dark:text-stone-300 leading-relaxed border-t border-emerald-200/50 dark:border-emerald-800/50 pt-1 keep-all">
             💡 {gearAdvice.tip}
           </p>
         </div>
@@ -731,9 +731,9 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
 
       {/* Quick 3-Day Forecast mini summary in popover: Shown on both mobile and PC */}
       {dailyForecast.length > 0 && (
-        <div className="space-y-1.5 pt-2 border-t border-stone-200">
-          <div className="text-[10px] font-bold text-stone-600 flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-emerald-700" />
+        <div className="space-y-1.5 pt-2 border-t border-stone-200 dark:border-stone-800">
+          <div className="text-[10px] font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
             <span>향후 3일간 기상 및 훈련 환경</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5">
@@ -742,21 +742,21 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               return (
                 <div
                   key={idx}
-                  className="p-1.5 rounded-lg bg-stone-50 border border-stone-200 text-center flex flex-col justify-between gap-1"
+                  className="p-1.5 rounded-lg bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 text-center flex flex-col justify-between gap-1"
                 >
-                  <div className="text-[10px] font-bold text-stone-700">{day.dayName}</div>
+                  <div className="text-[10px] font-bold text-stone-700 dark:text-stone-300">{day.dayName}</div>
                   <div className="flex items-center justify-center gap-1 my-0.5">
                     <DayIcon className={`w-3.5 h-3.5 ${day.iconColor}`} />
-                    <span className="text-[10px] text-stone-900 font-medium">
+                    <span className="text-[10px] text-stone-900 dark:text-white font-medium">
                       {day.conditionLabel}
                     </span>
                   </div>
                   <div className="text-[10px] font-mono font-bold">
-                    <span className="text-emerald-800">{day.minTemp}°</span> ~{' '}
-                    <span className="text-rose-900">{day.maxTemp}°</span>
+                    <span className="text-emerald-800 dark:text-emerald-300">{day.minTemp}°</span> ~{' '}
+                    <span className="text-rose-900 dark:text-rose-300">{day.maxTemp}°</span>
                   </div>
                   {day.rainProb > 0 && (
-                    <div className="text-[9px] text-blue-700 font-medium">
+                    <div className="text-[9px] text-blue-700 dark:text-blue-400 font-medium">
                       강수 {day.rainProb}%
                     </div>
                   )}
@@ -783,29 +783,29 @@ export const ThreeDayWeatherForecast: React.FC = () => {
   }
 
   return (
-    <div className="mt-3.5 pt-3 border-t border-stone-200">
+    <div className="mt-3.5 pt-3 border-t border-stone-200 dark:border-stone-800">
       {/* Header bar of 3-Day Forecast */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-2.5">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded-md bg-rose-100 text-rose-900 border border-rose-200 flex-shrink-0">
+          <div className="p-1 rounded-md bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex-shrink-0">
             <Calendar className="w-3.5 h-3.5" />
           </div>
-          <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-bold text-stone-900 dark:text-white flex items-center gap-1.5 flex-wrap">
             <span className="whitespace-nowrap">주간 훈련 계획을 위한 3일 기상 예보</span>
-            <span className="text-[10px] font-normal text-stone-500 font-mono whitespace-nowrap">
+            <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400 font-mono whitespace-nowrap">
               ({locationName} 기준)
             </span>
           </span>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 text-xs flex-shrink-0">
-          <span className="text-[11px] text-stone-500 hidden md:inline keep-all">
+          <span className="text-[11px] text-stone-500 dark:text-stone-400 hidden md:inline keep-all">
             💡 일별 기온과 강수 확률에 맞추어 조깅/포인트 훈련 일정을 배치하세요.
           </span>
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="text-[11px] text-stone-600 hover:text-stone-900 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-200 transition-all cursor-pointer whitespace-nowrap"
+            className="text-[11px] text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-200 dark:border-stone-700 transition-all cursor-pointer whitespace-nowrap"
           >
             <span>{isExpanded ? '예보 접기' : '3일 예보 펼치기'}</span>
             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -823,8 +823,8 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                 key={idx}
                 className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2 shadow-2xs ${
                   idx === 0
-                    ? 'bg-emerald-50/90 border-emerald-300 ring-1 ring-emerald-400/20'
-                    : 'bg-stone-50/90 hover:bg-stone-100/90 border-stone-200'
+                    ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 ring-1 ring-emerald-400/20'
+                    : 'bg-stone-50/90 dark:bg-stone-850 hover:bg-stone-100/90 dark:hover:bg-stone-800 border-stone-200 dark:border-stone-750'
                 }`}
               >
                 {/* Top Row: Date, Day badge & Weather Icon */}
@@ -834,12 +834,12 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                       className={`text-[10px] font-black px-1.5 py-0.5 rounded-md flex-shrink-0 ${
                         idx === 0
                           ? 'bg-emerald-600 text-white'
-                          : 'bg-stone-200 text-stone-800'
+                          : 'bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200'
                       }`}
                     >
                       {item.dayName}
                     </span>
-                    <span className="text-xs font-bold text-stone-900">{item.dateLabel}</span>
+                    <span className="text-xs font-bold text-stone-900 dark:text-white">{item.dateLabel}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
@@ -848,38 +848,38 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                     >
                       <ItemIcon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-xs font-bold text-stone-800">
+                    <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
                       {item.conditionLabel}
                     </span>
                   </div>
                 </div>
 
                 {/* Middle Row: Temperature & Rain */}
-                <div className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white border border-stone-200 whitespace-nowrap">
+                <div className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 whitespace-nowrap">
                   <div className="flex items-center gap-1.5 font-athletic">
-                    <span className="text-[10px] text-stone-500 font-sans">기온:</span>
-                    <span className="text-emerald-800 font-bold">{item.minTemp}°C</span>
-                    <span className="text-stone-400">~</span>
-                    <span className="text-rose-900 font-bold">{item.maxTemp}°C</span>
+                    <span className="text-[10px] text-stone-500 dark:text-stone-400 font-sans">기온:</span>
+                    <span className="text-emerald-800 dark:text-emerald-300 font-bold">{item.minTemp}°C</span>
+                    <span className="text-stone-400 dark:text-stone-500">~</span>
+                    <span className="text-rose-900 dark:text-rose-300 font-bold">{item.maxTemp}°C</span>
                   </div>
 
                   <div className="flex items-center gap-1 font-mono text-[11px] flex-shrink-0">
                     <Umbrella
                       className={`w-3 h-3 ${
                         item.rainProb >= 50
-                          ? 'text-blue-600 animate-pulse'
+                          ? 'text-blue-600 dark:text-blue-400 animate-pulse'
                           : item.rainProb > 0
-                          ? 'text-blue-500'
-                          : 'text-stone-400'
+                          ? 'text-blue-500 dark:text-blue-400'
+                          : 'text-stone-400 dark:text-stone-500'
                       }`}
                     />
                     <span
                       className={
                         item.rainProb >= 50
-                          ? 'text-blue-700 font-bold'
+                          ? 'text-blue-700 dark:text-blue-300 font-bold'
                           : item.rainProb > 0
-                          ? 'text-stone-700'
-                          : 'text-stone-400'
+                          ? 'text-blue-600 dark:text-blue-300 font-medium'
+                          : 'text-stone-500 dark:text-stone-400'
                       }
                     >
                       강수 {item.rainProb}%
@@ -896,7 +896,7 @@ export const ThreeDayWeatherForecast: React.FC = () => {
                       {item.runnerAdvice.tag}
                     </span>
                   </div>
-                  <p className="text-[10px] text-stone-600 leading-relaxed keep-all">
+                  <p className="text-[10px] text-stone-600 dark:text-stone-300 leading-relaxed keep-all">
                     {item.runnerAdvice.tip}
                   </p>
                 </div>

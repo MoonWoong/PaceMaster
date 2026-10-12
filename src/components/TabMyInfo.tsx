@@ -747,24 +747,24 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   }, [races]);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-stone-800">
+    <div className="space-y-8 animate-fadeIn text-stone-800 dark:text-stone-100">
       {/* 1. 신체 정보 섹션 */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 shadow-sm bg-white/95">
+      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl border border-rose-700/40 shadow-xs">
               <Scale className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-stone-900">러너 신체 정보</h2>
-              <p className="text-xs text-stone-600">
+              <h2 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">러너 신체 정보</h2>
+              <p className="text-xs text-stone-600 dark:text-stone-400">
                 체중과 키는 페이스 효율성 및 VO2max 계산의 중요한 기준입니다.
               </p>
             </div>
           </div>
 
           {physicalSavedAlert && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs border border-emerald-300 font-bold animate-pulse">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-xs border border-emerald-300 dark:border-emerald-700 font-bold animate-pulse">
               <Check className="w-3.5 h-3.5" />
               <span>저장 완료</span>
             </div>
@@ -774,7 +774,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         <form onSubmit={handleSavePhysical}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
                 신장 (키 cm)
               </label>
               <input
@@ -792,7 +792,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
                 체중 (몸무게 kg)
               </label>
               <input
@@ -810,7 +810,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
                 나이 (만 연령)
               </label>
               <input
@@ -828,13 +828,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           </div>
 
           {/* Realtime BMI & Runner Weight Analysis */}
-          <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 mb-5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 mb-5 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-stone-600 font-medium">BMI 체질량지수:</span>
-              <span className="text-emerald-800 font-black font-athletic text-sm">{bmi}</span>
-              <span className="text-stone-700 font-semibold">({getBmiDesc(bmi)})</span>
+              <span className="text-stone-600 dark:text-stone-400 font-medium">BMI 체질량지수:</span>
+              <span className="text-emerald-800 dark:text-emerald-400 font-black font-athletic text-sm">{bmi}</span>
+              <span className="text-stone-700 dark:text-stone-300 font-semibold">({getBmiDesc(bmi)})</span>
             </div>
-            <div className="text-stone-500 text-[11px]">
+            <div className="text-stone-500 dark:text-stone-400 text-[11px]">
               * 1kg 체중 감량 시 풀코스 완주 시간 약 2~3분 단축 효과
             </div>
           </div>
@@ -853,29 +853,29 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       </section>
 
       {/* 2. 보유 러닝화 로테이션 & 마일리지 수명 관리 섹션 */}
-      <section id="shoe-closet-section" className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 shadow-sm bg-white/95 space-y-6">
+      <section id="shoe-closet-section" className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 space-y-6">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 dark:border-stone-800 pb-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 sm:p-3 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-2xl border border-rose-700/40 shadow-sm">
               <Footprints className="w-6 h-6 sm:w-7 sm:h-7 text-amber-300" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold text-stone-900 flex items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                   <span>보유 러닝화 로테이션 & 마일리지 수명 관리</span>
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-mono font-bold">
                   {shoes.length}켤레
                 </span>
                 {shoeMetrics.urgentCount > 0 && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-bold flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-700" />
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700 font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" />
                     교체 알림 {shoeMetrics.urgentCount}켤레
                   </span>
                 )}
               </div>
-              <p className="text-xs text-stone-600 mt-1">
+              <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
                 신발별 실시간 누적 주행거리와 목표 마일리지 수명 소진율을 모니터링하고 교체 주기를 관리합니다.
               </p>
             </div>
@@ -885,9 +885,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <button
               type="button"
               onClick={() => setIsGuidanceOpen((prev) => !prev)}
-              className="px-3 py-2 text-xs font-semibold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-300 dark:border-stone-700 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Info className="w-3.5 h-3.5 text-emerald-700" />
+              <Info className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
               <span>{isGuidanceOpen ? '가이드 접기' : '교체 기준 가이드'}</span>
             </button>
             <button
@@ -903,29 +903,29 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
         {/* Executive Key Stat Gauges */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
               <span>총 누적 주행</span>
-              <TrendingUp className="w-4 h-4 text-emerald-700" />
+              <TrendingUp className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-stone-900 font-mono">
-              {shoeMetrics.totalMileage.toLocaleString()} <span className="text-xs font-normal text-stone-500">km</span>
+            <div className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100 font-mono">
+              {shoeMetrics.totalMileage.toLocaleString()} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">km</span>
             </div>
-            <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
+            <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 flex items-center justify-between">
               <span>보유 신발</span>
-              <strong className="text-stone-800">{shoeMetrics.totalShoes}켤레</strong>
+              <strong className="text-stone-800 dark:text-stone-200">{shoeMetrics.totalShoes}켤레</strong>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
               <span>전체 수명 소진율</span>
-              <BarChart3 className="w-4 h-4 text-emerald-700" />
+              <BarChart3 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-stone-900 font-mono">
-              {shoeMetrics.totalWearPct} <span className="text-xs font-normal text-stone-500">%</span>
+            <div className="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100 font-mono">
+              {shoeMetrics.totalWearPct} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">%</span>
             </div>
-            <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden mt-1.5">
+            <div className="w-full h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden mt-1.5">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   shoeMetrics.totalWearPct >= 80 ? 'bg-amber-500' : 'bg-emerald-600'
@@ -935,55 +935,55 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
               <span>교체 임박 & 수명 초과</span>
-              <AlertTriangle className={`w-4 h-4 ${shoeMetrics.urgentCount > 0 ? 'text-rose-600' : 'text-stone-400'}`} />
+              <AlertTriangle className={`w-4 h-4 ${shoeMetrics.urgentCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-stone-400'}`} />
             </div>
-            <div className={`text-xl sm:text-2xl font-black font-mono ${shoeMetrics.urgentCount > 0 ? 'text-rose-900' : 'text-stone-700'}`}>
-              {shoeMetrics.urgentCount} <span className="text-xs font-normal text-stone-500">켤레</span>
+            <div className={`text-xl sm:text-2xl font-black font-mono ${shoeMetrics.urgentCount > 0 ? 'text-rose-900 dark:text-rose-300' : 'text-stone-700 dark:text-stone-300'}`}>
+              {shoeMetrics.urgentCount} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">켤레</span>
             </div>
-            <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
-              <span>수명 초과: <strong className="text-rose-900">{shoeMetrics.overdueCount}</strong></span>
-              <span>임박: <strong className="text-amber-700">{shoeMetrics.nearLimitCount}</strong></span>
+            <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 flex items-center justify-between">
+              <span>수명 초과: <strong className="text-rose-900 dark:text-rose-300">{shoeMetrics.overdueCount}</strong></span>
+              <span>임박: <strong className="text-amber-700 dark:text-amber-400">{shoeMetrics.nearLimitCount}</strong></span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-stone-500 mb-1">
+          <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 flex flex-col justify-between shadow-2xs">
+            <div className="flex items-center justify-between text-xs text-stone-500 dark:text-stone-400 mb-1">
               <span>안전 & 최상 컨디션</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-800 font-mono">
-              {shoeMetrics.optimalCount} <span className="text-xs font-normal text-stone-500">켤레</span>
+            <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-400 font-mono">
+              {shoeMetrics.optimalCount} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">켤레</span>
             </div>
-            <div className="text-[11px] text-stone-500 mt-1 flex items-center justify-between">
-              <span>마모 진행: <strong className="text-amber-700">{shoeMetrics.warningCount}</strong></span>
-              <span>최적: <strong className="text-emerald-800">{shoeMetrics.optimalCount}</strong></span>
+            <div className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 flex items-center justify-between">
+              <span>마모 진행: <strong className="text-amber-700 dark:text-amber-400">{shoeMetrics.warningCount}</strong></span>
+              <span>최적: <strong className="text-emerald-800 dark:text-emerald-400">{shoeMetrics.optimalCount}</strong></span>
             </div>
           </div>
         </div>
 
         {/* Replacement Alert Banner (특정 마일리지 도달 시 교체 알림) */}
         {shoeMetrics.urgentCount > 0 && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-300 shadow-sm">
+          <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="p-2.5 rounded-xl bg-rose-100 text-rose-800 border border-rose-200 flex-shrink-0 mt-0.5">
-                  <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-rose-700" />
+                <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-700 flex-shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-rose-700 dark:text-rose-300" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-1.5">
+                    <h3 className="text-sm sm:base font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
                       <span>러닝화 교체 및 은퇴 권장 알림</span>
                     </h3>
-                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-bold">
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/70 text-rose-900 dark:text-rose-200 border border-rose-300 dark:border-rose-700 font-bold">
                       🚨 총 {shoeMetrics.urgentCount}켤레 대상
                     </span>
                   </div>
-                  <p className="text-xs text-stone-700 leading-relaxed keep-all">
+                  <p className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed keep-all">
                     미드솔 완충 폼의 수명이 한계에 도달했습니다. 쿠션 반발력 저하는 
-                    <strong className="text-rose-900"> 족저근막염, 정강이 통증(신스프린트), 무릎 관절 부상</strong>의 주된 원인이 됩니다.
+                    <strong className="text-rose-900 dark:text-rose-400"> 족저근막염, 정강이 통증(신스프린트), 무릎 관절 부상</strong>의 주된 원인이 됩니다.
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     {analyzedShoes
@@ -993,8 +993,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           key={s.id}
                           className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 whitespace-nowrap ${
                             s.status === 'overdue'
-                              ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold'
-                              : 'bg-amber-100 text-amber-900 border-amber-300'
+                              ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-700 font-bold'
+                              : 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700'
                           }`}
                         >
                           <span>{s.name}</span>
@@ -1012,8 +1012,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 onClick={() => setShoeStatusFilter(shoeStatusFilter === 'needs_replacement' ? 'all' : 'needs_replacement')}
                 className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer self-start sm:self-center ${
                   shoeStatusFilter === 'needs_replacement'
-                    ? 'bg-rose-900 text-white shadow-sm'
-                    : 'bg-rose-100 text-rose-900 hover:bg-rose-200 border border-rose-300'
+                    ? 'bg-rose-900 dark:bg-rose-700 text-white shadow-sm'
+                    : 'bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800'
                 }`}
               >
                 <span>{shoeStatusFilter === 'needs_replacement' ? '전체 보기로 복귀' : '교체 대상만 모아보기'}</span>
@@ -1024,33 +1024,33 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
         {/* Sports Science Guidance Expandable Panel */}
         {isGuidanceOpen && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs text-stone-700 space-y-3 animate-fadeIn">
-            <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
-              <Sparkles className="w-4 h-4 text-emerald-700" />
+          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs text-stone-700 dark:text-stone-300 space-y-3 animate-fadeIn">
+            <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-300 text-sm">
+              <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <span>스포츠 사이언스 기반 러닝화 카테고리별 교체 기준</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-              <div className="p-3 rounded-xl bg-white border border-stone-200 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-rose-900">카본 레이싱화 (250~350km)</span>
-                <p className="text-[11px] text-stone-600">
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
+                <span className="text-xs font-bold text-rose-900 dark:text-rose-400">카본 레이싱화 (250~350km)</span>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   초임계 폼(ZoomX, Lightstrike Pro 등)과 카본 플레이트의 최고 반발탄성은 300km 내외에서 감쇄됩니다. 대회용 이후에는 템포/인터벌 연습화로 전환 추천.
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-white border border-stone-200 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-amber-800">스피드/템포 트레이너 (400~500km)</span>
-                <p className="text-[11px] text-stone-600">
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-400">스피드/템포 트레이너 (400~500km)</span>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   인터벌 및 빠른 페이스 주행을 지탱하는 나일론 플레이트/반발 쿠션화. 지면 충격 흡수 한계 도달 시 교체 준비.
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-white border border-stone-200 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-emerald-800">데일리 쿠션화 (600~800km)</span>
-                <p className="text-[11px] text-stone-600">
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">데일리 쿠션화 (600~800km)</span>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   매일 신는 조깅/회복주 신발. 겉창(아웃솔) 마모가 보이지 않더라도 미드솔 내부 기포가 영구 압축되므로 600km 초과 시 관절 보호를 위해 교체 요망.
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-white border border-stone-200 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-emerald-300">장거리 LSD / 맥스쿠션 (600~750km)</span>
-                <p className="text-[11px] text-slate-400">
+              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">장거리 LSD / 맥스쿠션 (600~750km)</span>
+                <p className="text-[11px] text-stone-600 dark:text-stone-400">
                   장거리 20~35km 주행 시 체중의 3~4배 하중을 분산. 힐카운터 비틀림 및 미드솔 주름 발생 시 즉각 은퇴 권장.
                 </p>
               </div>
@@ -1073,7 +1073,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               {shoeSearchQuery && (
                 <button
                   onClick={() => setShoeSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-700 cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 cursor-pointer"
                 >
                   지우기
                 </button>
@@ -1082,14 +1082,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
             {/* Sort Options */}
             <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-              <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700" />
+              <div className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400 font-medium">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 <span>정렬:</span>
               </div>
               <select
                 value={shoeSortBy}
                 onChange={(e) => setShoeSortBy(e.target.value as any)}
-                className="bg-white border border-stone-300 rounded-xl px-2.5 py-1.5 text-xs text-stone-800 font-medium focus:outline-none focus:border-emerald-600 cursor-pointer shadow-2xs"
+                className="bg-white dark:bg-stone-850 border border-stone-300 dark:border-stone-750 rounded-xl px-2.5 py-1.5 text-xs text-stone-800 dark:text-stone-200 font-medium focus:outline-none focus:border-emerald-600 cursor-pointer shadow-2xs"
               >
                 <option value="urgent_first">교체 시급순 (경고 우선)</option>
                 <option value="mileage_desc">누적 마일리지 높은 순</option>
@@ -1101,7 +1101,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           </div>
 
           {/* Category & Status Filter Tabs */}
-          <div className="flex items-center gap-1.5 p-1.5 bg-stone-100 rounded-xl border border-stone-200 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 p-1.5 bg-stone-100 dark:bg-stone-850 rounded-xl border border-stone-200 dark:border-stone-750 overflow-x-auto scrollbar-none">
             {/* Status quick filters */}
             <button
               type="button"
@@ -1109,7 +1109,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 shoeStatusFilter === 'all'
                   ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/60 dark:hover:bg-stone-800'
               }`}
             >
               전체 ({shoes.length})
@@ -1120,8 +1120,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               onClick={() => setShoeStatusFilter('needs_replacement')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
                 shoeStatusFilter === 'needs_replacement'
-                  ? 'bg-rose-900 text-white shadow-2xs font-bold'
-                  : 'text-rose-900 hover:text-rose-950 hover:bg-rose-100/70 font-semibold'
+                  ? 'bg-rose-900 dark:bg-rose-700 text-white shadow-2xs font-bold'
+                  : 'text-rose-900 dark:text-rose-400 hover:text-rose-950 dark:hover:text-rose-300 hover:bg-rose-100/70 dark:hover:bg-rose-950/60 font-semibold'
               }`}
             >
               <AlertTriangle className="w-3 h-3 text-rose-300" />
@@ -1133,14 +1133,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               onClick={() => setShoeStatusFilter('safe')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 shoeStatusFilter === 'safe'
-                  ? 'bg-emerald-700 text-white shadow-2xs font-bold'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                  ? 'bg-emerald-700 dark:bg-emerald-600 text-white shadow-2xs font-bold'
+                  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/60 dark:hover:bg-stone-800'
               }`}
             >
               정상·양호 ({shoeMetrics.safeCount})
             </button>
 
-            <div className="h-4 w-px bg-stone-300 mx-1 flex-shrink-0" />
+            <div className="h-4 w-px bg-stone-300 dark:bg-stone-700 mx-1 flex-shrink-0" />
 
             {/* Category tabs */}
             <button
@@ -1148,13 +1148,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               onClick={() => setSelectedShoeCategory('전체')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                 selectedShoeCategory === '전체'
-                  ? 'bg-white text-emerald-900 font-bold border border-emerald-400 shadow-2xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                  ? 'bg-white dark:bg-stone-800 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-400 dark:border-emerald-600 shadow-2xs'
+                  : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/60 dark:hover:bg-stone-800'
               }`}
             >
               <span>전체 분류</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                selectedShoeCategory === '전체' ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-stone-200 text-stone-600'
+                selectedShoeCategory === '전체' ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 font-bold' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
               }`}>
                 {shoes.length}
               </span>
@@ -1170,13 +1170,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   onClick={() => setSelectedShoeCategory(isSelected ? '전체' : cat)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-white text-emerald-900 font-bold border border-emerald-400 shadow-2xs'
-                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                      ? 'bg-white dark:bg-stone-800 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-400 dark:border-emerald-600 shadow-2xs'
+                      : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/60 dark:hover:bg-stone-800'
                   }`}
                 >
                   <span>{cat}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isSelected ? 'bg-emerald-100 text-emerald-900 font-bold' : 'bg-stone-200 text-stone-600'
+                    isSelected ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 font-bold' : 'bg-stone-200 dark:bg-stone-700 text-stone-600 dark:text-stone-300'
                   }`}>
                     {count}
                   </span>
@@ -1188,16 +1188,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
         {/* Shoes Grid */}
         {filteredAndSortedShoes.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-stone-50 border border-stone-200">
-            <Footprints className="w-10 h-10 text-stone-400 mx-auto mb-2" />
-            <p className="text-sm text-stone-600">선택한 조건에 해당하는 러닝화가 없습니다.</p>
+          <div className="p-8 text-center rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750">
+            <Footprints className="w-10 h-10 text-stone-400 dark:text-stone-500 mx-auto mb-2" />
+            <p className="text-sm text-stone-600 dark:text-stone-400">선택한 조건에 해당하는 러닝화가 없습니다.</p>
             <button
               onClick={() => {
                 setSelectedShoeCategory('전체');
                 setShoeStatusFilter('all');
                 setShoeSearchQuery('');
               }}
-              className="mt-3 text-xs text-emerald-700 hover:underline cursor-pointer font-semibold"
+              className="mt-3 text-xs text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer font-semibold"
             >
               필터 초기화
             </button>
@@ -1206,11 +1206,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredAndSortedShoes.map((shoe) => {
               const categoryBadgeColors: Record<ShoeCategory, string> = {
-                데일리: 'bg-emerald-50 text-emerald-900 border-emerald-300',
-                스피드: 'bg-amber-50 text-amber-900 border-amber-300',
-                장거리: 'bg-emerald-100 text-emerald-900 border-emerald-400',
-                레이싱: 'bg-rose-50 text-rose-900 border-rose-300',
-                트레일: 'bg-stone-100 text-stone-800 border-stone-300',
+                데일리: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+                스피드: 'bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+                장거리: 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700',
+                레이싱: 'bg-rose-50 dark:bg-rose-950/50 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700',
+                트레일: 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700',
               };
 
               // Progress Bar Color: 50% yellow, 80% orange, 100%+ burgundy/red
@@ -1228,10 +1228,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   key={shoe.id}
                   className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${
                     shoe.status === 'overdue'
-                      ? 'bg-rose-50/70 border-rose-300 hover:border-rose-400 shadow-sm'
+                      ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 hover:border-rose-400 shadow-sm'
                       : shoe.status === 'near_limit'
-                      ? 'bg-amber-50/70 border-amber-300 hover:border-amber-400 shadow-2xs'
-                      : 'bg-white border-stone-200 hover:border-emerald-300 shadow-2xs'
+                      ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 hover:border-amber-400 shadow-2xs'
+                      : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-750 hover:border-emerald-300 dark:hover:border-emerald-600 shadow-2xs'
                   }`}
                 >
                   <div className="space-y-2.5">
@@ -1245,16 +1245,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         >
                           {shoe.category}
                         </span>
-                        <span className="text-xs text-stone-500 font-medium">{shoe.brand}</span>
+                        <span className="text-xs text-stone-500 dark:text-stone-400 font-medium">{shoe.brand}</span>
                         {shoe.size && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-md font-mono font-semibold bg-stone-100 text-stone-700 border border-stone-300">
+                          <span className="text-[11px] px-2 py-0.5 rounded-md font-mono font-semibold bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-300 dark:border-stone-700">
                             {shoe.size.endsWith('mm') ? shoe.size : `${shoe.size}mm`}
                           </span>
                         )}
                         <span className={`text-[11px] px-2 py-0.5 rounded-md font-bold border ${shoe.badgeBg} flex items-center gap-1`}>
-                          {shoe.status === 'overdue' && <AlertTriangle className="w-3 h-3 text-rose-700" />}
-                          {shoe.status === 'near_limit' && <AlertCircle className="w-3 h-3 text-orange-700" />}
-                          {shoe.status === 'optimal' && <CheckCircle2 className="w-3 h-3 text-emerald-700" />}
+                          {shoe.status === 'overdue' && <AlertTriangle className="w-3 h-3 text-rose-700 dark:text-rose-400" />}
+                          {shoe.status === 'near_limit' && <AlertCircle className="w-3 h-3 text-orange-700 dark:text-orange-400" />}
+                          {shoe.status === 'optimal' && <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />}
                           <span>{shoe.statusLabel}</span>
                         </span>
                       </div>
@@ -1262,7 +1262,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           onClick={() => handleOpenEditShoe(shoe)}
-                          className="p-1.5 text-stone-400 hover:text-emerald-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
                           title="러닝화 정보 및 마일리지 수정"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -1274,7 +1274,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                             );
                             if (ok) onDeleteShoe(shoe.id);
                           }}
-                          className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-stone-400 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
                           title="삭제 (비밀번호 확인)"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1283,28 +1283,28 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     </div>
 
                     {/* Shoe Model Name */}
-                    <h3 className="text-base sm:text-lg font-bold text-stone-900 tracking-tight">{shoe.name}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-stone-100 tracking-tight">{shoe.name}</h3>
 
                     {/* Unified Mileage & Lifespan Management Contents */}
                     <div className="space-y-2 pt-1">
                       {/* Unified Mileage Header */}
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-stone-500 font-medium">누적 주행거리</span>
+                        <span className="text-stone-500 dark:text-stone-400 font-medium">누적 주행거리</span>
                         <div className="flex items-center gap-1.5 font-mono">
                           <span className={`text-base font-black ${
-                            shoe.status === 'overdue' ? 'text-rose-900' : 'text-emerald-800'
+                            shoe.status === 'overdue' ? 'text-rose-900 dark:text-rose-400' : 'text-emerald-800 dark:text-emerald-400'
                           }`}>
                             {shoe.effectiveMileage}km
                           </span>
-                          <span className="text-stone-500">/ {shoe.effectiveMaxMileage}km</span>
+                          <span className="text-stone-500 dark:text-stone-400">/ {shoe.effectiveMaxMileage}km</span>
                           <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ml-1 ${
                             shoe.wearPct >= 100
-                              ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                              ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700'
                               : shoe.wearPct >= 80
-                              ? 'bg-orange-100 text-orange-900 border border-orange-300'
+                              ? 'bg-orange-100 dark:bg-orange-950/70 text-orange-900 dark:text-orange-300 border border-orange-300 dark:border-orange-700'
                               : shoe.wearPct >= 50
-                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                              : 'bg-emerald-50 text-emerald-900 border border-emerald-300'
+                              ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                              : 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                           }`}>
                             {shoe.wearPct}%
                           </span>
@@ -1312,7 +1312,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       </div>
 
                       {/* Visual Progress Bar */}
-                      <div className="w-full h-2.5 rounded-full bg-stone-200 p-0.5 border border-stone-300 overflow-hidden">
+                      <div className="w-full h-2.5 rounded-full bg-stone-200 dark:bg-stone-700 p-0.5 border border-stone-300 dark:border-stone-600 overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-700 bg-gradient-to-r ${barColor}`}
                           style={{ width: `${Math.min(shoe.wearPct, 100)}%` }}
@@ -1320,31 +1320,31 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       </div>
 
                       {/* Milestone Tick Labels */}
-                      <div className="flex justify-between text-[10px] text-stone-500 font-mono px-0.5">
+                      <div className="flex justify-between text-[10px] text-stone-500 dark:text-stone-400 font-mono px-0.5">
                         <span className="whitespace-nowrap">0km</span>
-                        <span className="text-amber-700 font-semibold whitespace-nowrap">50%</span>
-                        <span className="text-orange-700 font-semibold whitespace-nowrap">80%</span>
-                        <span className="text-rose-900 font-semibold whitespace-nowrap text-right">
+                        <span className="text-amber-700 dark:text-amber-400 font-semibold whitespace-nowrap">50%</span>
+                        <span className="text-orange-700 dark:text-orange-400 font-semibold whitespace-nowrap">80%</span>
+                        <span className="text-rose-900 dark:text-rose-400 font-semibold whitespace-nowrap text-right">
                           {shoe.effectiveMaxMileage}km
                         </span>
                       </div>
 
                       {/* Wear Status Callout: 수명 초과 시에만 직관적으로 알림 */}
                       {shoe.status === 'overdue' && (
-                        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2 font-bold keep-all leading-relaxed">
-                          <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+                        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-300 text-xs flex items-start gap-2 font-bold keep-all leading-relaxed">
+                          <AlertTriangle className="w-4 h-4 text-rose-700 dark:text-rose-400 shrink-0 mt-0.5" />
                           <span>⚠️ {Math.abs(shoe.remainingKm)}km 초과 주행 — 완충 한계 도달 (관절 부상 방지를 위해 즉시 교체 요망)</span>
                         </div>
                       )}
 
                       {/* Recent Workout Note if linked in sessions */}
                       {shoe.lastWornDate && (
-                        <div className="text-[11px] text-stone-600 font-mono flex items-center gap-1.5 pt-0.5">
-                          <span className="px-2 py-0.5 bg-stone-100 rounded border border-stone-200 text-stone-700">
+                        <div className="text-[11px] text-stone-600 dark:text-stone-400 font-mono flex items-center gap-1.5 pt-0.5">
+                          <span className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 rounded border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
                             최근 훈련: {shoe.lastWornDate}
                           </span>
                           {shoe.lastSessionTitle && (
-                            <span className="text-stone-500 truncate max-w-[200px]">({shoe.lastSessionTitle})</span>
+                            <span className="text-stone-500 dark:text-stone-400 truncate max-w-[200px]">({shoe.lastSessionTitle})</span>
                           )}
                         </div>
                       )}
@@ -1358,7 +1358,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
       </section>
 
       {/* 3. 참가 대회 & 완주 기록 허브 (Race Hub) */}
-      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 shadow-sm bg-white/95 text-stone-800">
+      <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
         {/* Section Header */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -1366,13 +1366,13 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               <Trophy className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-stone-900 flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2 flex-wrap">
                 <span>마라톤 참가 대회 및 완주 기록 허브</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-mono font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700 font-mono font-bold">
                   총 {races.length}개
                 </span>
               </h2>
-              <p className="text-xs text-stone-600 mt-0.5">
+              <p className="text-xs text-stone-600 dark:text-stone-400 mt-0.5">
                 참가 예정 대회의 D-Day와 목표 페이스를 관리하고, 완주한 대회의 실제 기록과 배번호(#11111)를 히스토리로 영구 보관합니다.
               </p>
             </div>
@@ -1392,20 +1392,20 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         </div>
 
         {/* Tab Switcher: 참가 예정 대회 vs 참가 대회 히스토리 */}
-        <div className="flex items-center gap-2 p-1.5 bg-stone-100/90 rounded-2xl border border-stone-200 mb-6">
+        <div className="flex items-center gap-2 p-1.5 bg-stone-100/90 dark:bg-stone-850 rounded-2xl border border-stone-200 dark:border-stone-750 mb-6">
           <button
             type="button"
             onClick={() => setRaceViewTab('upcoming')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               raceViewTab === 'upcoming'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm border border-stone-200 dark:border-stone-700'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/50 dark:hover:bg-stone-800/50'
             }`}
           >
-            <Calendar className="w-4 h-4 text-rose-700" />
+            <Calendar className="w-4 h-4 text-rose-700 dark:text-rose-400" />
             <span>참가 예정 대회</span>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${
-              raceViewTab === 'upcoming' ? 'bg-rose-100 text-rose-900 border border-rose-300' : 'bg-stone-200 text-stone-700'
+              raceViewTab === 'upcoming' ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700' : 'bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300'
             }`}>
               {upcomingRaces.length}
             </span>
@@ -1416,14 +1416,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             onClick={() => setRaceViewTab('history')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               raceViewTab === 'history'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/50'
+                ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-sm border border-stone-200 dark:border-stone-700'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/50 dark:hover:bg-stone-800/50'
             }`}
           >
-            <Trophy className="w-4 h-4 text-amber-600" />
+            <Trophy className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             <span>대회 참가 히스토리</span>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${
-              raceViewTab === 'history' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-stone-200 text-stone-700'
+              raceViewTab === 'history' ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700' : 'bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300'
             }`}>
               {historyRaces.length}
             </span>
@@ -1434,10 +1434,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         {raceViewTab === 'upcoming' && (
           <div>
             {upcomingRaces.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-                <Calendar className="w-10 h-10 text-stone-400 mx-auto" />
-                <p className="text-sm font-semibold text-stone-700">현재 등록된 참가 예정 대회가 없습니다.</p>
-                <p className="text-xs text-stone-500 max-w-md mx-auto">
+              <div className="p-8 text-center rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-3">
+                <Calendar className="w-10 h-10 text-stone-400 dark:text-stone-500 mx-auto" />
+                <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">현재 등록된 참가 예정 대회가 없습니다.</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 max-w-md mx-auto">
                   올해 출전할 마라톤 대회를 등록하거나 전국 마라톤 일정에서 원하는 대회를 추가해 보세요.
                 </p>
                 <div className="flex justify-center gap-2 pt-2">
@@ -1457,15 +1457,15 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   const badgeColor = dDay.isToday
                     ? 'bg-rose-600 text-white border-rose-700 animate-pulse font-black'
                     : dDay.daysDiff <= 14
-                    ? 'bg-rose-100 text-rose-900 border-rose-400 animate-pulse font-extrabold'
+                    ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border-rose-400 dark:border-rose-700 animate-pulse font-extrabold'
                     : dDay.daysDiff <= 45
-                    ? 'bg-amber-100 text-amber-900 border-amber-400 font-bold'
-                    : 'bg-emerald-100 text-emerald-900 border-emerald-400 font-bold';
+                    ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-400 dark:border-amber-700 font-bold'
+                    : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700 font-bold';
 
                   return (
                     <div
                       key={race.id}
-                      className="rounded-2xl p-5 border border-stone-200 hover:border-emerald-400 bg-white transition-all flex flex-col justify-between shadow-2xs space-y-4"
+                      className="rounded-2xl p-5 border border-stone-200 dark:border-stone-750 hover:border-emerald-400 dark:hover:border-emerald-500 bg-white dark:bg-stone-850 transition-all flex flex-col justify-between shadow-2xs space-y-4 text-stone-800 dark:text-stone-100"
                     >
                       <div>
                         {/* Header: D-Day, Date, Bib Number & Unified Edit/Delete */}
@@ -1476,16 +1476,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                             >
                               {dDay.text}
                             </span>
-                            <span className="text-xs text-stone-500 font-mono font-medium">{race.date}</span>
+                            <span className="text-xs text-stone-500 dark:text-stone-400 font-mono font-medium">{race.date}</span>
 
                             {/* Bib Number Badge (if entered) */}
                             {race.bibNumber ? (
                               <span
                                 onClick={() => handleOpenEditRace(race)}
-                                className="text-xs px-2.5 py-0.5 rounded-lg font-mono font-bold bg-purple-100 text-purple-900 border border-purple-300 flex items-center gap-1 cursor-pointer hover:bg-purple-200 transition-colors"
+                                className="text-xs px-2.5 py-0.5 rounded-lg font-mono font-bold bg-purple-100 dark:bg-purple-950/70 text-purple-900 dark:text-purple-300 border border-purple-300 dark:border-purple-700 flex items-center gap-1 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-900/70 transition-colors"
                                 title="배번호 등록됨 (클릭하여 수정)"
                               >
-                                <Tag className="w-3 h-3 text-purple-700" />
+                                <Tag className="w-3 h-3 text-purple-700 dark:text-purple-400" />
                                 <span>#{race.bibNumber}</span>
                               </span>
                             ) : null}
@@ -1496,10 +1496,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditRace(race)}
-                                className="px-2.5 py-1 text-xs font-semibold text-stone-700 hover:text-emerald-950 bg-stone-100 hover:bg-emerald-50 border border-stone-200 hover:border-emerald-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                                className="px-2.5 py-1 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-emerald-950 dark:hover:text-emerald-200 bg-stone-100 dark:bg-stone-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-stone-200 dark:border-stone-700 hover:border-emerald-300 dark:hover:border-emerald-600 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                                 title="대회 정보, 목표 기록, 배번호 수정"
                               >
-                                <Edit2 className="w-3.5 h-3.5 text-emerald-700" />
+                                <Edit2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                                 <span>수정</span>
                               </button>
                             )}
@@ -1511,7 +1511,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                                 );
                                 if (ok) onDeleteRace(race.id);
                               }}
-                              className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-stone-400 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
                               title="삭제"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1520,49 +1520,49 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         </div>
 
                         {/* Title, Course & Location */}
-                        <h3 className="text-base sm:text-lg font-bold text-stone-900 mt-1 mb-1 tracking-tight">
+                        <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-stone-100 mt-1 mb-1 tracking-tight">
                           {race.name}
                         </h3>
-                        <div className="text-xs text-stone-600 flex items-center gap-2 mb-3">
-                          <span className="text-rose-900 font-semibold px-2 py-0.5 rounded bg-rose-50 border border-rose-200">
+                        <div className="text-xs text-stone-600 dark:text-stone-400 flex items-center gap-2 mb-3">
+                          <span className="text-rose-900 dark:text-rose-300 font-semibold px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800">
                             {race.course}
                             {race.customDistanceKm && !race.course.includes(`${race.customDistanceKm}`) ? ` (${race.customDistanceKm}km)` : ''}
                           </span>
                           <span>·</span>
-                          <span className="text-stone-500">{race.location}</span>
+                          <span className="text-stone-500 dark:text-stone-400">{race.location}</span>
                         </div>
 
                         {/* Target Time & Calculated Pace (Unified Display, No Redundant Button) */}
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs mb-2.5">
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs mb-2.5">
                           <div className="flex items-center gap-1.5">
-                            <Target className="w-4 h-4 text-rose-800" />
-                            <span className="text-stone-600 font-medium">목표 기록:</span>
-                            <span className="font-bold font-mono text-rose-900 text-sm">
+                            <Target className="w-4 h-4 text-rose-800 dark:text-rose-400" />
+                            <span className="text-stone-600 dark:text-stone-400 font-medium">목표 기록:</span>
+                            <span className="font-bold font-mono text-rose-900 dark:text-rose-300 text-sm">
                               {race.targetTime || '미설정'}
                             </span>
                           </div>
                           {race.targetTime ? (
-                            <span className="text-[11px] font-mono text-stone-600 font-medium bg-white px-2 py-0.5 rounded-md border border-stone-200">
-                              목표 페이스: <strong className="text-emerald-950 font-bold">{autoCalcPace(race.targetTime, race.course, race.customDistanceKm) || '-'}</strong>/km
+                            <span className="text-[11px] font-mono text-stone-600 dark:text-stone-300 font-medium bg-white dark:bg-stone-850 px-2 py-0.5 rounded-md border border-stone-200 dark:border-stone-700">
+                              목표 페이스: <strong className="text-emerald-950 dark:text-emerald-300 font-bold">{autoCalcPace(race.targetTime, race.course, race.customDistanceKm) || '-'}</strong>/km
                             </span>
                           ) : (
-                            <span className="text-[10px] text-stone-400">
+                            <span className="text-[10px] text-stone-400 dark:text-stone-500">
                               [수정] 버튼에서 목표 설정 가능
                             </span>
                           )}
                         </div>
 
                         {/* Priority Selector */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-semibold text-stone-700">대회 중요도:</span>
+                            <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300">대회 중요도:</span>
                             <span
                               className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
                                 race.priority === 'C' || race.importance?.includes('C')
-                                  ? 'bg-stone-200 text-stone-800 border-stone-300'
+                                  ? 'bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-600'
                                   : race.priority === 'B' || race.importance?.includes('B')
-                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                  : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                  ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                               }`}
                             >
                               {race.priority === 'C' || race.importance?.includes('C')
@@ -1572,7 +1572,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                                 : 'A-Race (메인목표)'}
                             </span>
                             {race.isTarget && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-900 font-bold border border-rose-300">
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 font-bold border border-rose-300 dark:border-rose-800">
                                 ★ 대표 목표
                               </span>
                             )}
@@ -1601,8 +1601,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                                           ? 'bg-emerald-700 text-white border-emerald-800 shadow-xs'
                                           : p === 'B'
                                           ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
-                                          : 'bg-stone-700 text-white border-stone-800 shadow-xs'
-                                        : 'bg-white text-stone-600 border-stone-300 hover:bg-stone-100'
+                                          : 'bg-stone-700 dark:bg-stone-600 text-white border-stone-800 dark:border-stone-500 shadow-xs'
+                                        : 'bg-white dark:bg-stone-850 text-stone-600 dark:text-stone-400 border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800'
                                     }`}
                                   >
                                     {p}-Race
@@ -1615,9 +1615,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       </div>
 
                       {/* Footer Actions: Website & Complete Record Logger */}
-                      <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="pt-3 border-t border-stone-100 dark:border-stone-750 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="text-stone-500 font-medium">
+                          <span className="text-stone-500 dark:text-stone-400 font-medium">
                             {dDay.isToday ? '🔥 오늘이 결승의 날!' : `${dDay.daysDiff}일 남음`}
                           </span>
                           {race.websiteUrl && (
@@ -1625,7 +1625,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                               href={race.websiteUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-emerald-700 hover:text-emerald-900 hover:underline flex items-center gap-1 font-medium text-[11px]"
+                              className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 font-medium text-[11px]"
                             >
                               <span>홈페이지</span>
                               <ExternalLink className="w-3 h-3" />
@@ -1637,9 +1637,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenRecordResult(race)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-900 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-900 dark:text-emerald-200 bg-emerald-100 dark:bg-emerald-950/60 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
                         >
-                          <Trophy className="w-3.5 h-3.5 text-emerald-700" />
+                          <Trophy className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                           <span>실제 완주 기록 입력</span>
                         </button>
                       </div>
@@ -1655,10 +1655,10 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         {raceViewTab === 'history' && (
           <div>
             {historyRaces.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-                <Trophy className="w-10 h-10 text-stone-400 mx-auto" />
-                <p className="text-sm font-semibold text-stone-700">등록된 대회 참가 히스토리가 없습니다.</p>
-                <p className="text-xs text-stone-500 max-w-md mx-auto">
+              <div className="p-8 text-center rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-3">
+                <Trophy className="w-10 h-10 text-stone-400 dark:text-stone-500 mx-auto" />
+                <p className="text-sm font-semibold text-stone-700 dark:text-stone-300">등록된 대회 참가 히스토리가 없습니다.</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 max-w-md mx-auto">
                   이미 완주한 이전 마라톤 대회의 실제 완주 기록과 배번호(#11111)를 등록하여 나만의 마라톤 완주 역사를 관리해 보세요.
                 </p>
                 <div className="flex justify-center gap-2 pt-2">
@@ -1681,7 +1681,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   return (
                     <div
                       key={race.id}
-                      className="rounded-2xl p-5 border border-stone-200 hover:border-amber-400 bg-white transition-all flex flex-col justify-between shadow-2xs space-y-4"
+                      className="rounded-2xl p-5 border border-stone-200 dark:border-stone-750 hover:border-amber-400 dark:hover:border-amber-500 bg-white dark:bg-stone-850 transition-all flex flex-col justify-between shadow-2xs space-y-4 text-stone-800 dark:text-stone-100"
                     >
                       <div>
                         {/* Header: Status, Date, Bib Number & Delete */}
@@ -1690,21 +1690,21 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                             <span
                               className={`text-xs px-2.5 py-1 rounded-xl font-bold border flex items-center gap-1 ${
                                 isDNF
-                                  ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                  ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700'
                                   : isDNS
-                                  ? 'bg-stone-200 text-stone-700 border-stone-300'
-                                  : 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                                  ? 'bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-600'
+                                  : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                               }`}
                             >
-                              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                              <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                               <span>{isDNF ? 'DNF (미완주)' : isDNS ? 'DNS (불참)' : '🏆 완주 완료'}</span>
                             </span>
-                            <span className="text-xs text-stone-500 font-mono font-medium">{race.date}</span>
-                            <span className="text-[11px] text-stone-500 font-medium">({dDay.text})</span>
+                            <span className="text-xs text-stone-500 dark:text-stone-400 font-mono font-medium">{race.date}</span>
+                            <span className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">({dDay.text})</span>
 
                             {/* Bib Number Badge */}
-                            <span className="text-xs px-2.5 py-0.5 rounded-lg font-mono font-extrabold bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-1">
-                              <Tag className="w-3 h-3 text-purple-700" />
+                            <span className="text-xs px-2.5 py-0.5 rounded-lg font-mono font-extrabold bg-purple-100 dark:bg-purple-950/70 text-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-700 flex items-center gap-1">
+                              <Tag className="w-3 h-3 text-purple-700 dark:text-purple-400" />
                               <span>{race.bibNumber || '배번호 미등록'}</span>
                             </span>
                           </div>
@@ -1713,7 +1713,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                             <button
                               type="button"
                               onClick={() => handleOpenRecordResult(race)}
-                              className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
                               title="기록 및 배번호 수정"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1726,7 +1726,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                                 );
                                 if (ok) onDeleteRace(race.id);
                               }}
-                              className="p-1.5 text-stone-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-stone-400 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer"
                               title="삭제"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1735,38 +1735,38 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         </div>
 
                         {/* Title, Course & Location */}
-                        <h3 className="text-base sm:text-lg font-bold text-stone-900 mt-1 mb-1 tracking-tight">
+                        <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-stone-100 mt-1 mb-1 tracking-tight">
                           {race.name}
                         </h3>
-                        <div className="text-xs text-stone-600 flex items-center gap-2 mb-3">
-                          <span className="text-stone-800 font-semibold px-2 py-0.5 rounded bg-stone-100 border border-stone-200">
+                        <div className="text-xs text-stone-600 dark:text-stone-400 flex items-center gap-2 mb-3">
+                          <span className="text-stone-800 dark:text-stone-200 font-semibold px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
                             {race.course}
                             {race.customDistanceKm && !race.course.includes(`${race.customDistanceKm}`) ? ` (${race.customDistanceKm}km)` : ''}
                           </span>
                           <span>·</span>
-                          <span className="text-stone-500">{race.location}</span>
+                          <span className="text-stone-500 dark:text-stone-400">{race.location}</span>
                         </div>
 
                         {/* Actual Finish Record Showcase Box */}
-                        <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/80 via-teal-50/60 to-emerald-50/80 border border-emerald-300/80 space-y-1.5 mb-2.5">
+                        <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/80 via-teal-50/60 to-emerald-50/80 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-emerald-950/40 border border-emerald-300/80 dark:border-emerald-700/60 space-y-1.5 mb-2.5">
                           <div className="flex items-baseline justify-between">
-                            <span className="text-xs font-semibold text-emerald-950 flex items-center gap-1.5">
-                              <Clock className="w-4 h-4 text-emerald-700" />
+                            <span className="text-xs font-semibold text-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
+                              <Clock className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                               <span>실제 완주 기록</span>
                             </span>
-                            <span className="text-xl sm:text-2xl font-black font-athletic text-emerald-950 tracking-tight">
+                            <span className="text-xl sm:text-2xl font-black font-athletic text-emerald-950 dark:text-emerald-300 tracking-tight">
                               {race.actualRecord || '기록 미입력'}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-xs text-stone-700 pt-1 border-t border-emerald-200/60">
+                          <div className="flex items-center justify-between text-xs text-stone-700 dark:text-stone-300 pt-1 border-t border-emerald-200/60 dark:border-emerald-800/60">
                             <span className="font-mono">
-                              평균 페이스: <strong className="text-emerald-950">{race.actualPace || autoCalcPace(race.actualRecord || '', race.course, race.customDistanceKm) || '-'}</strong>
+                              평균 페이스: <strong className="text-emerald-950 dark:text-emerald-300">{race.actualPace || autoCalcPace(race.actualRecord || '', race.course, race.customDistanceKm) || '-'}</strong>
                               {race.actualPace && !race.actualPace.includes('/km') ? '/km' : ''}
                             </span>
 
                             {race.targetTime && race.actualRecord && (
-                              <span className="text-[11px] font-semibold text-stone-600">
+                              <span className="text-[11px] font-semibold text-stone-600 dark:text-stone-400">
                                 목표: {race.targetTime}
                               </span>
                             )}
@@ -1775,16 +1775,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
                         {/* Rank & Review if available */}
                         {(race.rank || race.raceReview) && (
-                          <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1.5">
+                          <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs space-y-1.5">
                             {race.rank && (
-                              <div className="flex items-center gap-1.5 text-stone-800 font-semibold">
-                                <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <div className="flex items-center gap-1.5 text-stone-800 dark:text-stone-200 font-semibold">
+                                <Award className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                                 <span>순위:</span>
-                                <span className="font-mono text-emerald-900">{race.rank}</span>
+                                <span className="font-mono text-emerald-900 dark:text-emerald-300">{race.rank}</span>
                               </div>
                             )}
                             {race.raceReview && (
-                              <div className="text-stone-600 text-[11px] italic leading-relaxed pl-1 border-l-2 border-amber-300">
+                              <div className="text-stone-600 dark:text-stone-300 text-[11px] italic leading-relaxed pl-1 border-l-2 border-amber-300 dark:border-amber-500">
                                 "{race.raceReview}"
                               </div>
                             )}
@@ -1793,8 +1793,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       </div>
 
                       {/* Footer Actions */}
-                      <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                        <span className="text-stone-500 font-medium">
+                      <div className="pt-3 border-t border-stone-100 dark:border-stone-750 flex items-center justify-between text-xs">
+                        <span className="text-stone-500 dark:text-stone-400 font-medium">
                           {dDay.text} 완주 완료
                         </span>
 
@@ -1804,7 +1804,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                               href={race.websiteUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-stone-600 hover:text-stone-900 hover:underline flex items-center gap-1 font-medium text-[11px]"
+                              className="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 hover:underline flex items-center gap-1 font-medium text-[11px]"
                             >
                               <span>홈페이지</span>
                               <ExternalLink className="w-3 h-3" />
@@ -1823,50 +1823,50 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       {/* 러닝화 등록 모달 */}
       {isShoeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-stone-200 shadow-2xl text-stone-800">
-            <h3 className="text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
-              <Footprints className="w-5 h-5 text-emerald-700" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 w-full max-w-md border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100">
+            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-4 flex items-center gap-2">
+              <Footprints className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
               <span>새 러닝화 등록</span>
             </h3>
 
             <form onSubmit={handleAddShoeSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">신발 이름 / 모델명</label>
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">신발 이름 / 모델명</label>
                 <input
                   type="text"
                   required
                   value={newShoeName}
                   onChange={(e) => setNewShoeName(e.target.value)}
                   placeholder="예: 알파플라이 3, 줌 플라이 5"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">브랜드</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">브랜드</label>
                   <input
                     type="text"
                     required
                     value={newShoeBrand}
                     onChange={(e) => setNewShoeBrand(e.target.value)}
                     placeholder="Nike, Adidas..."
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">사이즈 (mm)</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">사이즈 (mm)</label>
                   <input
                     type="text"
                     value={newShoeSize}
                     onChange={(e) => setNewShoeSize(e.target.value)}
                     placeholder="직접 입력 (선택)"
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">카테고리</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">카테고리</label>
                   <select
                     value={newShoeCategory}
                     onChange={(e) => {
@@ -1874,7 +1874,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       setNewShoeCategory(cat);
                       setNewShoeMaxMileage(cat === '레이싱' ? '300' : '600');
                     }}
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white text-stone-800 font-medium"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-medium"
                   >
                     <option value="데일리">데일리 (조깅용)</option>
                     <option value="스피드">스피드 (인터벌/템포)</option>
@@ -1887,7 +1887,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">현재 주행거리 (km)</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">현재 주행거리 (km)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1895,25 +1895,25 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     value={newShoeMileage}
                     onChange={(e) => setNewShoeMileage(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">목표 교체 수명 (km)</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">목표 교체 수명 (km)</label>
                   <input
                     type="number"
                     min="100"
                     step="50"
                     value={newShoeMaxMileage}
                     onChange={(e) => setNewShoeMaxMileage(e.target.value)}
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold"
                   />
                 </div>
               </div>
 
               {/* Quick Lifespan Mileage Presets */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
-                <span className="text-[11px] font-semibold text-stone-700 block">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-2">
+                <span className="text-[11px] font-semibold text-stone-700 dark:text-stone-300 block">
                   카테고리별 권장 수명 프리셋 선택:
                 </span>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1922,8 +1922,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     onClick={() => setNewShoeMaxMileage('300')}
                     className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
                       newShoeMaxMileage === '300'
-                        ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:text-stone-900'
+                        ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-700 hover:text-stone-900 dark:hover:text-stone-100'
                     }`}
                   >
                     300km (카본 레이싱)
@@ -1933,8 +1933,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     onClick={() => setNewShoeMaxMileage('450')}
                     className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
                       newShoeMaxMileage === '450'
-                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:text-stone-900'
+                        ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-700 hover:text-stone-900 dark:hover:text-stone-100'
                     }`}
                   >
                     450km (스피드/템포)
@@ -1944,8 +1944,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     onClick={() => setNewShoeMaxMileage('600')}
                     className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
                       newShoeMaxMileage === '600'
-                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:text-stone-900'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-700 hover:text-stone-900 dark:hover:text-stone-100'
                     }`}
                   >
                     600km (데일리 쿠션)
@@ -1955,8 +1955,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     onClick={() => setNewShoeMaxMileage('700')}
                     className={`px-2 py-1.5 text-[11px] rounded-lg border text-left transition-all cursor-pointer ${
                       newShoeMaxMileage === '700'
-                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-                        : 'bg-white text-stone-600 border-stone-200 hover:text-stone-900'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
+                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400 border-stone-200 dark:border-stone-700 hover:text-stone-900 dark:hover:text-stone-100'
                     }`}
                   >
                     700km (장거리 맥스쿠션)
@@ -1964,11 +1964,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-200">
+              <div className="flex justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setIsShoeModalOpen(false)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>
@@ -1986,18 +1986,18 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       {/* 참가 대회 등록 모달 (참가 예정 및 지난 대회 완주 기록 직접 등록 지원) */}
       {isRaceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg border border-stone-200 shadow-2xl text-stone-800 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 w-full max-w-lg border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
                 {newRaceIsPastMode ? (
                   <>
-                    <History className="w-5 h-5 text-amber-700" />
+                    <History className="w-5 h-5 text-amber-700 dark:text-amber-400" />
                     <span>지난 대회 완주 기록 직접 등록</span>
                   </>
                 ) : (
                   <>
-                    <Calendar className="w-5 h-5 text-rose-800" />
+                    <Calendar className="w-5 h-5 text-rose-800 dark:text-rose-400" />
                     <span>새 마라톤 대회 등록</span>
                   </>
                 )}
@@ -2005,14 +2005,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRaceModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 text-xs px-2 py-1 cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 text-xs px-2 py-1 cursor-pointer"
               >
                 닫기
               </button>
             </div>
 
             {/* Mode Toggle inside Modal */}
-            <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl border border-stone-200 mb-4">
+            <div className="flex items-center gap-1.5 p-1 bg-stone-100 dark:bg-stone-850 rounded-xl border border-stone-200 dark:border-stone-750 mb-4">
               <button
                 type="button"
                 onClick={() => {
@@ -2021,8 +2021,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   !newRaceIsPastMode
-                    ? 'bg-white text-stone-900 shadow-xs border border-stone-200'
-                    : 'text-stone-600 hover:text-stone-900'
+                    ? 'bg-white dark:bg-stone-800 text-stone-900 dark:text-stone-100 shadow-xs border border-stone-200 dark:border-stone-700'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
                 }`}
               >
                 🏃 참가 예정 대회
@@ -2036,8 +2036,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 }}
                 className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   newRaceIsPastMode
-                    ? 'bg-white text-amber-900 shadow-xs border border-stone-200'
-                    : 'text-stone-600 hover:text-stone-900'
+                    ? 'bg-white dark:bg-stone-800 text-amber-900 dark:text-amber-300 shadow-xs border border-stone-200 dark:border-stone-700'
+                    : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100'
                 }`}
               >
                 🏅 지난 대회 완주 기록
@@ -2047,8 +2047,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <form onSubmit={handleAddRaceSubmit} className="space-y-4">
               {/* 대회명 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  대회명 <span className="text-rose-700">*</span>
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                  대회명 <span className="text-rose-700 dark:text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -2056,7 +2056,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   value={newRaceName}
                   onChange={(e) => setNewRaceName(e.target.value)}
                   placeholder="예: 2026 손기정 평화마라톤, 2025 JTBC 서울마라톤"
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold text-stone-800"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs font-semibold"
                 />
               </div>
 
@@ -2064,9 +2064,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-stone-700">대회 일자 (날짜)</label>
+                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">대회 일자 (날짜)</label>
                     {newRaceDate && (
-                      <span className="text-[11px] font-bold text-rose-900 font-athletic">
+                      <span className="text-[11px] font-bold text-rose-900 dark:text-rose-400 font-athletic">
                         {calculateDDay(newRaceDate).text}
                       </span>
                     )}
@@ -2083,12 +2083,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         setNewRaceStatus('completed');
                       }
                     }}
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800 font-medium"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">참가 코스</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">참가 코스</label>
                   <select
                     value={newRaceCourse}
                     onChange={(e) => {
@@ -2104,7 +2104,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         }
                       }
                     }}
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white text-stone-800 font-medium"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-medium"
                   >
                     {STANDARD_COURSE_PRESETS.map((preset) => (
                       <option key={preset} value={preset}>
@@ -2117,21 +2117,21 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               {/* 기타 코스 거리 직접 설정 패널 */}
               {newRaceCourse === '기타 (거리 직접 입력)' && (
-                <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 space-y-3 animate-fadeIn">
+                <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
-                      <Target className="w-4 h-4 text-purple-700" />
+                    <span className="text-xs font-bold text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
+                      <Target className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                       <span>기타 코스 거리 직접 설정</span>
                     </span>
-                    <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[10px] text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded font-semibold">
                       거리(km) 자유 설정
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        코스 거리 (km) <span className="text-rose-700">*</span>
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                        코스 거리 (km) <span className="text-rose-700 dark:text-rose-400">*</span>
                       </label>
                       <input
                         type="number"
@@ -2150,12 +2150,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           }
                         }}
                         placeholder="예: 7.5, 32, 15, 25"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-600"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 dark:text-purple-200 focus:border-purple-600"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                         코스 명칭 (선택)
                       </label>
                       <input
@@ -2163,14 +2163,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         value={newRaceCustomCourseName}
                         onChange={(e) => setNewRaceCustomCourseName(e.target.value)}
                         placeholder="예: 7.5km 단축, 25K 트레일"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs"
                       />
                     </div>
                   </div>
 
                   {/* 자주 달리는 기타 거리 빠른 선택 */}
                   <div>
-                    <span className="text-[10px] text-stone-500 font-medium block mb-1">
+                    <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium block mb-1">
                       자주 달리는 코스 거리 빠른 선택:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -2189,7 +2189,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer border ${
                             newRaceCustomKm === String(dist)
                               ? 'bg-purple-700 text-white border-purple-800 shadow-2xs'
-                              : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100'
+                              : 'bg-white dark:bg-stone-850 text-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/60'
                           }`}
                         >
                           {dist}km
@@ -2203,45 +2203,45 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               {/* 개최 장소 & 배번호 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">개최 장소</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">개최 장소</label>
                   <input
                     type="text"
                     value={newRaceLocation}
                     onChange={(e) => setNewRaceLocation(e.target.value)}
                     placeholder="예: 서울 잠실종합운동장"
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center justify-between">
                     <span className="flex items-center gap-1">
-                      <Tag className="w-3.5 h-3.5 text-purple-700" />
+                      <Tag className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                       <span>배번호 (Bib No.)</span>
                     </span>
-                    <span className="text-[10px] text-stone-400 font-normal">선택</span>
+                    <span className="text-[10px] text-stone-400 dark:text-stone-500 font-normal">선택</span>
                   </label>
                   <input
                     type="text"
                     value={newRaceBibNumber}
                     onChange={(e) => setNewRaceBibNumber(e.target.value)}
                     placeholder="예: #11111, A-1024"
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-500"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 dark:text-purple-200 focus:border-purple-500"
                   />
                 </div>
               </div>
 
               {/* 대회 중요도 & 목표 기록 (예정 대회일 때) */}
               {!newRaceIsPastMode && (
-                <div className="space-y-3 p-3 rounded-xl bg-stone-50 border border-stone-200">
+                <div className="space-y-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750">
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                       대회 중요도 (우선순위 & 테이퍼링 강도 설정)
                     </label>
                     <select
                       value={newRacePriority}
                       onChange={(e) => setNewRacePriority(e.target.value as 'A' | 'B' | 'C')}
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-semibold"
                     >
                       <option value="A">A-Race (최우선 메인 목표) — 전력 완주 & 2~3주 정밀 테이퍼링</option>
                       <option value="B">B-Race (중간 점검 / 준비) — 실전 페이스 점검 & 3~5일 미니 감량</option>
@@ -2250,7 +2250,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                       대회 목표 완주 기록 (선택)
                     </label>
                     <input
@@ -2258,7 +2258,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       value={newRaceTargetTime}
                       onChange={(e) => setNewRaceTargetTime(e.target.value)}
                       placeholder="예: 03:29:59 (hh:mm:ss)"
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold text-stone-800"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
                     />
                   </div>
                 </div>
@@ -2266,20 +2266,20 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               {/* 지난 대회 완주 기록 섹션 (과거 모드이거나 날짜가 지난 경우) */}
               {(newRaceIsPastMode || calculateDDay(newRaceDate).isPassed) && (
-                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-3 animate-fadeIn">
+                <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                      <Trophy className="w-4 h-4 text-amber-700" />
+                    <span className="text-xs font-bold text-amber-950 dark:text-amber-300 flex items-center gap-1.5">
+                      <Trophy className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                       <span>실제 완주 기록 및 대회 성적 (히스토리)</span>
                     </span>
-                    <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[10px] text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded font-semibold">
                       완주 히스토리 탭에 자동 저장
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                         실제 완주 시간 (hh:mm:ss)
                       </label>
                       <input
@@ -2291,12 +2291,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           setNewRaceActualPace(autoCalcPace(val, newRaceCourse, newRaceCustomKm));
                         }}
                         placeholder="예: 01:29:45, 03:15:20"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-black text-emerald-950 focus:border-emerald-600"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-black text-emerald-950 dark:text-emerald-300 focus:border-emerald-600"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                         평균 페이스 (자동 계산)
                       </label>
                       <input
@@ -2304,18 +2304,18 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         value={newRaceActualPace}
                         onChange={(e) => setNewRaceActualPace(e.target.value)}
                         placeholder="예: 4'15&quot;"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">참가 상태</label>
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">참가 상태</label>
                       <select
                         value={newRaceStatus}
                         onChange={(e) => setNewRaceStatus(e.target.value as 'completed' | 'scheduled' | 'dnf' | 'dns')}
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-semibold"
                       >
                         <option value="completed">🏆 완주 (Completed)</option>
                         <option value="dnf">⚠️ DNF (중도 포기)</option>
@@ -2324,19 +2324,19 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">대회 순위 (선택)</label>
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">대회 순위 (선택)</label>
                       <input
                         type="text"
                         value={newRaceRank}
                         onChange={(e) => setNewRaceRank(e.target.value)}
                         placeholder="예: 전체 142위 / 3,500명"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
+                    <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                       대회 소감 및 후기 (선택)
                     </label>
                     <textarea
@@ -2344,17 +2344,17 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       value={newRaceReview}
                       onChange={(e) => setNewRaceReview(e.target.value)}
                       placeholder="대회 당일 코스 컨디션, 날씨, 페이스 전략, 느낀 점 등을 메모하세요."
-                      className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800 resize-none"
+                      className="w-full px-3 py-2 glass-input rounded-xl text-xs resize-none"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-200">
+              <div className="flex justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setIsRaceModalOpen(false)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>
@@ -2373,17 +2373,17 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       {/* 러닝화 전체 정보 및 마일리지 수정 모달 */}
       {editingShoe && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-stone-200 shadow-2xl text-stone-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 w-full max-w-md border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-emerald-700" />
+              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
                 <span>러닝화 정보 및 사이즈 수정</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingShoe(null)}
-                className="text-stone-400 hover:text-stone-700 text-xs px-2 py-1 cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 text-xs px-2 py-1 cursor-pointer"
               >
                 닫기
               </button>
@@ -2392,8 +2392,8 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <form onSubmit={handleSaveEditShoeSubmit} className="space-y-4">
               {/* 1. 신발 모델명 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  신발 이름 / 모델명 <span className="text-rose-700">*</span>
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                  신발 이름 / 모델명 <span className="text-rose-700 dark:text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -2401,44 +2401,44 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   value={editShoeName}
                   onChange={(e) => setEditShoeName(e.target.value)}
                   placeholder="예: 알파플라이 3, 줌 플라이 5"
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-bold text-stone-900 focus:border-emerald-600"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-bold text-stone-900 dark:text-stone-100 focus:border-emerald-600"
                 />
               </div>
 
               {/* 2. 브랜드, 사이즈 & 카테고리 */}
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">브랜드</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">브랜드</label>
                   <input
                     type="text"
                     required
                     value={editShoeBrand}
                     onChange={(e) => setEditShoeBrand(e.target.value)}
                     placeholder="Nike, Adidas..."
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800 dark:text-stone-200"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">사이즈 (mm)</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">사이즈 (mm)</label>
                   <input
                     type="text"
                     value={editShoeSize}
                     onChange={(e) => setEditShoeSize(e.target.value)}
                     placeholder="직접 입력 (선택)"
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-900 focus:border-emerald-600"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-stone-900 dark:text-stone-100 focus:border-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">카테고리</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">카테고리</label>
                   <select
                     value={editShoeCategory}
                     onChange={(e) => {
                       const cat = e.target.value as ShoeCategory;
                       setEditShoeCategory(cat);
                     }}
-                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white text-stone-800"
+                    className="w-full px-3 py-2 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200"
                   >
                     <option value="데일리">데일리 (조깅용)</option>
                     <option value="스피드">스피드 (인터벌/템포)</option>
@@ -2452,7 +2452,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               {/* 3. 누적 마일리지 & 목표 권장 수명 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-emerald-800 mb-1">
+                  <label className="block text-xs font-semibold text-emerald-800 dark:text-emerald-400 mb-1">
                     현재 누적 주행거리 (km)
                   </label>
                   <input
@@ -2463,12 +2463,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     value={editMileage}
                     onChange={(e) => setEditMileage(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-stone-900 focus:border-emerald-600"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-stone-900 dark:text-stone-100 focus:border-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                     목표 수명 마일리지 (km)
                   </label>
                   <input
@@ -2478,34 +2478,34 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     required
                     value={editMaxMileage}
                     onChange={(e) => setEditMaxMileage(e.target.value)}
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono text-stone-800 font-bold"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono text-stone-800 dark:text-stone-200 font-bold"
                   />
                   <div className="flex gap-1 mt-1.5 flex-wrap">
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('300')}
-                      className="px-2 py-0.5 text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 rounded cursor-pointer transition-colors border border-stone-200"
+                      className="px-2 py-0.5 text-[10px] bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 rounded cursor-pointer transition-colors border border-stone-200 dark:border-stone-700"
                     >
                       300km (레이싱)
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('450')}
-                      className="px-2 py-0.5 text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 rounded cursor-pointer transition-colors border border-stone-200"
+                      className="px-2 py-0.5 text-[10px] bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 rounded cursor-pointer transition-colors border border-stone-200 dark:border-stone-700"
                     >
                       450km (스피드)
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('600')}
-                      className="px-2 py-0.5 text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 rounded cursor-pointer transition-colors border border-stone-200"
+                      className="px-2 py-0.5 text-[10px] bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 rounded cursor-pointer transition-colors border border-stone-200 dark:border-stone-700"
                     >
                       600km (데일리)
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditMaxMileage('700')}
-                      className="px-2 py-0.5 text-[10px] bg-stone-100 hover:bg-stone-200 text-stone-700 rounded cursor-pointer transition-colors border border-stone-200"
+                      className="px-2 py-0.5 text-[10px] bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 rounded cursor-pointer transition-colors border border-stone-200 dark:border-stone-700"
                     >
                       700km (LSD)
                     </button>
@@ -2524,23 +2524,23 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 const isWarning = wearPct >= 50 && wearPct < 80;
 
                 return (
-                  <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                  <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-stone-600 font-medium">수명 소진율 및 상태 프리뷰</span>
+                      <span className="text-stone-600 dark:text-stone-400 font-medium">수명 소진율 및 상태 프리뷰</span>
                       <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded ${
                         isOverdue
-                          ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                          ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-700'
                           : isNearLimit
-                          ? 'bg-orange-100 text-orange-900 border border-orange-300'
+                          ? 'bg-orange-100 dark:bg-orange-950/70 text-orange-900 dark:text-orange-300 border border-orange-300 dark:border-orange-700'
                           : isWarning
-                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                          : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                          : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
                       }`}>
                         {wearPct}% {isOverdue ? '(수명 종료)' : isNearLimit ? '(80% 도달)' : isWarning ? '(50% 도달)' : '(양호)'}
                       </span>
                     </div>
 
-                    <div className="w-full h-2 rounded-full bg-stone-200 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-300 ${
                           isOverdue
@@ -2555,14 +2555,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       />
                     </div>
 
-                    <p className="text-[11px] text-stone-600">
+                    <p className="text-[11px] text-stone-600 dark:text-stone-400">
                       {remaining <= 0 ? (
-                        <span className="text-rose-900 font-semibold">
+                        <span className="text-rose-900 dark:text-rose-300 font-semibold">
                           ⚠️ 권장 수명을 {Math.abs(remaining)}km 초과했습니다. 쿠션 꺼짐으로 인한 무릎·발목 충격 주의!
                         </span>
                       ) : (
                         <span>
-                          수명 한계까지 약 <strong className="text-emerald-800 font-mono font-bold">{remaining}km</strong> 남았습니다.
+                          수명 한계까지 약 <strong className="text-emerald-800 dark:text-emerald-400 font-mono font-bold">{remaining}km</strong> 남았습니다.
                         </span>
                       )}
                     </p>
@@ -2570,11 +2570,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 );
               })()}
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setEditingShoe(null)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>
@@ -2593,20 +2593,20 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       {/* 대회별 중요도 및 목표 완주 기록 수정 모달 */}
       {editingRaceForTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-stone-200 shadow-2xl text-stone-800 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-stone-900 mb-2 flex items-center gap-2">
-              <Target className="w-5 h-5 text-rose-800" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 w-full max-w-md border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 mb-2 flex items-center gap-2">
+              <Target className="w-5 h-5 text-rose-800 dark:text-rose-400" />
               <span>대회 정보·목표·배번호 수정</span>
             </h3>
-            <p className="text-xs text-stone-600 mb-4">
-              <strong className="text-stone-900">{editingRaceForTarget.name}</strong> ({editingRaceForTarget.course})의 참가 코스, 목표 기록, 배번호 및 대회 중요도를 한곳에서 수정합니다.
+            <p className="text-xs text-stone-600 dark:text-stone-400 mb-4">
+              <strong className="text-stone-900 dark:text-stone-100">{editingRaceForTarget.name}</strong> ({editingRaceForTarget.course})의 참가 코스, 목표 기록, 배번호 및 대회 중요도를 한곳에서 수정합니다.
             </p>
 
             <form onSubmit={handleSaveRaceTargetSubmit} className="space-y-4">
               {/* 참가 코스 & 기타 거리 설정 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   참가 코스
                 </label>
                 <select
@@ -2624,7 +2624,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       }
                     }
                   }}
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-semibold"
                 >
                   {STANDARD_COURSE_PRESETS.map((preset) => (
                     <option key={preset} value={preset}>
@@ -2636,21 +2636,21 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               {/* 기타 코스 거리 직접 입력 (수정 모달) */}
               {editRaceCourse === '기타 (거리 직접 입력)' && (
-                <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200/80 space-y-3 animate-fadeIn">
+                <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
-                      <Target className="w-4 h-4 text-purple-700" />
+                    <span className="text-xs font-bold text-purple-950 dark:text-purple-300 flex items-center gap-1.5">
+                      <Target className="w-4 h-4 text-purple-700 dark:text-purple-400" />
                       <span>기타 코스 거리 직접 설정</span>
                     </span>
-                    <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
+                    <span className="text-[10px] text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-2 py-0.5 rounded font-semibold">
                       소수점 거리 지원 (km)
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
-                        코스 거리 (km) <span className="text-rose-700">*</span>
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                        코스 거리 (km) <span className="text-rose-700 dark:text-rose-400">*</span>
                       </label>
                       <input
                         type="number"
@@ -2669,12 +2669,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           }
                         }}
                         placeholder="예: 7.5, 32, 15, 25"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-600"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 dark:text-purple-200 focus:border-purple-600"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                         코스 명칭 (선택)
                       </label>
                       <input
@@ -2682,14 +2682,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         value={editRaceCustomCourseName}
                         onChange={(e) => setEditRaceCustomCourseName(e.target.value)}
                         placeholder="예: 7.5km 단축, 25K 트레일"
-                        className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800"
+                        className="w-full px-3 py-2 glass-input rounded-xl text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Quick Preset Buttons */}
                   <div>
-                    <span className="text-[10px] text-stone-500 font-medium block mb-1">
+                    <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium block mb-1">
                       자주 달리는 코스 거리 빠른 선택:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -2708,7 +2708,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                           className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer border ${
                             editRaceCustomKm === String(dist)
                               ? 'bg-purple-700 text-white border-purple-800 shadow-2xs'
-                              : 'bg-white text-purple-900 border-purple-200 hover:bg-purple-100'
+                              : 'bg-white dark:bg-stone-850 text-purple-900 dark:text-purple-300 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-950/60'
                           }`}
                         >
                           {dist}km
@@ -2721,68 +2721,68 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               {/* 1. 목표 완주 시간 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Target className="w-3.5 h-3.5 text-rose-700" />
+                    <Target className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" />
                     <span>목표 완주 시간 (hh:mm:ss)</span>
                   </span>
-                  <span className="text-[10px] text-stone-400">예: 03:19:59</span>
+                  <span className="text-[10px] text-stone-400 dark:text-stone-500">예: 03:19:59</span>
                 </label>
                 <input
                   type="text"
                   value={editRaceTargetTime}
                   onChange={(e) => setEditRaceTargetTime(e.target.value)}
                   placeholder="예: 03:19:59"
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-stone-900 focus:border-rose-500"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-bold text-stone-900 dark:text-stone-100 focus:border-rose-500"
                 />
-                <span className="text-[10px] text-stone-500 mt-1 block">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 mt-1 block">
                   대회마다 목표 완주 기록을 개별적으로 설정하여 관리할 수 있습니다.
                 </span>
               </div>
 
               {/* 2. 배번호 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5 text-purple-700" />
+                    <Tag className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                     <span>배번호 (Bib Number)</span>
                   </span>
-                  <span className="text-[10px] text-stone-400">예: #11111</span>
+                  <span className="text-[10px] text-stone-400 dark:text-stone-500">예: #11111</span>
                 </label>
                 <input
                   type="text"
                   value={editRaceBibNumber}
                   onChange={(e) => setEditRaceBibNumber(e.target.value)}
                   placeholder="예: #11111, A-1024"
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-500"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 dark:text-purple-200 focus:border-purple-500"
                 />
               </div>
 
               {/* 3. 대회 중요도 (우선순위) */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   대회 중요도 (우선순위 & 테이퍼링 강도)
                 </label>
                 <select
                   value={editRacePriority}
                   onChange={(e) => setEditRacePriority(e.target.value as 'A' | 'B' | 'C')}
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-semibold"
                 >
                   <option value="A">A-Race (최우선 메인 목표) — 전력 완주 & 2~3주 정밀 테이퍼링</option>
                   <option value="B">B-Race (중간 점검 / 준비) — 실전 페이스 점검 & 3~5일 미니 감량</option>
                   <option value="C">C-Race (연습 / 훈련 대회) — 훈련용 대회 & 테이퍼링 최소화(마일리지 유지)</option>
                 </select>
-                <span className="text-[10px] text-stone-500 mt-1 block keep-all">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 mt-1 block keep-all">
                   💡 <strong>테이퍼링 자동 연동:</strong> C-Race나 목표 강도가 낮은 대회는 조기 감량으로 인한 심폐 능력 저하를 막기 위해 테이퍼링을 최소화하고 주간 훈련 마일리지를 온전히 유지합니다.
                 </span>
               </div>
 
               {/* 4. 실제 완주 기록 & 평균 페이스 (선택) */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-2.5">
-                <span className="text-xs font-bold text-stone-800 block">🏅 실제 대회 결과 (기록이 있을 때)</span>
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-2.5">
+                <span className="text-xs font-bold text-stone-800 dark:text-stone-200 block">🏅 실제 대회 결과 (기록이 있을 때)</span>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">실제 완주 시간</label>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">실제 완주 시간</label>
                     <input
                       type="text"
                       value={editRaceActualRecord}
@@ -2793,28 +2793,28 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                         setEditRaceActualPace(autoCalcPace(val, isCustom ? (editRaceCustomCourseName || '기타') : editRaceCourse, isCustom ? editRaceCustomKm : undefined));
                       }}
                       placeholder="예: 01:29:45"
-                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs font-mono font-bold text-stone-900"
+                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs font-mono font-bold text-stone-900 dark:text-stone-100"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">평균 페이스</label>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">평균 페이스</label>
                     <input
                       type="text"
                       value={editRaceActualPace}
                       onChange={(e) => setEditRaceActualPace(e.target.value)}
                       placeholder="예: 4'15&quot;"
-                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs font-mono text-stone-800"
+                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs font-mono text-stone-800 dark:text-stone-200"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">참가 상태</label>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">참가 상태</label>
                     <select
                       value={editRaceStatus}
                       onChange={(e) => setEditRaceStatus(e.target.value as 'completed' | 'scheduled' | 'dnf' | 'dns')}
-                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs bg-white text-stone-800 font-medium"
+                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-medium"
                     >
                       <option value="scheduled">참가 예정 (Scheduled)</option>
                       <option value="completed">🏆 완주 완료 (Completed)</option>
@@ -2823,50 +2823,50 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">순위 (선택)</label>
+                    <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">순위 (선택)</label>
                     <input
                       type="text"
                       value={editRaceRank}
                       onChange={(e) => setEditRaceRank(e.target.value)}
                       placeholder="예: 전체 142위"
-                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs text-stone-800"
+                      className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs text-stone-800 dark:text-stone-200"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-stone-600 mb-1">소감 및 후기 메모</label>
+                  <label className="block text-[11px] font-semibold text-stone-600 dark:text-stone-400 mb-1">소감 및 후기 메모</label>
                   <textarea
                     rows={2}
                     value={editRaceReview}
                     onChange={(e) => setEditRaceReview(e.target.value)}
                     placeholder="대회 메모"
-                    className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs text-stone-800 resize-none"
+                    className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs text-stone-800 dark:text-stone-200 resize-none"
                   />
                 </div>
               </div>
 
               {/* 5. 대표 목표 대회 설정 여부 */}
-              <div className="p-3 rounded-xl bg-stone-50 border border-stone-200">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800 dark:text-stone-200">
                   <input
                     type="checkbox"
                     checked={editRaceIsTarget}
                     onChange={(e) => setEditRaceIsTarget(e.target.checked)}
-                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-stone-300"
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-stone-300 dark:border-stone-600"
                   />
                   <span>이 대회를 대표 메인 목표 대회로 지정</span>
                 </label>
-                <span className="text-[10px] text-stone-500 mt-1 block pl-6">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 mt-1 block pl-6">
                   * 홈 화면 상단 D-Day 위젯과 훈련 계획 생성 시 최우선 기준으로 분석됩니다.
                 </span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setEditingRaceForTarget(null)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>
@@ -2885,32 +2885,32 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
       {/* 4. 대회 실제 완주 기록 & 배번호 입력 전용 모달 */}
       {recordingRaceResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-stone-200 shadow-2xl text-stone-800 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-6 w-full max-w-md border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-600" />
+              <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 <span>대회 실제 완주 기록 & 배번호 입력</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setRecordingRaceResult(null)}
-                className="text-stone-400 hover:text-stone-700 text-xs px-2 py-1 cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 text-xs px-2 py-1 cursor-pointer"
               >
                 닫기
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 mb-4 text-xs space-y-1">
-              <div className="font-bold text-stone-900 text-sm">{recordingRaceResult.name}</div>
-              <div className="text-stone-600 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 mb-4 text-xs space-y-1">
+              <div className="font-bold text-stone-900 dark:text-stone-100 text-sm">{recordingRaceResult.name}</div>
+              <div className="text-stone-600 dark:text-stone-400 flex items-center gap-2">
                 <span>{recordingRaceResult.date}</span>
                 <span>·</span>
-                <span className="font-semibold text-rose-800">{recordingRaceResult.course}</span>
+                <span className="font-semibold text-rose-800 dark:text-rose-400">{recordingRaceResult.course}</span>
                 {recordingRaceResult.targetTime && (
                   <>
                     <span>·</span>
-                    <span className="text-stone-500 font-mono">목표: {recordingRaceResult.targetTime}</span>
+                    <span className="text-stone-500 dark:text-stone-400 font-mono">목표: {recordingRaceResult.targetTime}</span>
                   </>
                 )}
               </div>
@@ -2919,26 +2919,26 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             <form onSubmit={handleSaveRaceResultSubmit} className="space-y-4">
               {/* 배번호 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5 text-purple-700" />
+                    <Tag className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                     <span>배번호 (Bib Number)</span>
                   </span>
-                  <span className="text-[10px] text-stone-400">예: #11111</span>
+                  <span className="text-[10px] text-stone-400 dark:text-stone-500">예: #11111</span>
                 </label>
                 <input
                   type="text"
                   value={resultBibNumber}
                   onChange={(e) => setResultBibNumber(e.target.value)}
                   placeholder="예: #11111, A-1024"
-                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 focus:border-purple-500"
+                  className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold text-purple-950 dark:text-purple-200 focus:border-purple-500"
                 />
               </div>
 
               {/* 코스 거리 확인 및 직접 설정 */}
-              <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-purple-950 font-semibold flex items-center gap-1.5 whitespace-nowrap">
-                  <Target className="w-3.5 h-3.5 text-purple-700" />
+              <div className="p-3 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-purple-950 dark:text-purple-300 font-semibold flex items-center gap-1.5 whitespace-nowrap">
+                  <Target className="w-3.5 h-3.5 text-purple-700 dark:text-purple-400" />
                   <span>코스 거리 (km 단위 직접 설정)</span>
                 </span>
                 <div className="flex items-center gap-1.5 self-end sm:self-auto">
@@ -2955,17 +2955,17 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       }
                     }}
                     placeholder="예: 21.0975, 10.0, 7.5"
-                    className="w-28 px-2 py-1 glass-input rounded-lg text-xs font-mono font-bold text-purple-950 text-right focus:border-purple-600"
+                    className="w-28 px-2 py-1 glass-input rounded-lg text-xs font-mono font-bold text-purple-950 dark:text-purple-200 text-right focus:border-purple-600"
                   />
-                  <span className="text-stone-500 font-mono text-[11px]">km</span>
+                  <span className="text-stone-500 dark:text-stone-400 font-mono text-[11px]">km</span>
                 </div>
               </div>
 
               {/* 실제 완주 기록 & 평균 페이스 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
-                    실제 완주 기록 (hh:mm:ss) <span className="text-rose-700">*</span>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                    실제 완주 기록 (hh:mm:ss) <span className="text-rose-700 dark:text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -2977,12 +2977,12 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       setResultActualPace(autoCalcPace(val, recordingRaceResult.course, resultCustomKm));
                     }}
                     placeholder="예: 01:29:45"
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-black text-emerald-950 focus:border-emerald-600"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-sm font-mono font-black text-emerald-950 dark:text-emerald-300 focus:border-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                     평균 페이스
                   </label>
                   <input
@@ -2990,14 +2990,14 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                     value={resultActualPace}
                     onChange={(e) => setResultActualPace(e.target.value)}
                     placeholder="예: 4'15&quot;"
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold text-stone-800"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs font-mono font-bold"
                   />
                 </div>
               </div>
 
               {/* Target Comparison Realtime Alert */}
               {recordingRaceResult.targetTime && resultActualRecord && (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
+                <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-300 flex items-center justify-between">
                   <span className="font-semibold">목표({recordingRaceResult.targetTime}) 대비 성적</span>
                   <span className="font-mono font-bold">
                     {resultActualRecord <= recordingRaceResult.targetTime
@@ -3010,11 +3010,11 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
               {/* 참가 상태 & 순위 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">참가 상태</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">참가 상태</label>
                   <select
                     value={resultStatus}
                     onChange={(e) => setResultStatus(e.target.value as 'completed' | 'dnf' | 'dns')}
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white text-stone-800 font-semibold"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-200 font-semibold"
                   >
                     <option value="completed">🏆 완주 (Completed)</option>
                     <option value="dnf">⚠️ DNF (중도 포기)</option>
@@ -3023,20 +3023,20 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1">순위 (선택)</label>
+                  <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">순위 (선택)</label>
                   <input
                     type="text"
                     value={resultRank}
                     onChange={(e) => setResultRank(e.target.value)}
                     placeholder="예: 전체 142위 / 연령대 18위"
-                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs text-stone-800"
+                    className="w-full px-3 py-2.5 glass-input rounded-xl text-xs"
                   />
                 </div>
               </div>
 
               {/* 대회 소감 및 후기 */}
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   대회 소감 및 후기 (선택)
                 </label>
                 <textarea
@@ -3044,15 +3044,15 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   value={resultReview}
                   onChange={(e) => setResultReview(e.target.value)}
                   placeholder="대회 당일 코스 상태, 날씨, 페이스 전략, 느낀 점 등을 메모하세요."
-                  className="w-full px-3 py-2 glass-input rounded-xl text-xs text-stone-800 resize-none"
+                  className="w-full px-3 py-2 glass-input rounded-xl text-xs resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setRecordingRaceResult(null)}
-                  className="px-4 py-2 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  className="px-4 py-2 text-xs text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 rounded-xl cursor-pointer"
                 >
                   취소
                 </button>

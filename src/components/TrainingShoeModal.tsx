@@ -132,50 +132,50 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-lg rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-stone-800">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-stone-800 dark:text-stone-100">
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+        <div className="p-4 sm:p-5 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between bg-stone-50 dark:bg-stone-850">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-gradient-to-br from-rose-800 to-rose-950 text-white border border-rose-700/40 shadow-xs">
               <span className="text-lg">👟</span>
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
                 <span>훈련 착용 러닝화 입력 / 선택</span>
               </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                 기록된 훈련에 착용한 러닝화를 지정합니다.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Training Session Info Badge */}
-        <div className="px-4 sm:px-5 py-3 bg-stone-100/70 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="px-4 sm:px-5 py-3 bg-stone-100/70 dark:bg-stone-850/80 border-b border-stone-200 dark:border-stone-750 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-mono font-semibold border border-emerald-300">
+            <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-mono font-semibold border border-emerald-300 dark:border-emerald-700">
               {session.date}
             </span>
-            <span className="font-bold text-stone-900 truncate max-w-[200px] sm:max-w-xs">
+            <span className="font-bold text-stone-900 dark:text-white truncate max-w-[200px] sm:max-w-xs">
               {session.title}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-stone-600">
-            <span>거리: <strong className="text-stone-900 font-athletic font-bold">{session.totalDistanceKm}km</strong></span>
+          <div className="flex items-center gap-2 text-[11px] text-stone-600 dark:text-stone-400">
+            <span>거리: <strong className="text-stone-900 dark:text-white font-athletic font-bold">{session.totalDistanceKm}km</strong></span>
             <span>·</span>
-            <span>페이스: <strong className="text-rose-900 font-athletic font-bold">{session.avgPace}</strong></span>
+            <span>페이스: <strong className="text-rose-900 dark:text-rose-400 font-athletic font-bold">{session.avgPace}</strong></span>
           </div>
         </div>
 
         {/* Notice Banner: No mileage link */}
-        <div className="px-4 sm:px-5 py-2.5 bg-emerald-50 border-b border-emerald-200 text-[11px] text-emerald-900 flex items-center gap-2 font-medium">
-          <Info className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+        <div className="px-4 sm:px-5 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 border-b border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-300 flex items-center gap-2 font-medium">
+          <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-400 flex-shrink-0" />
           <span>
             <strong>안내:</strong> 러닝화 마일리지 수치는 변경되지 않으며, 단순 훈련별 착용 신발 기록용으로만 저장됩니다.
           </span>
@@ -184,18 +184,18 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
         {/* Modal Body */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
           {/* Current Selection Status */}
-          <div className="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 flex items-center justify-between gap-2">
             <div>
-              <div className="text-[10px] text-stone-500 font-semibold mb-0.5">선택된 착용 러닝화</div>
+              <div className="text-[10px] text-stone-500 dark:text-stone-400 font-semibold mb-0.5">선택된 착용 러닝화</div>
               {selectedShoeName ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5">
                     <span>👟</span>
                     <span>{selectedShoeName}</span>
                   </span>
                 </div>
               ) : (
-                <span className="text-xs text-stone-400 italic">아직 선택된 신발이 없습니다.</span>
+                <span className="text-xs text-stone-400 dark:text-stone-500 italic">아직 선택된 신발이 없습니다.</span>
               )}
             </div>
 
@@ -207,7 +207,7 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                   setSelectedShoeId(undefined);
                   setCustomInput('');
                 }}
-                className="px-2 py-1 text-xs text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-all cursor-pointer font-semibold"
+                className="px-2 py-1 text-xs text-rose-700 dark:text-rose-300 hover:text-rose-800 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 rounded-lg border border-rose-200 dark:border-rose-800 transition-all cursor-pointer font-semibold"
               >
                 선택 해제
               </button>
@@ -217,9 +217,9 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
           {/* Section: Select from Owned Shoes */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
                 <span>보유 러닝화 목록에서 선택</span>
-                <span className="text-[11px] text-emerald-700 font-mono font-bold">({shoes.length}켤레)</span>
+                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono font-bold">({shoes.length}켤레)</span>
               </span>
             </div>
 
@@ -233,7 +233,7 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                   className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     selectedCategory === cat
                       ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                      : 'bg-stone-100 text-stone-600 hover:text-stone-900 hover:bg-stone-200'
+                      : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-700'
                   }`}
                 >
                   {cat}
@@ -249,13 +249,13 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="신발 이름 또는 브랜드 검색..."
-                className="w-full pl-8 pr-3 py-1.5 bg-white border border-stone-300 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-emerald-600"
+                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-800 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:border-emerald-600"
               />
             </div>
 
             {/* Owned Shoes List Cards */}
             {filteredShoes.length === 0 ? (
-              <div className="p-4 text-center rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-500">
+              <div className="p-4 text-center rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 text-xs text-stone-500 dark:text-stone-400">
                 일치하는 보유 러닝화가 없습니다. 아래에서 직접 입력해주세요.
               </div>
             ) : (
@@ -271,8 +271,8 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                       onClick={() => handleSelectOwnedShoe(shoe)}
                       className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-emerald-50 border-emerald-400 shadow-2xs'
-                          : 'bg-white border-stone-200 hover:border-emerald-300 hover:bg-stone-50'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-400 dark:border-emerald-600 shadow-2xs'
+                          : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-750 hover:border-emerald-300 dark:hover:border-emerald-600 hover:bg-stone-50 dark:hover:bg-stone-800'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -280,34 +280,34 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                           className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
                             isSelected
                               ? 'border-emerald-600 bg-emerald-600 text-white'
-                              : 'border-stone-300 bg-stone-100'
+                              : 'border-stone-300 dark:border-stone-600 bg-stone-100 dark:bg-stone-800'
                           }`}
                         >
                           {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-stone-500 font-mono">[{shoe.brand}]</span>
-                            <span className="text-xs font-bold text-stone-900 truncate">{shoe.name}</span>
+                            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">[{shoe.brand}]</span>
+                            <span className="text-xs font-bold text-stone-900 dark:text-white truncate">{shoe.name}</span>
                             {shoe.size && (
-                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-stone-100 text-stone-700 border border-stone-200">
+                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
                                 {shoe.size}
                               </span>
                             )}
                             <span
                               className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
                                 shoe.category === '스피드' || shoe.category === '레이싱'
-                                  ? 'bg-rose-100 text-rose-900 border border-rose-200'
+                                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                                   : shoe.category === '장거리'
-                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                                  : 'bg-stone-100 text-stone-700 border border-stone-200'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                                  : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700'
                               }`}
                             >
                               {shoe.category}
                             </span>
                           </div>
                           {shoe.review && (
-                            <p className="text-[10px] text-stone-500 truncate mt-0.5 max-w-xs">
+                            <p className="text-[10px] text-stone-500 dark:text-stone-400 truncate mt-0.5 max-w-xs">
                               {shoe.review}
                             </p>
                           )}
@@ -317,11 +317,11 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                       {/* Usage badge for rotation insight */}
                       <div className="flex-shrink-0 text-right pl-2">
                         {usageCount === 0 ? (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold border border-emerald-200">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
                             미착용 (추천)
                           </span>
                         ) : (
-                          <span className="text-[10px] text-stone-500 font-mono">
+                          <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
                             {usageCount}회 착용
                           </span>
                         )}
@@ -334,10 +334,10 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
           </div>
 
           {/* Section: Direct Manual Input */}
-          <div className="pt-2.5 border-t border-stone-200">
-            <label className="block text-xs font-bold text-stone-700 mb-1.5 flex items-center justify-between">
+          <div className="pt-2.5 border-t border-stone-200 dark:border-stone-750">
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5 flex items-center justify-between">
               <span>또는 신발 이름 직접 입력</span>
-              <span className="text-[11px] text-stone-500 font-normal">엔터 또는 [적용] 시 즉시 저장</span>
+              <span className="text-[11px] text-stone-500 dark:text-stone-400 font-normal">엔터 또는 [적용] 시 즉시 저장</span>
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -357,7 +357,7 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
                   }
                 }}
                 placeholder="예: 호카 클리프톤 9, 아디오스 프로 3 등"
-                className="flex-1 px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-emerald-600 font-medium"
+                className="flex-1 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-800 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 focus:outline-none focus:border-emerald-600 font-medium"
               />
               <button
                 type="button"
@@ -374,13 +374,13 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-850 flex items-center justify-between gap-3">
           {session.shoeName ? (
             <button
               type="button"
               disabled={isSubmitting}
               onClick={handleClear}
-              className="px-3 py-2 text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:text-rose-800 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 border border-rose-200 dark:border-rose-800 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>러닝화 기록 해제</span>
@@ -394,7 +394,7 @@ export const TrainingShoeModal: React.FC<TrainingShoeModalProps> = ({
               type="button"
               disabled={isSubmitting}
               onClick={onClose}
-              className="px-3.5 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 bg-stone-200 hover:bg-stone-300 rounded-xl transition-all cursor-pointer"
+              className="px-3.5 py-2 text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 dark:hover:bg-stone-700 rounded-xl transition-all cursor-pointer"
             >
               취소
             </button>

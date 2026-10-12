@@ -177,7 +177,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
   // Empty State: When user hasn't registered any upcoming race
   if (!raceDetails) {
     return (
-      <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-emerald-600/20 bg-white/95 shadow-md relative overflow-hidden text-stone-800">
+      <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 border border-emerald-600/20 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 shadow-md relative overflow-hidden text-stone-800 dark:text-stone-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="p-3 rounded-2xl bg-gradient-to-br from-rose-800 to-rose-950 text-white border border-rose-700/40 shadow-sm">
@@ -185,17 +185,17 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-emerald-800 tracking-wider uppercase">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400 tracking-wider uppercase">
                   Target Race D-Day
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 font-bold border border-rose-300">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 font-bold border border-rose-300 dark:border-rose-700">
                   2027 경주마라톤 도전 추천
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-stone-900">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white">
                 출전 예정인 마라톤 대회를 등록해보세요!
               </h3>
-              <p className="text-xs text-stone-600 mt-0.5">
+              <p className="text-xs text-stone-600 dark:text-stone-300 mt-0.5">
                 2027 경주 벚꽃 마라톤 또는 목표 대회 일정을 등록하면 남은 D-day 카운트다운과 주기화 훈련 단계가 실시간으로 표시됩니다.
               </p>
             </div>
@@ -230,10 +230,10 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
   const isGyeongju = race.name.includes('경주') || race.location.includes('경주');
 
   return (
-    <section className={`w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 shadow-lg relative overflow-hidden transition-all ${
+    <section className={`w-full glass-panel rounded-2xl p-5 sm:p-6 mb-5 shadow-lg relative overflow-hidden transition-all text-stone-800 dark:text-stone-100 ${
       isGyeongju
-        ? 'border-2 border-rose-600/40 bg-gradient-to-br from-rose-50/70 via-white/95 to-emerald-50/50'
-        : 'border border-emerald-600/25 bg-white/95'
+        ? 'border-2 border-rose-600/40 dark:border-rose-700/60 bg-gradient-to-br from-rose-50/70 via-white/95 to-emerald-50/50 dark:from-rose-950/40 dark:via-stone-900/95 dark:to-emerald-950/30'
+        : 'border border-emerald-600/25 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95'
     }`}>
       {/* Main Grid: Left Hero D-Day & Info / Right Metrics & CTA */}
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -243,7 +243,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
           <div
             className={`flex flex-col items-center justify-center px-4 py-3 sm:px-5 sm:py-3.5 rounded-2xl border transition-all shadow-md min-w-[125px] text-center ${
               isPast
-                ? 'bg-stone-100 border-stone-300 text-stone-500'
+                ? 'bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 text-stone-500 dark:text-stone-400'
                 : daysLeft === 0
                 ? 'bg-gradient-to-b from-rose-700 to-rose-900 border-rose-500 text-white shadow-rose-900/30'
                 : isGyeongju
@@ -271,39 +271,39 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${
                 isGyeongju
-                  ? 'bg-rose-100 text-rose-900 border-rose-300 font-bold'
-                  : 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700 font-bold'
+                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 font-bold'
               }`}>
                 {race.course}
                 {race.customDistanceKm && !race.course.includes(`${race.customDistanceKm}`) ? ` (${race.customDistanceKm}km)` : ''}
               </span>
-              <span className="text-xs text-stone-600 font-mono flex items-center gap-1 whitespace-nowrap">
-                <Calendar className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+              <span className="text-xs text-stone-600 dark:text-stone-300 font-mono flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 flex-shrink-0" />
                 <span>{race.date}</span>
               </span>
-              <span className="text-xs text-stone-600 flex items-center gap-1 whitespace-nowrap">
-                <MapPin className="w-3.5 h-3.5 text-rose-700 flex-shrink-0" />
+              <span className="text-xs text-stone-600 dark:text-stone-300 flex items-center gap-1 whitespace-nowrap">
+                <MapPin className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 flex-shrink-0" />
                 <span className="truncate max-w-[140px] sm:max-w-[180px]">{race.location}</span>
               </span>
               {race.bibNumber && (
-                <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-1 whitespace-nowrap">
-                  <Tag className="w-3 h-3 text-purple-700" />
+                <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-950 dark:text-purple-300 border border-purple-300 dark:border-purple-700 flex items-center gap-1 whitespace-nowrap">
+                  <Tag className="w-3 h-3 text-purple-700 dark:text-purple-400" />
                   <span>배번호 {race.bibNumber}</span>
                 </span>
               )}
             </div>
 
-            <h2 className="text-lg sm:text-xl font-black text-stone-900 tracking-tight flex items-center gap-2 keep-all">
+            <h2 className="text-lg sm:text-xl font-black text-stone-900 dark:text-white tracking-tight flex items-center gap-2 keep-all">
               <span>{race.name}</span>
             </h2>
 
             {/* If completed/past and has actual record, showcase it */}
             {isPast && race.actualRecord && (
-              <div className="text-xs font-mono text-emerald-950 font-extrabold flex items-center gap-1.5 pt-0.5">
-                <Trophy className="w-3.5 h-3.5 text-amber-600" />
+              <div className="text-xs font-mono text-emerald-950 dark:text-emerald-300 font-extrabold flex items-center gap-1.5 pt-0.5">
+                <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span>완주 기록: {race.actualRecord}</span>
-                {race.actualPace && <span className="text-stone-600 font-normal">({race.actualPace})</span>}
-                {race.rank && <span className="text-stone-500 font-normal">· {race.rank}</span>}
+                {race.actualPace && <span className="text-stone-600 dark:text-stone-400 font-normal">({race.actualPace})</span>}
+                {race.rank && <span className="text-stone-500 dark:text-stone-400 font-normal">· {race.rank}</span>}
               </div>
             )}
 
@@ -315,7 +315,7 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
                 <Zap className="w-3 h-3 flex-shrink-0" />
                 <span>{phase.name}</span>
               </span>
-              <span className="text-[11px] text-stone-600 hidden sm:inline keep-all">
+              <span className="text-[11px] text-stone-600 dark:text-stone-300 hidden sm:inline keep-all">
                 {phase.desc}
               </span>
             </div>
@@ -323,11 +323,11 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
         </div>
 
         {/* Right: Target Goal Time & Pace + Progress & Nav Button */}
-        <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 pt-3 lg:pt-0 border-stone-200 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 pt-3 lg:pt-0 border-stone-200 dark:border-stone-800 flex-shrink-0">
           {/* Target Finish Time & Required Pace */}
-          <div className="flex items-center gap-3.5 bg-stone-50/90 p-2.5 sm:px-3.5 rounded-xl border border-stone-200 text-xs whitespace-nowrap shadow-sm">
+          <div className="flex items-center gap-3.5 bg-stone-50/90 dark:bg-stone-850/90 p-2.5 sm:px-3.5 rounded-xl border border-stone-200 dark:border-stone-800 text-xs whitespace-nowrap shadow-sm">
             <div>
-              <div className="text-[10px] text-stone-500 font-medium flex items-center gap-1.5">
+              <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium flex items-center gap-1.5">
                 <span>대회 목표 기록</span>
                 {onUpdateRace && (
                   <button
@@ -336,21 +336,21 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
                       setTargetInput(targetTime || '03:15:00');
                       setIsEditingTarget(true);
                     }}
-                    className="p-0.5 text-rose-700 hover:text-rose-900 transition-colors cursor-pointer"
+                    className="p-0.5 text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-200 transition-colors cursor-pointer"
                     title="이 대회의 목표 완주 기록 직접 수정하기"
                   >
                     <Edit3 className="w-3 h-3" />
                   </button>
                 )}
               </div>
-              <div className="text-sm font-extrabold text-stone-900 font-athletic mt-0.5 flex items-center gap-1.5">
+              <div className="text-sm font-extrabold text-stone-900 dark:text-white font-athletic mt-0.5 flex items-center gap-1.5">
                 <span>{targetTime || '미설정'}</span>
               </div>
             </div>
-            <div className="h-6 w-px bg-stone-200" />
+            <div className="h-6 w-px bg-stone-200 dark:bg-stone-750" />
             <div>
-              <div className="text-[10px] text-stone-500 font-medium">필수 대회 페이스</div>
-              <div className="text-sm font-extrabold text-rose-900 font-athletic mt-0.5">
+              <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">필수 대회 페이스</div>
+              <div className="text-sm font-extrabold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">
                 {targetPaceFormatted ? `${targetPaceFormatted}/km` : '페이스 환산중'}
               </div>
             </div>
@@ -381,18 +381,18 @@ export const MarathonDDayHeroWidget: React.FC<MarathonDDayHeroWidgetProps> = ({
       </div>
 
       {/* Preparation Timeline Progress Bar */}
-      <div className="mt-4 pt-3 border-t border-stone-200/80">
-        <div className="flex items-center justify-between text-[11px] text-stone-600 mb-1.5 font-medium">
+      <div className="mt-4 pt-3 border-t border-stone-200/80 dark:border-stone-800">
+        <div className="flex items-center justify-between text-[11px] text-stone-600 dark:text-stone-300 mb-1.5 font-medium">
           <span className="flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>대회 대비 준비 주기 진행률 (16주 사이클 기준)</span>
           </span>
-          <span className="text-emerald-800 font-athletic font-bold">
+          <span className="text-emerald-800 dark:text-emerald-400 font-athletic font-bold">
             {progressPct}% 경과 {isPast ? '(대회 종료)' : daysLeft === 0 ? '(오늘 대회!)' : `(D-${daysLeft})`}
           </span>
         </div>
 
-        <div className="w-full h-2.5 rounded-full bg-stone-100 border border-stone-200 overflow-hidden p-0.5">
+        <div className="w-full h-2.5 rounded-full bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 overflow-hidden p-0.5">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-600 via-amber-500 to-rose-700 transition-all duration-700"
             style={{ width: `${progressPct}%` }}

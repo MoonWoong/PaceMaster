@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { Flame, Award, Calendar } from 'lucide-react';
+import { Flame, Award, Calendar, Sun, Moon } from 'lucide-react';
 import { RegisteredRace } from '../types';
 import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import { WeatherProvider, WeatherWidget, ThreeDayWeatherForecast } from './WeatherWidget';
+import { useTheme } from '../lib/themeContext';
 
 interface HeaderProps {
   currentVDOT: number;
@@ -14,6 +15,8 @@ export const Header: React.FC<HeaderProps> = ({
   currentVDOT,
   races = [],
 }) => {
+  const { theme, toggleTheme } = useTheme();
+
   // Find nearest upcoming race by date (날짜가 가장 가까운 참가대회)
   const nearestUpcomingRace = useMemo(() => {
     if (!races || races.length === 0) return null;
@@ -38,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <WeatherProvider>
-      <header className="w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-emerald-700/20 shadow-md">
+      <header className="w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-emerald-700/20 dark:border-emerald-500/25 shadow-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Brand & Title */}
           <div className="flex items-center gap-3.5">
@@ -48,12 +51,9 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900 font-athletic">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-900 dark:text-stone-100 font-athletic">
                   PACEMASTER
                 </h1>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-rose-100 text-rose-900 font-bold border border-rose-300/80 uppercase tracking-wider whitespace-nowrap">
-                  2027 경주마라톤 GOAL
-                </span>
               </div>
             </div>
           </div>
@@ -63,11 +63,36 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Real-time Weather & Temperature Widget */}
             <WeatherWidget />
 
+            {/* Mode Switch Button (라이트 ☀️ / 다크 🌙 모드 전환 버튼 - 날씨정보 바로 옆 위치) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              title={theme === 'dark' ? '화사하고 밝은 라이트 모드로 전환' : '눈이 편안한 다크 모드로 전환'}
+              className={`h-10 sm:h-11 inline-flex items-center gap-1.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs select-none ${
+                theme === 'dark'
+                  ? 'bg-stone-800/90 hover:bg-stone-700 text-amber-300 border-amber-400/40 shadow-stone-950/40 ring-1 ring-amber-400/30'
+                  : 'bg-white hover:bg-stone-50 text-stone-700 border-stone-200 shadow-stone-200/50 hover:text-stone-900'
+              }`}
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400 flex-shrink-0 animate-pulse" />
+                  <span className="font-extrabold text-amber-300">라이트</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                  <span className="font-extrabold text-stone-800">다크</span>
+                </>
+              )}
+            </button>
+
             {/* Nearest Upcoming Race D-Day Badge */}
             {nearestUpcomingRace ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 text-white border border-rose-700/60 shadow-sm flex-shrink-0">
+              <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 text-white border border-rose-700/60 shadow-sm flex-shrink-0">
                 <Calendar className="w-4 h-4 text-amber-300 flex-shrink-0" />
-                <div className="text-left whitespace-nowrap">
+                <div className="text-left whitespace-nowrap flex flex-col justify-center">
                   <div className="text-[10px] text-rose-200 font-medium leading-none flex items-center gap-1">
                     <span className="truncate max-w-[85px] sm:max-w-[120px]">{nearestUpcomingRace.race.name}</span>
                     <span>·</span>
@@ -80,23 +105,23 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 shadow-xs flex-shrink-0">
-                <Calendar className="w-4 h-4 text-rose-700 flex-shrink-0" />
-                <div className="text-left whitespace-nowrap">
-                  <div className="text-[10px] text-stone-500 font-medium leading-none">목표 대회</div>
-                  <div className="text-xs font-bold text-rose-900 font-athletic mt-0.5">D-Day 카운터</div>
+              <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 text-rose-900 dark:text-rose-200 shadow-xs flex-shrink-0">
+                <Calendar className="w-4 h-4 text-rose-700 dark:text-rose-400 flex-shrink-0" />
+                <div className="text-left whitespace-nowrap flex flex-col justify-center">
+                  <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">목표 대회</div>
+                  <div className="text-xs font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">D-Day 카운터</div>
                 </div>
               </div>
             )}
 
             {/* VDOT Badge with Gyeongju Marathon burgundy & gold tone */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50/90 border border-rose-200/80 shadow-sm flex-shrink-0">
-              <Award className="w-4 h-4 text-rose-700 flex-shrink-0" />
-              <div className="text-left whitespace-nowrap">
-                <div className="text-[10px] text-stone-500 font-medium leading-none">
+            <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50/90 dark:bg-stone-800/80 border border-rose-200/80 dark:border-stone-700 shadow-sm flex-shrink-0">
+              <Award className="w-4 h-4 text-rose-700 dark:text-rose-400 flex-shrink-0" />
+              <div className="text-left whitespace-nowrap flex flex-col justify-center">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">
                   현재 러닝 엔진
                 </div>
-                <div className="text-xs font-bold text-rose-900 font-athletic mt-0.5">
+                <div className="text-xs font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">
                   {currentVDOT > 0 ? `VDOT ${currentVDOT}` : '기록 측정중'}
                 </div>
               </div>

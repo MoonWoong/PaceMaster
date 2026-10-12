@@ -263,6 +263,25 @@ export interface PlanWeek {
   totalLoadScore?: number; // 주간 실반영 총 부하 점수 (pt)
   plannedTotalLoadScore?: number; // 주간 계획 기준 총 부하 점수 (pt)
   categoryOverrides?: Record<string, IntensityCategory>; // 주차별 원클릭 강도 전환 오버라이드 맵
+
+  // 다중 대회(2~3개) 연계 주기화 맥락
+  multiRaceContext?: {
+    governingRaceName?: string;
+    governingCourse?: string;
+    governingPriority?: string;
+    dDayWeeks?: number;
+    dDayDays?: number;
+    stageNote?: string;
+    secondaryRacesSummary?: string;
+    upcomingRaces?: {
+      raceName: string;
+      course: string;
+      priority: string;
+      dDayWeeks: number;
+      dDayDays: number;
+      status: string;
+    }[];
+  };
 }
 
 export interface TrainingPlanPeriodSettings {
@@ -311,6 +330,31 @@ export interface PlanFitnessAudit {
   coachingSummary: string;
 }
 
+export interface MultiRacePlanItem {
+  raceId?: string;
+  raceName: string;
+  raceDate: string;
+  dDayDays: number;
+  dDayWeeks: number;
+  dDayText: string;
+  course: string;
+  courseDistKm: number;
+  priority: 'A' | 'B' | 'C' | string;
+  isMainTarget: boolean;
+  targetTime?: string;
+  targetPace?: string;
+  role: '메인 목표 레이스' | '실전 점검 및 페이스 테스트' | '서브 목표 레이스';
+  weekNumber: number; // 플랜 내 해당 대회가 치러지는 주차 (1부터 시작)
+  periodizationStrategy: string;
+}
+
+export interface MultiRacePlanSummary {
+  racesCount: number;
+  activeRaces: MultiRacePlanItem[];
+  multiRaceStrategyDescription: string;
+  coachingGuidance: string;
+}
+
 export interface ComprehensiveTrainingPlan {
   id: string;
   createdAt: string;
@@ -331,6 +375,8 @@ export interface ComprehensiveTrainingPlan {
     targetTime?: string;
     targetPace?: string;
   };
+  // 2~3개 등록 대회 복합 연계 주기화 요약
+  multiRaceSummary?: MultiRacePlanSummary;
   runnerAnalysisSummary: {
     currentVdot: number;
     baselineWeeklyKm: number;

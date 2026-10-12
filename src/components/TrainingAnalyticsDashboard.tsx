@@ -630,22 +630,22 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
   }, [intensityData, hoveredZone, polarizedRatio]);
 
   return (
-    <section className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-600/20 shadow-sm bg-white/95 text-stone-800 space-y-6">
+    <section className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 space-y-6">
       {/* Dashboard Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200 dark:border-stone-800">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-xs">
               <TrendingUp className="w-5 h-5 text-amber-300" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap">
                 <span>주간 마일리지 추세 & 훈련 강도 분석</span>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold font-athletic">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold font-athletic">
                   D3.js Data Engine
                 </span>
               </h3>
-              <p className="text-xs text-stone-600">
+              <p className="text-xs text-stone-600 dark:text-stone-400">
                 훈련 부하 추세(10% 증량 룰)와 80:20 심박존 양극화 훈련 분포를 체계적으로 분석합니다.
               </p>
             </div>
@@ -653,14 +653,14 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
         </div>
 
         {/* Time range filter buttons */}
-        <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl border border-stone-200 self-start sm:self-auto shadow-2xs">
+        <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-stone-800 p-1 rounded-xl border border-stone-200 dark:border-stone-700 self-start sm:self-auto shadow-2xs">
           <button
             type="button"
             onClick={() => setTimeRange('4w')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               timeRange === '4w'
                 ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
             최근 4주
@@ -671,7 +671,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               timeRange === '8w'
                 ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
             최근 8주
@@ -682,7 +682,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               timeRange === '12w'
                 ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
             최근 12주
@@ -693,7 +693,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               timeRange === 'all'
                 ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
+                : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
             전체 기간
@@ -703,55 +703,55 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1 shadow-2xs">
-          <div className="text-[11px] font-semibold text-stone-600 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-1 shadow-2xs">
+          <div className="text-[11px] font-semibold text-stone-600 dark:text-stone-400 flex items-center justify-between">
             <span>이번 주 훈련 거리</span>
-            <Activity className="w-3.5 h-3.5 text-emerald-700" />
+            <Activity className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-stone-900 font-athletic">
-            {currentWeekDistance} <span className="text-xs font-normal text-stone-500">km</span>
+          <div className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic">
+            {currentWeekDistance} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">km</span>
           </div>
-          <div className="text-[10px] text-stone-500 font-medium">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
             주간 계획 대비 진행 현황
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1 shadow-2xs">
-          <div className="text-[11px] font-semibold text-stone-600 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-1 shadow-2xs">
+          <div className="text-[11px] font-semibold text-stone-600 dark:text-stone-400 flex items-center justify-between">
             <span>4주 이동 평균 마일리지</span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-700" />
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-800 font-athletic">
-            {rollingAvgDistance} <span className="text-xs font-normal text-stone-500">km/주</span>
+          <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-athletic">
+            {rollingAvgDistance} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">km/주</span>
           </div>
-          <div className="text-[10px] text-stone-500 font-medium">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
             만성 훈련 부하(Chronic Load)
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1 shadow-2xs">
-          <div className="text-[11px] font-semibold text-stone-600 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-1 shadow-2xs">
+          <div className="text-[11px] font-semibold text-stone-600 dark:text-stone-400 flex items-center justify-between">
             <span>주간 최고 마일리지 (Peak)</span>
-            <Award className="w-3.5 h-3.5 text-rose-800" />
+            <Award className="w-3.5 h-3.5 text-rose-800 dark:text-rose-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-900 font-athletic">
-            {peakWeeklyDistance} <span className="text-xs font-normal text-stone-500">km</span>
+          <div className="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-300 font-athletic">
+            {peakWeeklyDistance} <span className="text-xs font-normal text-stone-500 dark:text-stone-400">km</span>
           </div>
-          <div className="text-[10px] text-stone-500 font-medium">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
             기간 내 달성한 주간 최고 기록
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-1 shadow-2xs">
-          <div className="text-[11px] font-semibold text-stone-600 flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 space-y-1 shadow-2xs">
+          <div className="text-[11px] font-semibold text-stone-600 dark:text-stone-400 flex items-center justify-between">
             <span>80:20 양극화 훈련 비율</span>
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-800 font-athletic">
-            {polarizedRatio.lowPct}% <span className="text-xs font-normal text-stone-500 font-medium">유산소</span>
+          <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-athletic">
+            {polarizedRatio.lowPct}% <span className="text-xs font-normal text-stone-500 dark:text-stone-400 font-medium">유산소</span>
           </div>
-          <div className="text-[10px] text-stone-500 truncate" title={polarizedRatio.score}>
-            상태: <strong className="text-stone-800 font-semibold">{polarizedRatio.score}</strong>
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 truncate" title={polarizedRatio.score}>
+            상태: <strong className="text-stone-800 dark:text-stone-200 font-semibold">{polarizedRatio.score}</strong>
           </div>
         </div>
       </div>
@@ -759,22 +759,22 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
       {/* Main Charts Grid: Left Mileage Trend, Right Intensity Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Chart: Weekly Mileage Trend (8 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-xl p-4 border border-stone-200 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white dark:bg-stone-850 rounded-xl p-4 border border-stone-200 dark:border-stone-800 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-emerald-700" />
-              <h4 className="text-xs sm:text-sm font-bold text-stone-900">
+              <BarChart3 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+              <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white">
                 주간 마일리지 추세 (Weekly Mileage Trend)
               </h4>
             </div>
             <div className="flex items-center gap-3 text-[11px]">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-emerald-600" />
-                <span className="text-stone-600 font-medium">주간 거리(km)</span>
+                <span className="text-stone-600 dark:text-stone-400 font-medium">주간 거리(km)</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-rose-900" />
-                <span className="text-stone-600 font-medium">4주 이동평균</span>
+                <span className="w-3 h-0.5 bg-rose-900 dark:bg-rose-400" />
+                <span className="text-stone-600 dark:text-stone-400 font-medium">4주 이동평균</span>
               </div>
             </div>
           </div>
@@ -783,8 +783,8 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
           <div className="relative w-full aspect-[16/8] min-h-[220px]">
             {displayedWeeklyData.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                <p className="text-xs text-stone-500">등록된 훈련 세션 데이터가 없습니다.</p>
-                <p className="text-[11px] text-stone-400 mt-1">
+                <p className="text-xs text-stone-500 dark:text-stone-400">등록된 훈련 세션 데이터가 없습니다.</p>
+                <p className="text-[11px] text-stone-400 dark:text-stone-500 mt-1">
                   가민 CSV 파일을 업로드하면 주간 마일리지 추세가 자동으로 분석 및 시각화됩니다.
                 </p>
               </div>
@@ -794,33 +794,33 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
 
             {/* Hover Tooltip Overlay */}
             {hoveredWeek && (
-              <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-md p-2.5 rounded-xl border border-emerald-400 shadow-xl text-xs space-y-1 pointer-events-none animate-fadeIn z-10 min-w-[170px] text-stone-800">
-                <div className="font-bold text-emerald-900 border-b border-stone-200 pb-1 flex justify-between">
+              <div className="absolute top-2 right-2 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md p-2.5 rounded-xl border border-emerald-400 dark:border-emerald-600 shadow-xl text-xs space-y-1 pointer-events-none animate-fadeIn z-10 min-w-[170px] text-stone-800 dark:text-stone-100">
+                <div className="font-bold text-emerald-900 dark:text-emerald-300 border-b border-stone-200 dark:border-stone-800 pb-1 flex justify-between">
                   <span>{hoveredWeek.weekLabel}</span>
                   <span>{hoveredWeek.sessionCount}회</span>
                 </div>
-                <div className="flex justify-between text-stone-700">
+                <div className="flex justify-between text-stone-700 dark:text-stone-300">
                   <span>주간 총 주행거리:</span>
-                  <strong className="text-stone-900 font-athletic">{hoveredWeek.totalDistance} km</strong>
+                  <strong className="text-stone-900 dark:text-white font-athletic">{hoveredWeek.totalDistance} km</strong>
                 </div>
-                <div className="flex justify-between text-stone-700">
+                <div className="flex justify-between text-stone-700 dark:text-stone-300">
                   <span>평균 페이스:</span>
-                  <strong className="text-emerald-800">{hoveredWeek.avgPaceFormatted}/km</strong>
+                  <strong className="text-emerald-800 dark:text-emerald-300">{hoveredWeek.avgPaceFormatted}/km</strong>
                 </div>
-                <div className="flex justify-between text-stone-700">
+                <div className="flex justify-between text-stone-700 dark:text-stone-300">
                   <span>4주 이동 평균:</span>
-                  <strong className="text-rose-900 font-athletic">{hoveredWeek.movingAverage} km</strong>
+                  <strong className="text-rose-900 dark:text-rose-300 font-athletic">{hoveredWeek.movingAverage} km</strong>
                 </div>
                 {hoveredWeek.wowGrowthPct !== null && (
-                  <div className="flex justify-between pt-0.5 border-t border-stone-200 text-[11px]">
-                    <span className="text-stone-500">전주 대비 증감:</span>
+                  <div className="flex justify-between pt-0.5 border-t border-stone-200 dark:border-stone-800 text-[11px]">
+                    <span className="text-stone-500 dark:text-stone-400">전주 대비 증감:</span>
                     <strong
                       className={
                         hoveredWeek.wowGrowthPct > 15
-                          ? 'text-rose-900'
+                          ? 'text-rose-900 dark:text-rose-400'
                           : hoveredWeek.wowGrowthPct >= 0
-                          ? 'text-emerald-700'
-                          : 'text-stone-600'
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : 'text-stone-600 dark:text-stone-400'
                       }
                     >
                       {hoveredWeek.wowGrowthPct > 0 ? `+${hoveredWeek.wowGrowthPct}%` : `${hoveredWeek.wowGrowthPct}%`}
@@ -831,32 +831,32 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
             )}
           </div>
 
-          <div className="mt-2 pt-2 border-t border-stone-200 flex items-center justify-between text-[11px] text-stone-600">
+          <div className="mt-2 pt-2 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-600 dark:text-stone-400">
             <span className="flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5 text-amber-700" />
+              <Zap className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
               <span>부상 예방 10% 원칙: 주간 마일리지는 전주 대비 최대 10% 내외로 점진적 증량을 권장합니다.</span>
             </span>
           </div>
         </div>
 
         {/* Right Chart: Training Intensity Distribution (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-xl p-4 border border-stone-200 shadow-2xs flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white dark:bg-stone-850 rounded-xl p-4 border border-stone-200 dark:border-stone-800 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <PieIcon className="w-4 h-4 text-emerald-700" />
-              <h4 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-1.5">
+              <PieIcon className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+              <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
                 <span>심박존 훈련강도 분포</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-semibold border border-emerald-300">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800">
                   {timeRange === '4w' ? '최근 4주' : timeRange === '8w' ? '최근 8주' : timeRange === '12w' ? '최근 12주' : '전체 기간'}
                 </span>
               </h4>
             </div>
-            <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-300 font-semibold">
+            <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-semibold">
               80:20 Polarized
             </span>
           </div>
 
-          <div className="text-[11px] text-stone-600 mb-2 flex items-center justify-between pb-1 border-b border-stone-200">
+          <div className="text-[11px] text-stone-600 dark:text-stone-400 mb-2 flex items-center justify-between pb-1 border-b border-stone-200 dark:border-stone-800">
             <span>
               {timeRange === '4w'
                 ? '최근 4주간'
@@ -865,9 +865,9 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
                 : timeRange === '12w'
                 ? '최근 12주간'
                 : '전체 기간'}{' '}
-              누적 훈련 거리: <strong className="text-emerald-800 font-bold">{totalIntensityDist} km</strong>
+              누적 훈련 거리: <strong className="text-emerald-800 dark:text-emerald-300 font-bold">{totalIntensityDist} km</strong>
             </span>
-            <span className="text-[10px] text-stone-500 font-medium">
+            <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
               80:20 양극화 기준
             </span>
           </div>
@@ -888,8 +888,8 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
                   onMouseLeave={() => setHoveredZone(null)}
                   className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
                     hoveredZone?.zone === z.zone
-                      ? 'bg-emerald-50 border-emerald-500 scale-[1.02] shadow-2xs'
-                      : 'bg-stone-50 border-stone-200 hover:border-emerald-300'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-500 scale-[1.02] shadow-2xs'
+                      : 'bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 hover:border-emerald-300 dark:hover:border-emerald-700'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -898,17 +898,17 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
                       style={{ backgroundColor: z.color }}
                     />
                     <div className="leading-tight">
-                      <div className="font-bold text-stone-900 text-[11px]">
+                      <div className="font-bold text-stone-900 dark:text-white text-[11px]">
                         Z{z.zone} {z.nameKo.split(' ')[0]}
                       </div>
-                      <div className="text-[9px] text-stone-500">{z.name}</div>
+                      <div className="text-[9px] text-stone-500 dark:text-stone-400">{z.name}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-extrabold text-stone-900 font-athletic text-xs">
+                    <span className="font-extrabold text-stone-900 dark:text-white font-athletic text-xs">
                       {z.percentage}%
                     </span>
-                    <div className="text-[9px] text-stone-500 font-mono">{z.distanceKm}km</div>
+                    <div className="text-[9px] text-stone-500 dark:text-stone-400 font-mono">{z.distanceKm}km</div>
                   </div>
                 </div>
               ))}
@@ -916,11 +916,11 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
           </div>
 
           {/* Polarized Coaching Feedback Footer */}
-          <div className="mt-3 p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs flex items-start gap-2 shadow-2xs">
-            <ShieldCheck className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+          <div className="mt-3 p-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-xs flex items-start gap-2 shadow-2xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
             <div className="text-[11px] leading-relaxed">
-              <span className="font-bold text-stone-900">80:20 코칭 평가: </span>
-              <span className="text-stone-700">{polarizedRatio.feedback}</span>
+              <span className="font-bold text-stone-900 dark:text-white">80:20 코칭 평가: </span>
+              <span className="text-stone-700 dark:text-stone-300">{polarizedRatio.feedback}</span>
             </div>
           </div>
         </div>

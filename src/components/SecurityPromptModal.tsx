@@ -58,34 +58,34 @@ export const SecurityPromptModal: React.FC = () => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-md p-6 bg-white rounded-2xl border border-stone-200 shadow-2xl text-stone-800">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-md p-6 bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100">
         <button
           onClick={handleCancel}
-          className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 dark:hover:text-white transition-colors cursor-pointer"
           aria-label="닫기"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-emerald-100 text-emerald-800 rounded-xl border border-emerald-300">
+          <div className="p-3 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-300 dark:border-emerald-700">
             <Lock className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-stone-900 flex items-center gap-1.5">
+            <h3 className="text-lg font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
               <span>보안 인증 확인</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-600 inline" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 inline" />
             </h3>
-            <p className="text-xs text-stone-600">
-              <span className="text-emerald-700 font-semibold">[{actionTitle}]</span> 작업을 진행하려면 비밀번호를 입력해 주세요.
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              <span className="text-emerald-700 dark:text-emerald-400 font-semibold">[{actionTitle}]</span> 작업을 진행하려면 비밀번호를 입력해 주세요.
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
               보안 키 (러너 마스터 비밀번호)
             </label>
             <div className="relative">
@@ -98,23 +98,23 @@ export const SecurityPromptModal: React.FC = () => {
                   if (errorMsg) setErrorMsg('');
                 }}
                 placeholder="비밀번호 입력..."
-                className="w-full px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-12 font-mono"
+                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-sm text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 pr-12 font-mono placeholder-stone-400 dark:placeholder-stone-500"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-500 hover:text-stone-800 px-1 py-0.5 cursor-pointer font-medium"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-white px-1 py-0.5 cursor-pointer font-medium"
               >
                 {showPassword ? '숨김' : '표시'}
               </button>
             </div>
             {errorMsg && (
-              <div className="flex items-center gap-1.5 mt-2 text-xs text-rose-700 font-medium">
+              <div className="flex items-center gap-1.5 mt-2 text-xs text-rose-700 dark:text-rose-400 font-medium">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
-            <p className="mt-2 text-[11px] text-stone-500">
+            <p className="mt-2 text-[11px] text-stone-500 dark:text-stone-400">
               💡 기본 마스터 키는 시스템에 부여된 비밀번호입니다.
             </p>
           </div>
@@ -123,7 +123,7 @@ export const SecurityPromptModal: React.FC = () => {
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 text-sm text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl transition-colors cursor-pointer"
+              className="px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 rounded-xl transition-colors cursor-pointer"
             >
               취소
             </button>

@@ -285,42 +285,42 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
   // Color classes for intensity levels
   const getCellClasses = (cell: DayCell) => {
     if (cell.isFuture) {
-      return 'bg-stone-200/40 border-stone-200 opacity-40 cursor-default';
+      return 'bg-stone-200/40 dark:bg-stone-800/40 border-stone-200 dark:border-stone-800 opacity-40 cursor-default';
     }
 
     let base = 'transition-transform hover:scale-125 hover:z-20 cursor-pointer rounded-[3px] border ';
 
     if (cell.isToday) {
-      base += 'ring-2 ring-emerald-600 ring-offset-1 ring-offset-white ';
+      base += 'ring-2 ring-emerald-600 ring-offset-1 ring-offset-white dark:ring-offset-stone-900 ';
     }
 
     switch (cell.level) {
       case 4:
-        return base + 'bg-emerald-600 border-emerald-700 shadow-2xs';
+        return base + 'bg-emerald-600 dark:bg-emerald-500 border-emerald-700 dark:border-emerald-400 shadow-2xs';
       case 3:
-        return base + 'bg-emerald-500 border-emerald-600';
+        return base + 'bg-emerald-500 dark:bg-emerald-600 border-emerald-600 dark:border-emerald-500';
       case 2:
-        return base + 'bg-emerald-300 border-emerald-400';
+        return base + 'bg-emerald-300 dark:bg-emerald-700 border-emerald-400 dark:border-emerald-600';
       case 1:
-        return base + 'bg-emerald-100 border-emerald-200';
+        return base + 'bg-emerald-100 dark:bg-emerald-900/60 border-emerald-200 dark:border-emerald-800';
       default:
-        return base + 'bg-stone-100 border-stone-200 hover:border-stone-300';
+        return base + 'bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-750 hover:border-stone-300 dark:hover:border-stone-600';
     }
   };
 
   return (
-    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-6 border border-emerald-600/20 bg-white/95 shadow-md relative overflow-hidden text-stone-800">
+    <section className="w-full glass-panel rounded-2xl p-5 sm:p-6 mb-6 border border-emerald-600/20 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 shadow-md relative overflow-hidden text-stone-800 dark:text-stone-100">
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-stone-200 relative z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-stone-200 dark:border-stone-800 relative z-10">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-800 to-rose-950 text-white border border-rose-700/40 shadow-sm">
             <Footprints className="w-5 h-5 text-amber-300" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+              <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2">
                 <span>연간 러닝 활동 히트맵</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold border border-emerald-300">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
                   Annual Contribution
                 </span>
               </h3>
@@ -329,15 +329,15 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
         </div>
 
         {/* Calendar-style Year Navigation with Arrow Buttons */}
-        <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl border border-stone-200 text-xs self-start sm:self-auto shadow-xs">
+        <div className="flex items-center gap-1.5 p-1 bg-stone-100 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 text-xs self-start sm:self-auto shadow-xs">
           <button
             type="button"
             onClick={handlePrevYear}
             disabled={!hasPrevYear}
             className={`p-1.5 rounded-lg transition-all ${
               hasPrevYear
-                ? 'text-stone-700 hover:text-stone-900 hover:bg-white cursor-pointer active:scale-95 shadow-2xs'
-                : 'text-stone-300 cursor-not-allowed opacity-40'
+                ? 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-white dark:hover:bg-stone-700 cursor-pointer active:scale-95 shadow-2xs'
+                : 'text-stone-300 dark:text-stone-600 cursor-not-allowed opacity-40'
             }`}
             title={hasPrevYear ? `이전 연도 (${availableYears[currentYearIndex - 1]}년)로 이동` : '이전 기록 연도 없음'}
             aria-label="이전 연도"
@@ -345,8 +345,8 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <div className="px-3 py-1 flex items-center gap-1.5 font-bold font-athletic text-sm sm:text-base text-stone-900 tracking-wide">
-            <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+          <div className="px-3 py-1 flex items-center gap-1.5 font-bold font-athletic text-sm sm:text-base text-stone-900 dark:text-white tracking-wide">
+            <Calendar className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
             <span>{selectedYear}년</span>
           </div>
 
@@ -356,8 +356,8 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             disabled={!hasNextYear}
             className={`p-1.5 rounded-lg transition-all ${
               hasNextYear
-                ? 'text-stone-700 hover:text-stone-900 hover:bg-white cursor-pointer active:scale-95 shadow-2xs'
-                : 'text-stone-300 cursor-not-allowed opacity-40'
+                ? 'text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-white dark:hover:bg-stone-700 cursor-pointer active:scale-95 shadow-2xs'
+                : 'text-stone-300 dark:text-stone-600 cursor-not-allowed opacity-40'
             }`}
             title={hasNextYear ? `다음 연도 (${availableYears[currentYearIndex + 1]}년)로 이동` : '다음 기록 연도 없음'}
             aria-label="다음 연도"
@@ -369,83 +369,83 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
 
       {/* 4 Summary Stat Badges Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-5 relative z-10">
-        <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200 shadow-2xs">
-          <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+        <div className="p-3 rounded-xl bg-stone-50/90 dark:bg-stone-850/90 border border-stone-200 dark:border-stone-800 shadow-2xs">
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
             <span>{selectedYear}년 누적 거리</span>
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-700" />
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-2xl font-black text-stone-900 font-athletic">
+            <span className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic">
               {stats.totalDist.toFixed(1)}
             </span>
-            <span className="text-xs font-bold text-emerald-800">km</span>
+            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">km</span>
           </div>
-          <div className="text-[10px] text-stone-500 mt-0.5 whitespace-nowrap">총 {stats.totalRuns}회 세션</div>
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 whitespace-nowrap">총 {stats.totalRuns}회 세션</div>
         </div>
 
-        <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200 shadow-2xs">
-          <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+        <div className="p-3 rounded-xl bg-stone-50/90 dark:bg-stone-850/90 border border-stone-200 dark:border-stone-800 shadow-2xs">
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
             <span className="whitespace-nowrap">달린 날 (활동 빈도)</span>
-            <Calendar className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-2xl font-black text-stone-900 font-athletic">
+            <span className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic">
               {stats.activeDays}
             </span>
-            <span className="text-xs font-bold text-stone-500">일</span>
+            <span className="text-xs font-bold text-stone-500 dark:text-stone-400">일</span>
           </div>
-          <div className="text-[10px] text-stone-500 mt-0.5 whitespace-nowrap">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 whitespace-nowrap">
             {selectedYear}년 {((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365}일 중{' '}
             {Math.round((stats.activeDays / (((selectedYear % 4 === 0 && selectedYear % 100 !== 0) || (selectedYear % 400 === 0)) ? 366 : 365)) * 100)}% 실천
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200 shadow-2xs">
-          <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+        <div className="p-3 rounded-xl bg-stone-50/90 dark:bg-stone-850/90 border border-stone-200 dark:border-stone-800 shadow-2xs">
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
             <span className="whitespace-nowrap">현재 연속 러닝</span>
-            <Flame className="w-3.5 h-3.5 text-rose-700 flex-shrink-0" />
+            <Flame className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-2xl font-black text-rose-900 font-athletic">
+            <span className="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-300 font-athletic">
               {stats.currentStreak}
             </span>
-            <span className="text-xs font-bold text-rose-800">일 연속</span>
+            <span className="text-xs font-bold text-rose-800 dark:text-rose-300">일 연속</span>
           </div>
-          <div className="text-[10px] text-stone-500 mt-0.5 whitespace-nowrap">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 whitespace-nowrap">
             최장 연속 기록: {stats.longestStreak}일
           </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-stone-50/90 border border-stone-200 shadow-2xs">
-          <div className="text-[11px] text-stone-500 flex items-center justify-between mb-1">
+        <div className="p-3 rounded-xl bg-stone-50/90 dark:bg-stone-850/90 border border-stone-200 dark:border-stone-800 shadow-2xs">
+          <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center justify-between mb-1">
             <span className="whitespace-nowrap">단일 최장 훈련</span>
-            <Award className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+            <Award className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-2xl font-black text-stone-900 font-athletic">
+            <span className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic">
               {stats.maxDistanceDay.dist > 0 ? stats.maxDistanceDay.dist.toFixed(1) : '0.0'}
             </span>
-            <span className="text-xs font-bold text-amber-800">km</span>
+            <span className="text-xs font-bold text-amber-800 dark:text-amber-400">km</span>
           </div>
-          <div className="text-[10px] text-stone-500 mt-0.5 truncate whitespace-nowrap">
+          <div className="text-[10px] text-stone-500 dark:text-stone-400 mt-0.5 truncate whitespace-nowrap">
             {stats.maxDistanceDay.date || '기록 없음'}
           </div>
         </div>
       </div>
 
       {/* Heatmap Contribution Matrix Scrollable Container */}
-      <div className="relative z-10 bg-emerald-50/40 p-4 sm:p-5 rounded-xl border border-emerald-600/15">
+      <div className="relative z-10 bg-emerald-50/40 dark:bg-stone-950/40 p-4 sm:p-5 rounded-xl border border-emerald-600/15 dark:border-stone-800">
         <div
           ref={scrollContainerRef}
           className="w-full overflow-x-auto pb-2 select-none scrollbar-thin scrollbar-thumb-emerald-500/30 scrollbar-track-transparent"
         >
           <div className="min-w-[760px] inline-block">
             {/* Top Month Labels Header */}
-            <div className="relative text-[10px] font-semibold text-stone-500 mb-2 ml-7 h-4">
+            <div className="relative text-[10px] font-semibold text-stone-500 dark:text-stone-400 mb-2 ml-7 h-4">
               {monthLabels.map((m, idx) => (
                 <span
                   key={idx}
-                  className="absolute whitespace-nowrap text-stone-600 font-mono tracking-tight"
+                  className="absolute whitespace-nowrap text-stone-600 dark:text-stone-400 font-mono tracking-tight"
                   style={{ left: `${m.colIndex * 16}px` }}
                 >
                   {m.monthName}
@@ -456,7 +456,7 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
             {/* Heatmap Grid Row by Day of Week (Mon -> Sun) */}
             <div className="flex">
               {/* Day of Week Labels (Left Column) */}
-              <div className="flex flex-col justify-between pr-2 text-[10px] font-medium text-stone-500 w-7 select-none">
+              <div className="flex flex-col justify-between pr-2 text-[10px] font-medium text-stone-500 dark:text-stone-400 w-7 select-none">
                 {DAY_LABELS.map((dayLabel, idx) => (
                   <div key={idx} className="h-3 flex items-center justify-end leading-none">
                     {dayLabel}
@@ -489,32 +489,32 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
         </div>
 
         {/* Heatmap Footer: Legend & Interactive Hover Details Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-emerald-600/15 text-xs text-stone-600">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-emerald-600/15 dark:border-stone-800 text-xs text-stone-600 dark:text-stone-300">
           {/* Hover Cell Inspector */}
           <div className="min-h-[24px] flex items-center gap-2">
             {hoveredCell ? (
-              <div className="flex items-center gap-2 font-mono text-xs text-stone-900">
-                <span className="font-sans text-stone-600 font-semibold">{hoveredCell.dateStr}</span>
+              <div className="flex items-center gap-2 font-mono text-xs text-stone-900 dark:text-white">
+                <span className="font-sans text-stone-600 dark:text-stone-300 font-semibold">{hoveredCell.dateStr}</span>
                 <span className="font-bold">
                   {hoveredCell.totalDistanceKm > 0 ? (
-                    <span className="text-emerald-800">
+                    <span className="text-emerald-800 dark:text-emerald-400">
                       {hoveredCell.totalDistanceKm} km ({hoveredCell.sessionCount}회 러닝)
                     </span>
                   ) : hoveredCell.isFuture ? (
-                    <span className="text-stone-400">예정된 날</span>
+                    <span className="text-stone-400 dark:text-stone-500">예정된 날</span>
                   ) : (
-                    <span className="text-stone-400">휴식일 (0 km)</span>
+                    <span className="text-stone-400 dark:text-stone-500">휴식일 (0 km)</span>
                   )}
                 </span>
                 {hoveredCell.sessions.length > 0 && hoveredCell.sessions[0].avgPace && (
-                  <span className="text-[11px] text-rose-900 font-sans font-bold">
+                  <span className="text-[11px] text-rose-900 dark:text-rose-300 font-sans font-bold">
                     평균 페이스: {hoveredCell.sessions[0].avgPace}
                   </span>
                 )}
               </div>
             ) : (
-              <span className="text-[11px] text-stone-500 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-stone-400" />
+              <span className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-stone-400 dark:text-stone-500" />
                 <span>잔디밭 타일에 마우스를 올리면 해당 일자의 훈련 상세 거리를 확인할 수 있습니다.</span>
               </span>
             )}
@@ -522,28 +522,28 @@ export const AnnualRunningHeatmap: React.FC<AnnualRunningHeatmapProps> = ({ sess
 
           {/* Color Legend (적음 -> 많음) */}
           <div className="flex items-center gap-1.5 self-end sm:self-auto text-[11px]">
-            <span className="text-stone-500">적음</span>
+            <span className="text-stone-500 dark:text-stone-400">적음</span>
             <div
-              className="w-3 h-3 rounded-[3px] bg-stone-100 border border-stone-200"
+              className="w-3 h-3 rounded-[3px] bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700"
               title="0 km (휴식)"
             />
             <div
-              className="w-3 h-3 rounded-[3px] bg-emerald-100 border border-emerald-200"
+              className="w-3 h-3 rounded-[3px] bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800"
               title="0.1 ~ 5 km (가벼운 조깅)"
             />
             <div
-              className="w-3 h-3 rounded-[3px] bg-emerald-300 border border-emerald-400"
+              className="w-3 h-3 rounded-[3px] bg-emerald-300 dark:bg-emerald-700 border border-emerald-400 dark:border-emerald-600"
               title="5.1 ~ 10 km (기본 조깅)"
             />
             <div
-              className="w-3 h-3 rounded-[3px] bg-emerald-500 border border-emerald-600"
+              className="w-3 h-3 rounded-[3px] bg-emerald-500 dark:bg-emerald-600 border border-emerald-600 dark:border-emerald-500"
               title="10.1 ~ 20 km (지속주/포인트)"
             />
             <div
-              className="w-3 h-3 rounded-[3px] bg-emerald-600 border border-emerald-700 shadow-2xs"
+              className="w-3 h-3 rounded-[3px] bg-emerald-600 dark:bg-emerald-500 border border-emerald-700 dark:border-emerald-400 shadow-2xs"
               title="20 km 초과 (LSD 장거리)"
             />
-            <span className="text-stone-700 font-semibold">많음 (20km+)</span>
+            <span className="text-stone-700 dark:text-stone-300 font-semibold">많음 (20km+)</span>
           </div>
         </div>
       </div>

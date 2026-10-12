@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -14,11 +16,32 @@
     overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Dark mode root body */
+  .dark body,
+  body.dark-theme,
+  html.dark body {
+    color: #f3f4f6;
+    background-color: #0b0f15;
+    color-scheme: dark;
+  }
+
+  .dark select,
+  .dark input,
+  .dark textarea {
+    color-scheme: dark;
   }
 
   ::selection {
     background-color: #fecdd3;
     color: #881337;
+  }
+
+  .dark ::selection {
+    background-color: #9f1239;
+    color: #ffe4e6;
   }
 }
 
@@ -47,6 +70,14 @@
   box-shadow: 0 12px 36px -4px rgba(22, 101, 52, 0.08), 0 4px 12px -2px rgba(136, 19, 55, 0.05);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .glass-panel,
+html.dark .glass-panel {
+  background: rgba(17, 24, 34, 0.94);
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  box-shadow: 0 14px 40px -4px rgba(0, 0, 0, 0.65), 0 4px 12px -2px rgba(225, 29, 72, 0.15);
 }
 
 .glass-panel-burgundy {
@@ -55,6 +86,14 @@
   box-shadow: 0 12px 36px -4px rgba(136, 19, 55, 0.1);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .glass-panel-burgundy,
+html.dark .glass-panel-burgundy {
+  background: rgba(38, 14, 24, 0.94);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  box-shadow: 0 14px 40px -4px rgba(0, 0, 0, 0.7);
 }
 
 .glass-card {
@@ -63,6 +102,14 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .glass-card,
+html.dark .glass-card {
+  background: rgba(22, 30, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .glass-card-burgundy {
@@ -70,6 +117,13 @@
   border: 1px solid rgba(225, 29, 72, 0.25);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .glass-card-burgundy,
+html.dark .glass-card-burgundy {
+  background: rgba(42, 15, 26, 0.92);
+  border: 1px solid rgba(244, 63, 94, 0.35);
 }
 
 .glass-card-track {
@@ -77,6 +131,13 @@
   border: 1px solid rgba(234, 88, 12, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .glass-card-track,
+html.dark .glass-card-track {
+  background: rgba(38, 22, 14, 0.92);
+  border: 1px solid rgba(249, 115, 22, 0.32);
 }
 
 .glass-input {
@@ -93,6 +154,20 @@
   background: #ffffff;
 }
 
+.dark .glass-input,
+html.dark .glass-input {
+  background: #171e28;
+  border: 1px solid #374151;
+  color: #f3f4f6;
+}
+
+.dark .glass-input:focus,
+html.dark .glass-input:focus {
+  border-color: #10b981;
+  background: #1c2432;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
 /* Custom Scrollbar styled for the bright spring green & burgundy theme */
 ::-webkit-scrollbar {
   width: 8px;
@@ -103,11 +178,26 @@
   background: rgba(240, 245, 240, 0.8);
 }
 
+.dark ::-webkit-scrollbar-track,
+html.dark ::-webkit-scrollbar-track {
+  background: rgba(17, 24, 34, 0.8);
+}
+
 ::-webkit-scrollbar-thumb {
   background: rgba(22, 163, 74, 0.35);
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.45);
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(136, 19, 55, 0.6);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.7);
 }

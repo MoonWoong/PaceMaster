@@ -1122,7 +1122,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
   const restDiff = weekSummary.actualRestDaysCount - weekSummary.plannedRestDaysCount;
 
   return (
-    <div className="rounded-2xl sm:rounded-3xl bg-white border border-stone-200/90 shadow-xs overflow-hidden transition-all">
+    <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/90 dark:border-stone-800 shadow-xs overflow-hidden transition-all text-stone-800 dark:text-stone-100">
       {/* 1. Header Bar */}
       <div className="p-4 sm:p-5 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -1210,25 +1210,25 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
         {/* 2. Top Summary Metrics Row (Total + 5 Subdivided Categories) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           {/* Total Training Load Score */}
-          <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200 shadow-2xs col-span-2 sm:col-span-1 lg:col-span-1">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
+          <div className="p-3 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 shadow-2xs col-span-2 sm:col-span-1 lg:col-span-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 dark:text-stone-400 mb-1">
               <span className="flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 text-amber-600" />
+                <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 {loadDataSource === 'actual' ? '실제 총 부하' : '계획 총 부하'}
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-200 text-stone-700">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300">
                 평균 {avgWeeklyLoad}pt
               </span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-black text-stone-900 font-athletic">
+              <span className="text-2xl font-black text-stone-900 dark:text-white font-athletic">
                 {weekSummary.totalLoadScore}
               </span>
-              <span className="text-xs font-bold text-stone-500">pt</span>
+              <span className="text-xs font-bold text-stone-500 dark:text-stone-400">pt</span>
             </div>
-            <div className="mt-1 flex items-center justify-between text-[10px] font-bold text-stone-600">
+            <div className="mt-1 flex items-center justify-between text-[10px] font-bold text-stone-600 dark:text-stone-300">
               <span>{weekSummary.totalEffectiveKm}km / {weekSummary.totalPlannedKm}km</span>
-              <span className="flex items-center gap-0.5 text-indigo-700">
+              <span className="flex items-center gap-0.5 text-indigo-700 dark:text-indigo-400">
                 <Coffee className="w-3 h-3" />
                 휴식 {weekSummary.actualRestDaysCount}일
               </span>
@@ -1242,33 +1242,33 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
             }
             className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs ${
               activeCategoryFilter === 'highIntensity'
-                ? 'bg-rose-50 border-rose-400 ring-2 ring-rose-300'
-                : 'bg-white border-stone-200 hover:border-rose-300'
+                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 dark:border-rose-600 ring-2 ring-rose-300 dark:ring-rose-700'
+                : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-800 hover:border-rose-300 dark:hover:border-rose-600'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-semibold text-rose-700 mb-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-rose-700 dark:text-rose-400 mb-1">
               <span className="flex items-center gap-1 font-bold">
-                <Flame className="w-3.5 h-3.5 text-rose-600" />
+                <Flame className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                 🔥 고 - 역치이상
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200">
                 {metricMode === 'load' ? `${weekSummary.highIntensityLoadPct}%` : `${weekSummary.highIntensityDistPct}%`}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-rose-600 font-athletic">
+                <span className="text-xl font-black text-rose-600 dark:text-rose-400 font-athletic">
                   {metricMode === 'load' ? weekSummary.highIntensityLoad : weekSummary.highIntensityKm}
                 </span>
-                <span className="text-[10px] font-bold text-stone-500">
+                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
                   {metricMode === 'load' ? 'pt' : 'km'}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-stone-500">
+              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                 {weekSummary.highIntensityCount}개
               </span>
             </div>
-            <div className="mt-1 text-[10px] text-stone-500 truncate">
+            <div className="mt-1 text-[10px] text-stone-500 dark:text-stone-400 truncate">
               VO2max 인터벌·질주
             </div>
           </div>
@@ -1280,33 +1280,33 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
             }
             className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs ${
               activeCategoryFilter === 'moderateIntensity'
-                ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-300'
-                : 'bg-white border-stone-200 hover:border-amber-300'
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 ring-2 ring-amber-300 dark:ring-amber-700'
+                : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-800 hover:border-amber-300 dark:hover:border-amber-600'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-semibold text-amber-700 mb-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-amber-700 dark:text-amber-400 mb-1">
               <span className="flex items-center gap-1 font-bold">
-                <Zap className="w-3.5 h-3.5 text-amber-600" />
+                <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 ⚡ 중 - 역치구간
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
                 {metricMode === 'load' ? `${weekSummary.moderateIntensityLoadPct}%` : `${weekSummary.moderateIntensityDistPct}%`}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-amber-600 font-athletic">
+                <span className="text-xl font-black text-amber-600 dark:text-amber-400 font-athletic">
                   {metricMode === 'load' ? weekSummary.moderateIntensityLoad : weekSummary.moderateIntensityKm}
                 </span>
-                <span className="text-[10px] font-bold text-stone-500">
+                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
                   {metricMode === 'load' ? 'pt' : 'km'}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-stone-500">
+              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                 {weekSummary.moderateIntensityCount}개
               </span>
             </div>
-            <div className="mt-1 text-[10px] text-stone-500 truncate">
+            <div className="mt-1 text-[10px] text-stone-500 dark:text-stone-400 truncate">
               젖산 역치 템포·크루즈
             </div>
           </div>
@@ -1318,33 +1318,33 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
             }
             className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs ${
               activeCategoryFilter === 'lowIntensityPoint'
-                ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-300'
-                : 'bg-white border-stone-200 hover:border-emerald-300'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 ring-2 ring-emerald-300 dark:ring-emerald-700'
+                : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-800 hover:border-emerald-300 dark:hover:border-emerald-600'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-800 mb-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-emerald-800 dark:text-emerald-400 mb-1">
               <span className="flex items-center gap-1 font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 🎯 저 - 존3구간
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-900">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200">
                 {metricMode === 'load' ? `${weekSummary.lowPointLoadPct}%` : `${weekSummary.lowPointDistPct}%`}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-emerald-700 font-athletic">
+                <span className="text-xl font-black text-emerald-700 dark:text-emerald-400 font-athletic">
                   {metricMode === 'load' ? weekSummary.lowPointLoad : weekSummary.lowPointKm}
                 </span>
-                <span className="text-[10px] font-bold text-stone-500">
+                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
                   {metricMode === 'load' ? 'pt' : 'km'}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-stone-500">
+              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                 {weekSummary.lowPointCount}개
               </span>
             </div>
-            <div className="mt-1 text-[10px] text-stone-500 truncate">
+            <div className="mt-1 text-[10px] text-stone-500 dark:text-stone-400 truncate">
               M-Pace 지속·모더레이트
             </div>
           </div>
@@ -1356,33 +1356,33 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
             }
             className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs ${
               activeCategoryFilter === 'longRun'
-                ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-300'
-                : 'bg-white border-stone-200 hover:border-indigo-300'
+                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600 ring-2 ring-indigo-300 dark:ring-indigo-700'
+                : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-800 hover:border-indigo-300 dark:hover:border-indigo-600'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-700 mb-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-indigo-700 dark:text-indigo-400 mb-1">
               <span className="flex items-center gap-1 font-bold">
-                <Mountain className="w-3.5 h-3.5 text-indigo-600" />
+                <Mountain className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                 🏔️ 장거리 (LSD)
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200">
                 {metricMode === 'load' ? `${weekSummary.longRunLoadPct}%` : `${weekSummary.longRunDistPct}%`}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-indigo-700 font-athletic">
+                <span className="text-xl font-black text-indigo-700 dark:text-indigo-400 font-athletic">
                   {metricMode === 'load' ? weekSummary.longRunLoad : weekSummary.longRunKm}
                 </span>
-                <span className="text-[10px] font-bold text-stone-500">
+                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
                   {metricMode === 'load' ? 'pt' : 'km'}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-stone-500">
+              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                 {weekSummary.longRunCount}개
               </span>
             </div>
-            <div className="mt-1 text-[10px] text-stone-500 truncate">
+            <div className="mt-1 text-[10px] text-stone-500 dark:text-stone-400 truncate">
               15km+ 주말 지구력주
             </div>
           </div>
@@ -1394,29 +1394,29 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
             }
             className={`p-3 rounded-2xl border transition-all cursor-pointer shadow-2xs ${
               activeCategoryFilter === 'recovery'
-                ? 'bg-stone-100 border-stone-400 ring-2 ring-stone-300'
-                : 'bg-white border-stone-200 hover:border-stone-300'
+                ? 'bg-stone-100 dark:bg-stone-800 border-stone-400 dark:border-stone-600 ring-2 ring-stone-300 dark:ring-stone-600'
+                : 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
             }`}
           >
-            <div className="flex items-center justify-between text-[11px] font-semibold text-stone-700 mb-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-stone-700 dark:text-stone-300 mb-1">
               <span className="flex items-center gap-1 font-bold">
-                <Activity className="w-3.5 h-3.5 text-stone-600" />
+                <Activity className="w-3.5 h-3.5 text-stone-600 dark:text-stone-400" />
                 🌿 회복 / 조깅
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-200 text-stone-800">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200">
                 {metricMode === 'load' ? `${weekSummary.recoveryLoadPct}%` : `${weekSummary.recoveryDistPct}%`}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-stone-700 font-athletic">
+                <span className="text-xl font-black text-stone-700 dark:text-stone-200 font-athletic">
                   {metricMode === 'load' ? weekSummary.recoveryLoad : weekSummary.recoveryKm}
                 </span>
-                <span className="text-[10px] font-bold text-stone-500">
+                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-400">
                   {metricMode === 'load' ? 'pt' : 'km'}
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-stone-500">
+              <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
                 {weekSummary.recoveryCount}개
               </span>
             </div>
@@ -1659,24 +1659,24 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
         </div>
 
         {/* 4. Detailed Session Pace & Intensity Verification Table */}
-        <div className="p-4 rounded-2xl bg-white border border-stone-200">
+        <div className="p-4 rounded-2xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <Gauge className="w-4 h-4 text-emerald-700" />
-              <span className="text-xs font-bold text-stone-900">
+              <Gauge className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+              <span className="text-xs font-bold text-stone-900 dark:text-white">
                 이번 주 세션별 강도 세분화 &amp; 실제 휴식 반영 내역
               </span>
-              <span className="text-[11px] text-stone-500">
+              <span className="text-[11px] text-stone-500 dark:text-stone-400">
                 ({filteredDays.length}개 일자 표시 · 휴식 {weekSummary.actualRestDaysCount}일)
               </span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800"
                 title="원클릭 강도 전환 및 부하값이 플랜과 클라우드(Firestore)에 즉시 저장됩니다"
               >
-                <Check className="w-3 h-3 text-emerald-600" />
+                <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                 <span>부하값 플랜 자동 저장</span>
               </span>
 
@@ -1684,7 +1684,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                 <button
                   type="button"
                   onClick={handleResetOverrides}
-                  className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-800 px-2 py-0.5 rounded border border-stone-200 bg-stone-50 cursor-pointer"
+                  className="flex items-center gap-1 text-[11px] text-stone-500 dark:text-stone-300 hover:text-stone-800 dark:hover:text-white px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 cursor-pointer"
                   title="사용자 강도 조정을 기본 페이스 자동 판정으로 초기화"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -1694,7 +1694,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSessionPaceBreakdown(!showSessionPaceBreakdown)}
-                className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer"
+                className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
               >
                 {showSessionPaceBreakdown ? '세션 목록 접기' : '세션 목록 펼치기'}
               </button>
@@ -1708,8 +1708,8 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               onClick={() => setActiveCategoryFilter('all')}
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
                 activeCategoryFilter === 'all'
-                  ? 'bg-stone-900 text-white border-stone-900'
-                  : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+                  ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 border-stone-900 dark:border-stone-100'
+                  : 'bg-stone-50 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-750'
               }`}
             >
               전체 ({weekSummary.classifiedDays.length})
@@ -1720,7 +1720,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                 activeCategoryFilter === 'highIntensity'
                   ? 'bg-rose-600 text-white border-rose-600'
-                  : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/60'
               }`}
             >
               <span>🔥 고강도</span>
@@ -1732,7 +1732,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                 activeCategoryFilter === 'moderateIntensity'
                   ? 'bg-amber-600 text-white border-amber-600'
-                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/60'
               }`}
             >
               <span>⚡ 중강도</span>
@@ -1744,7 +1744,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                 activeCategoryFilter === 'lowIntensityPoint'
                   ? 'bg-teal-600 text-white border-teal-600'
-                  : 'bg-teal-50 text-teal-800 border-teal-200 hover:bg-teal-100'
+                  : 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900/60'
               }`}
             >
               <span>🎯 저강도(존3)</span>
@@ -1756,7 +1756,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                 activeCategoryFilter === 'longRun'
                   ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-indigo-50 text-indigo-800 border-indigo-200 hover:bg-indigo-100'
+                  : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60'
               }`}
             >
               <span>🏔️ 장거리</span>
@@ -1768,7 +1768,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               className={`px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1 ${
                 activeCategoryFilter === 'recovery'
                   ? 'bg-emerald-600 text-white border-emerald-600'
-                  : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
               }`}
             >
               <span>🌿 회복/휴식</span>
@@ -1787,16 +1787,16 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                     key={dayKey}
                     className={`p-3 rounded-xl border transition-all ${
                       cDay.isActualRest
-                        ? 'bg-stone-50/90 border-stone-200'
+                        ? 'bg-stone-50/90 dark:bg-stone-850/90 border-stone-200 dark:border-stone-800'
                         : cDay.category === 'highIntensity'
-                        ? 'bg-rose-50/50 border-rose-200'
+                        ? 'bg-rose-50/50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900'
                         : cDay.category === 'moderateIntensity'
-                        ? 'bg-amber-50/50 border-amber-200'
+                        ? 'bg-amber-50/50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900'
                         : cDay.category === 'lowIntensityPoint'
-                        ? 'bg-teal-50/50 border-teal-200'
+                        ? 'bg-teal-50/50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-900'
                         : cDay.category === 'longRun'
-                        ? 'bg-indigo-50/50 border-indigo-200'
-                        : 'bg-emerald-50/40 border-emerald-200'
+                        ? 'bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900'
+                        : 'bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900'
                     }`}
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
@@ -1805,8 +1805,8 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                         <span
                           className={`px-2 py-1 rounded-lg border font-black text-xs flex-shrink-0 ${
                             cDay.isActualRest
-                              ? 'bg-stone-100 text-stone-500 border-stone-200'
-                              : 'bg-white text-stone-800 border-stone-200'
+                              ? 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border-stone-200 dark:border-stone-700'
+                              : 'bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700'
                           }`}
                         >
                           {cDay.day.dayShort || cDay.day.day.slice(0, 1)}
@@ -1816,7 +1816,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={`font-extrabold text-xs truncate ${
-                                cDay.isActualRest ? 'text-stone-500 line-through' : 'text-stone-900'
+                                cDay.isActualRest ? 'text-stone-500 dark:text-stone-400 line-through' : 'text-stone-900 dark:text-white'
                               }`}
                             >
                               {cDay.day.title}
@@ -1824,35 +1824,35 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
 
                             {/* Status Badge */}
                             {cDay.isActualRest ? (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 border border-indigo-200 flex items-center gap-1">
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
                                 <BedDouble className="w-3 h-3" />
                                 실제 휴식 완료 (부하 0pt)
                               </span>
                             ) : cDay.isCompletedRun ? (
-                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                                 <Check className="w-3 h-3" />
                                 실제 완주 완료
                               </span>
                             ) : cDay.isFutureDay ? (
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-600">
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
                                 예정
                               </span>
                             ) : (
                               <span
                                 className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
                                   isRace
-                                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                    : 'bg-white text-stone-700 border border-stone-200'
+                                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                                    : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700'
                                 }`}
                               >
                                 {cDay.day.type}
                               </span>
                             )}
 
-                            <span className="text-xs font-bold text-stone-800 font-athletic">
+                            <span className="text-xs font-bold text-stone-800 dark:text-stone-200 font-athletic">
                               {cDay.effectiveDist}km
                               {cDay.isActualRest && cDay.plannedDist > 0 && (
-                                <span className="text-stone-400 text-[10px] ml-1">
+                                <span className="text-stone-400 dark:text-stone-500 text-[10px] ml-1">
                                   (계획: {cDay.plannedDist}km)
                                 </span>
                               )}
@@ -1860,11 +1860,11 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                           </div>
 
                           {/* Pace and Zone Indicator */}
-                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-stone-600 mt-1">
+                          <div className="flex items-center gap-2 flex-wrap text-[11px] text-stone-600 dark:text-stone-300 mt-1">
                             {!cDay.isActualRest && cDay.effectivePaceStr && cDay.effectivePaceStr !== '-' && (
-                              <span className="inline-flex items-center gap-1 font-bold text-stone-800 bg-white px-1.5 py-0.5 rounded border border-stone-200 font-mono">
+                              <span className="inline-flex items-center gap-1 font-bold text-stone-800 dark:text-stone-200 bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded border border-stone-200 dark:border-stone-700 font-mono">
                                 ⏱️ {cDay.isActualPace ? '실제 기록' : '목표 페이스'}:{' '}
-                                <span className="text-emerald-800 font-black">
+                                <span className="text-emerald-800 dark:text-emerald-400 font-black">
                                   {cDay.effectivePaceStr}
                                   {!cDay.effectivePaceStr.includes('/km') ? '/km' : ''}
                                 </span>
@@ -1872,17 +1872,17 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                             )}
 
                             {cDay.actualShoeName && (
-                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                <Footprints className="w-3 h-3 text-emerald-700" />
+                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-900 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                <Footprints className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
                                 실제 착용: {cDay.actualShoeName}
                               </span>
                             )}
 
-                            <span className="px-1.5 py-0.5 rounded bg-white font-bold text-[10px] border border-stone-200 text-stone-700">
+                            <span className="px-1.5 py-0.5 rounded bg-white dark:bg-stone-800 font-bold text-[10px] border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300">
                               {cDay.paceZoneLabel}
                             </span>
 
-                            <span className="font-black text-stone-800 text-[11px]">
+                            <span className="font-black text-stone-800 dark:text-stone-200 text-[11px]">
                               부하: {cDay.dayLoad} pt ({cDay.loadMultiplier}x)
                             </span>
                           </div>
@@ -1891,14 +1891,14 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
 
                       {/* Right: Quick category switcher buttons (5-Tier: 고강도 / 중강도 / 저강도 / 장거리 / 회복) */}
                       <div className="flex items-center gap-1 self-start md:self-auto flex-shrink-0">
-                        <div className="inline-flex rounded-lg bg-white p-0.5 border border-stone-200 text-[10px] font-bold">
+                        <div className="inline-flex rounded-lg bg-white dark:bg-stone-800 p-0.5 border border-stone-200 dark:border-stone-700 text-[10px] font-bold">
                           <button
                             type="button"
                             onClick={() => handleOverrideCategory(dayKey, 'highIntensity')}
                             className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
                               cDay.category === 'highIntensity'
                                 ? 'bg-rose-600 text-white shadow-2xs font-extrabold'
-                                : 'text-stone-600 hover:text-rose-700'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-rose-700 dark:hover:text-rose-400'
                             }`}
                             title="고강도 인터벌 부하로 원클릭 변환 (2.8x)"
                           >
@@ -1910,7 +1910,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                             className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
                               cDay.category === 'moderateIntensity'
                                 ? 'bg-amber-600 text-white shadow-2xs font-extrabold'
-                                : 'text-stone-600 hover:text-amber-700'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-amber-700 dark:hover:text-amber-400'
                             }`}
                             title="중강도 템포·역치 부하로 원클릭 변환 (2.2x)"
                           >
@@ -1922,7 +1922,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                             className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
                               cDay.category === 'lowIntensityPoint'
                                 ? 'bg-teal-600 text-white shadow-2xs font-extrabold'
-                                : 'text-stone-600 hover:text-teal-700'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-teal-700 dark:hover:text-teal-400'
                             }`}
                             title="저강도 포인트(존3 M-Pace) 부하로 원클릭 변환 (1.6x)"
                           >
@@ -1934,7 +1934,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                             className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
                               cDay.category === 'longRun'
                                 ? 'bg-indigo-600 text-white shadow-2xs font-extrabold'
-                                : 'text-stone-600 hover:text-indigo-700'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-indigo-700 dark:hover:text-indigo-400'
                             }`}
                             title="장거리 LSD 지구력 부하로 원클릭 변환 (1.4x)"
                           >
@@ -1946,7 +1946,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                             className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
                               cDay.category === 'recovery'
                                 ? 'bg-emerald-600 text-white shadow-2xs font-extrabold'
-                                : 'text-stone-600 hover:text-emerald-700'
+                                : 'text-stone-600 dark:text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-400'
                             }`}
                             title="회복 및 기초 조깅 부하로 원클릭 변환 (1.0x)"
                           >
@@ -1957,7 +1957,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                     </div>
 
                     {/* Scientific Pace / Rest Explanation note */}
-                    <div className="text-[11px] text-stone-600 mt-1.5 pl-0.5 leading-snug">
+                    <div className="text-[11px] text-stone-600 dark:text-stone-300 mt-1.5 pl-0.5 leading-snug">
                       💡 {cDay.paceExplanation}
                     </div>
                   </div>
@@ -1968,19 +1968,19 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
         </div>
 
         {/* 5. Sports Science & Pyramidal Coaching Bar */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-stone-900">
+                <span className="text-xs font-bold text-stone-900 dark:text-white">
                   피라미달 &amp; 80:20 강도 분배 진단:
                 </span>
                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${weekSummary.polarizedBadgeColor}`}>
                   저강도(회복+LSD) {weekSummary.aerobicRatio}% : 중강도(템포) {weekSummary.moderateRatio}% : 고강도(인터벌) {weekSummary.highRatio}%
                 </span>
               </div>
-              <p className="text-xs text-stone-600 mt-0.5 leading-relaxed">
+              <p className="text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed">
                 {weekSummary.polarizedEvaluation}
               </p>
             </div>
@@ -1994,26 +1994,26 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
         </div>
 
         {/* 6. Multi-Week Training Load Curve (주차별 4단계 훈련 부하 추이) */}
-        <div className="pt-2 border-t border-stone-100">
+        <div className="pt-2 border-t border-stone-100 dark:border-stone-800">
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
               onClick={() => setShowMultiWeekTrend(!showMultiWeekTrend)}
-              className="flex items-center gap-2 text-xs font-bold text-stone-800 hover:text-emerald-700 cursor-pointer"
+              className="flex items-center gap-2 text-xs font-bold text-stone-800 dark:text-stone-200 hover:text-emerald-700 dark:hover:text-emerald-400 cursor-pointer"
             >
-              <BarChart3 className="w-4 h-4 text-emerald-600" />
+              <BarChart3 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>전체 주차별 훈련 부하 추이 (Weekly Training Load Progression)</span>
-              <span className="text-[11px] text-stone-500">
+              <span className="text-[11px] text-stone-500 dark:text-stone-400">
                 ({allWeeks.length}주간 4단계 강도 스택 곡선)
               </span>
             </button>
-            <span className="text-[11px] text-stone-500 hidden sm:inline">
+            <span className="text-[11px] text-stone-500 dark:text-stone-400 hidden sm:inline">
               *주차 막대를 클릭하면 해당 주간으로 이동합니다
             </span>
           </div>
 
           {showMultiWeekTrend && (
-            <div className="p-3.5 rounded-2xl bg-stone-50/70 border border-stone-200">
+            <div className="p-3.5 rounded-2xl bg-stone-50/70 dark:bg-stone-850/70 border border-stone-200 dark:border-stone-800">
               {/* Responsive scrollable multi-week bars */}
               <div className="flex items-end gap-1.5 sm:gap-2 overflow-x-auto pb-2 pt-6 min-h-[140px] px-1 scrollbar-thin">
                 {allWeeksSummaries.map((s, idx) => {
@@ -2032,7 +2032,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
                       title={`${s.weekLabel}: 총 ${s.totalEffectiveKm}km / ${s.totalLoadScore}pt\n고강도: ${s.highIntensityKm}km\n중강도: ${s.moderateIntensityKm}km\n장거리: ${s.longRunKm}km\n회복: ${s.recoveryKm}km`}
                     >
                       {/* Tooltip on hover */}
-                      <div className="absolute -top-6 text-[10px] font-bold text-stone-700 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-white px-1.5 py-0.5 rounded shadow-xs border border-stone-200 z-10">
+                      <div className="absolute -top-6 text-[10px] font-bold text-stone-700 dark:text-stone-200 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap bg-white dark:bg-stone-800 px-1.5 py-0.5 rounded shadow-xs border border-stone-200 dark:border-stone-700 z-10">
                         {s.totalLoadScore}pt
                       </div>
 
