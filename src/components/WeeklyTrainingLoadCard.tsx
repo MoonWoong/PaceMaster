@@ -1532,14 +1532,14 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
         </div>
 
         {/* 3. Visual 5-Segment Stacked Intensity Distribution Bar */}
-        <div className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200">
+        <div className="p-4 rounded-2xl bg-stone-50/80 dark:bg-stone-850/80 border border-stone-200 dark:border-stone-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <Layers className="w-4 h-4 text-stone-700" />
-              <span className="text-xs font-bold text-stone-800">
+              <Layers className="w-4 h-4 text-stone-700 dark:text-stone-300" />
+              <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
                 {metricMode === 'load' ? '5단계 훈련 부하 비중 (Load %)' : '5단계 훈련 거리 비중 (Distance %)'}
               </span>
-              <span className="text-[11px] text-stone-500">
+              <span className="text-[11px] text-stone-500 dark:text-stone-400">
                 (고강도 {metricMode === 'load' ? weekSummary.highIntensityLoadPct : weekSummary.highIntensityDistPct}% : 중강도{' '}
                 {metricMode === 'load' ? weekSummary.moderateIntensityLoadPct : weekSummary.moderateIntensityDistPct}% : 저강도(존3){' '}
                 {metricMode === 'load' ? weekSummary.lowPointLoadPct : weekSummary.lowPointDistPct}% : 장거리{' '}
@@ -1548,23 +1548,23 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-2.5 text-xs flex-wrap">
-              <span className="inline-flex items-center gap-1 text-rose-700 font-semibold">
+              <span className="inline-flex items-center gap-1 text-rose-700 dark:text-rose-400 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
                 고강도
               </span>
-              <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+              <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
                 중강도
               </span>
-              <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+              <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
                 저강도(존3)
               </span>
-              <span className="inline-flex items-center gap-1 text-indigo-700 font-semibold">
+              <span className="inline-flex items-center gap-1 text-indigo-700 dark:text-indigo-400 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
                 장거리
               </span>
-              <span className="inline-flex items-center gap-1 text-stone-600 font-semibold">
+              <span className="inline-flex items-center gap-1 text-stone-600 dark:text-stone-400 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full bg-stone-400 inline-block" />
                 회복/조깅
               </span>
@@ -1572,7 +1572,7 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
           </div>
 
           {/* 5-Segment Stacked Bar */}
-          <div className="w-full h-5 rounded-full bg-stone-200 overflow-hidden flex p-0.5 shadow-inner">
+          <div className="w-full h-5 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden flex p-0.5 shadow-inner">
             {/* 1. High Intensity */}
             {(metricMode === 'load' ? weekSummary.highIntensityLoadPct : weekSummary.highIntensityDistPct) > 0 && (
               <div
@@ -1635,25 +1635,25 @@ export const WeeklyTrainingLoadCard: React.FC<WeeklyTrainingLoadCardProps> = ({
 
           {/* Bar Sub-legend with values (5 items) */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-2 text-center text-[11px]">
-            <div className="p-1.5 rounded-xl bg-rose-50 border border-rose-100">
-              <span className="font-bold text-rose-700">고강도 {weekSummary.highIntensityKm}km</span>
-              <span className="text-stone-500 ml-1">({weekSummary.highIntensityLoad} pt)</span>
+            <div className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40">
+              <span className="font-bold text-rose-700 dark:text-rose-300">고강도 {weekSummary.highIntensityKm}km</span>
+              <span className="text-stone-500 dark:text-stone-400 ml-1">({weekSummary.highIntensityLoad} pt)</span>
             </div>
-            <div className="p-1.5 rounded-xl bg-amber-50 border border-amber-100">
-              <span className="font-bold text-amber-800">중강도 {weekSummary.moderateIntensityKm}km</span>
-              <span className="text-stone-500 ml-1">({weekSummary.moderateIntensityLoad} pt)</span>
+            <div className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/40">
+              <span className="font-bold text-amber-800 dark:text-amber-300">중강도 {weekSummary.moderateIntensityKm}km</span>
+              <span className="text-stone-500 dark:text-stone-400 ml-1">({weekSummary.moderateIntensityLoad} pt)</span>
             </div>
-            <div className="p-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
-              <span className="font-bold text-emerald-800">저강도(존3) {weekSummary.lowPointKm}km</span>
-              <span className="text-stone-500 ml-1">({weekSummary.lowPointLoad} pt)</span>
+            <div className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/40">
+              <span className="font-bold text-emerald-800 dark:text-emerald-300">저강도(존3) {weekSummary.lowPointKm}km</span>
+              <span className="text-stone-500 dark:text-stone-400 ml-1">({weekSummary.lowPointLoad} pt)</span>
             </div>
-            <div className="p-1.5 rounded-xl bg-indigo-50 border border-indigo-100">
-              <span className="font-bold text-indigo-800">장거리 {weekSummary.longRunKm}km</span>
-              <span className="text-stone-500 ml-1">({weekSummary.longRunLoad} pt)</span>
+            <div className="p-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40">
+              <span className="font-bold text-indigo-800 dark:text-indigo-300">장거리 {weekSummary.longRunKm}km</span>
+              <span className="text-stone-500 dark:text-stone-400 ml-1">({weekSummary.longRunLoad} pt)</span>
             </div>
-            <div className="p-1.5 rounded-xl bg-stone-100 border border-stone-200">
-              <span className="font-bold text-stone-700">회복 {weekSummary.recoveryKm}km</span>
-              <span className="text-stone-500 ml-1">({weekSummary.recoveryLoad} pt)</span>
+            <div className="p-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+              <span className="font-bold text-stone-700 dark:text-stone-300">회복 {weekSummary.recoveryKm}km</span>
+              <span className="text-stone-500 dark:text-stone-400 ml-1">({weekSummary.recoveryLoad} pt)</span>
             </div>
           </div>
         </div>

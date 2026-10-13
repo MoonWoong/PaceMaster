@@ -338,13 +338,13 @@ export function getRunnerTier(vdot: number): { label: string; badgeColor: string
   } else if (vdot >= 32) {
     return {
       label: '발전하는 러너 (Progressive Runner)',
-      badgeColor: 'text-stone-800 bg-stone-100 border-stone-300 font-bold',
+      badgeColor: 'text-stone-800 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 border-stone-300 dark:border-stone-700 font-bold',
       description: '10K 50~60분대 안정적 완주, 하프 마라톤 도전 단계',
     };
   } else {
     return {
       label: '비기너 / 입문 러너 (Entry Runner)',
-      badgeColor: 'text-stone-700 bg-stone-100 border-stone-200 font-medium',
+      badgeColor: 'text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 border-stone-200 dark:border-stone-700 font-medium',
       description: '부상 방지 조깅과 Zone 2 지구력 축적이 최우선인 즐거운 단계',
     };
   }

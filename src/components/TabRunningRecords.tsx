@@ -1218,9 +1218,9 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   {currentVDOT > 0 ? currentVDOT.toFixed(1) : '--'}
                 </div>
               </div>
-              <div className="h-7 w-px bg-rose-200" />
+              <div className="h-7 w-px bg-rose-200 dark:bg-stone-700" />
               <div className="text-left">
-                <div className="text-xs font-bold text-stone-900">{runnerTier.label}</div>
+                <div className="text-xs font-bold text-stone-900 dark:text-stone-100">{runnerTier.label}</div>
               </div>
             </div>
           </div>
@@ -1230,7 +1230,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         <form onSubmit={handleSaveRecordsSubmit}>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 5K PB (hh:mm:ss)
               </label>
               <input
@@ -1238,11 +1238,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={pb5k}
                 onChange={(e) => setPb5k(e.target.value)}
                 placeholder="00:21:00"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 10K PB (hh:mm:ss)
               </label>
               <input
@@ -1250,11 +1250,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={pb10k}
                 onChange={(e) => setPb10k(e.target.value)}
                 placeholder="00:43:30"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 하프 PB (hh:mm:ss)
               </label>
               <input
@@ -1262,11 +1262,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={pbHalf}
                 onChange={(e) => setPbHalf(e.target.value)}
                 placeholder="01:36:00"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 풀코스 PB (hh:mm:ss)
               </label>
               <input
@@ -1274,15 +1274,15 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={pbFull}
                 onChange={(e) => setPbFull(e.target.value)}
                 placeholder="03:25:00"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-5">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1 flex items-center gap-1.5">
-                <Heart className="w-3.5 h-3.5 text-rose-400" />
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                 <span>최대 심박수 (Max HR bpm)</span>
               </label>
               <input
@@ -1290,12 +1290,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={maxHr}
                 onChange={(e) => setMaxHr(e.target.value)}
                 placeholder="190"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1 flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
                 <span>역치 심박수 (Threshold HR / LTHR bpm)</span>
               </label>
               <input
@@ -1303,7 +1303,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={thresholdHr}
                 onChange={(e) => setThresholdHr(e.target.value)}
                 placeholder="172"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
           </div>
@@ -1312,7 +1312,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             <button
               type="submit"
               disabled={isSavingRecords}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-md shadow-emerald-900/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-emerald-400/30"
+              className="h-10 sm:h-11 w-full sm:w-auto px-5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-md shadow-emerald-900/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-emerald-400/30"
             >
               <Save className="w-4 h-4" />
               <span>{isSavingRecords ? '저장 중...' : '러닝 정보 저장'}</span>
@@ -1321,35 +1321,35 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </form>
 
         {/* 5대 심박존 (Zone 1 ~ Zone 5) 시각화 */}
-        <div className="pt-4 border-t border-stone-200">
+        <div className="pt-4 border-t border-stone-200 dark:border-stone-800">
           <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-xs sm:text-sm font-bold text-stone-900 flex items-center gap-1.5">
-              <Heart className="w-4 h-4 text-rose-700" />
+            <h3 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
+              <Heart className="w-4 h-4 text-rose-600 dark:text-rose-400" />
               <span>러너 맞춤 심박 트레이닝 존 (Heart Rate Zones)</span>
             </h3>
-            <span className="text-[10px] text-stone-500">최대 {maxHr || 190} bpm / 역치 {thresholdHr || 172} bpm</span>
+            <span className="text-[10px] text-stone-500 dark:text-stone-400">최대 {maxHr || 190} bpm / 역치 {thresholdHr || 172} bpm</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {hrZones.map((z) => (
               <div
                 key={z.zone}
-                className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex flex-col justify-between shadow-2xs"
+                className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 flex flex-col justify-between shadow-2xs"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-stone-900">Zone {z.zone}</span>
+                  <span className="text-xs font-bold text-stone-900 dark:text-white">Zone {z.zone}</span>
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: z.color }}
                   />
                 </div>
-                <div className="text-[11px] font-medium text-stone-600 truncate">
+                <div className="text-[11px] font-medium text-stone-600 dark:text-stone-300 truncate">
                   {z.nameKo.split(' ')[0]}
                 </div>
-                <div className="text-sm sm:text-base font-extrabold font-athletic text-emerald-800 my-0.5">
-                  {z.minHr}~{z.maxHr} <span className="text-[10px] font-normal text-stone-500">bpm</span>
+                <div className="text-sm sm:text-base font-extrabold font-athletic text-emerald-800 dark:text-emerald-300 my-0.5">
+                  {z.minHr}~{z.maxHr} <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">bpm</span>
                 </div>
-                <div className="text-[10px] text-stone-500 font-mono">{z.pctRange}</div>
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">{z.pctRange}</div>
               </div>
             ))}
           </div>
@@ -1357,40 +1357,40 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* Jack Daniels VDOT 훈련 페이스 표 */}
         {trainingPaces && (
-          <div className="mt-4 pt-3.5 border-t border-stone-200">
-            <h3 className="text-xs sm:text-sm font-bold text-stone-900 mb-2.5 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-emerald-700" />
+          <div className="mt-4 pt-3.5 border-t border-stone-200 dark:border-stone-800">
+            <h3 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white mb-2.5 flex items-center gap-1.5">
+              <Award className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>VDOT 기준 권장 훈련 페이스 (Training Paces)</span>
             </h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-stone-500 text-[11px]">이지 (E-Pace)</div>
-                <div className="text-xs sm:text-sm font-bold text-emerald-800 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 shadow-2xs">
+                <div className="text-stone-500 dark:text-stone-400 text-[11px]">이지 (E-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300 font-athletic mt-0.5">
                   {trainingPaces.easyPaceRange.min} ~ {trainingPaces.easyPaceRange.max}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-stone-500 text-[11px]">마라톤 (M-Pace)</div>
-                <div className="text-xs sm:text-sm font-bold text-rose-900 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 shadow-2xs">
+                <div className="text-stone-500 dark:text-stone-400 text-[11px]">마라톤 (M-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">
                   {trainingPaces.marathonPace.pace}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-stone-500 text-[11px]">역치 (T-Pace)</div>
-                <div className="text-xs sm:text-sm font-bold text-amber-800 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 shadow-2xs">
+                <div className="text-stone-500 dark:text-stone-400 text-[11px]">역치 (T-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 font-athletic mt-0.5">
                   {trainingPaces.thresholdPace.pace}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs">
-                <div className="text-stone-500 text-[11px]">인터벌 (I-Pace)</div>
-                <div className="text-xs sm:text-sm font-bold text-rose-800 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 shadow-2xs">
+                <div className="text-stone-500 dark:text-stone-400 text-[11px]">인터벌 (I-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-rose-800 dark:text-rose-300 font-athletic mt-0.5">
                   {trainingPaces.intervalPace.pace}
                 </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 shadow-2xs col-span-2 sm:col-span-1">
-                <div className="text-stone-500 text-[11px]">반복 (R-Pace)</div>
-                <div className="text-xs sm:text-sm font-bold text-purple-800 font-athletic mt-0.5">
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-750 shadow-2xs col-span-2 sm:col-span-1">
+                <div className="text-stone-500 dark:text-stone-400 text-[11px]">반복 (R-Pace)</div>
+                <div className="text-xs sm:text-sm font-bold text-purple-800 dark:text-purple-300 font-athletic mt-0.5">
                   {trainingPaces.repetitionPace.pace}
                 </div>
               </div>
@@ -1425,7 +1425,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         <form onSubmit={handleSaveGoalsSubmit} className="mb-4">
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 10K 목표 (hh:mm:ss)
               </label>
               <input
@@ -1433,11 +1433,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={target10k}
                 onChange={(e) => setTarget10k(e.target.value)}
                 placeholder="00:39:59"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 하프 마라톤 목표
               </label>
               <input
@@ -1445,11 +1445,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={targetHalf}
                 onChange={(e) => setTargetHalf(e.target.value)}
                 placeholder="01:29:59"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
                 풀코스 마라톤 목표
               </label>
               <input
@@ -1457,13 +1457,13 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 value={targetFull}
                 onChange={(e) => setTargetFull(e.target.value)}
                 placeholder="03:09:59"
-                className="w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
+                className="h-10 w-full px-3 py-2 glass-input rounded-xl text-xs font-mono font-semibold"
               />
             </div>
             <div>
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer border border-emerald-500"
+                className="h-10 w-full px-4 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer border border-emerald-500"
               >
                 <Save className="w-4 h-4" />
                 <span>목표 기록 저장</span>
@@ -1480,8 +1480,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         />
 
         {/* Distance Selector for AI Analysis */}
-        <div className="flex items-center gap-2 mb-3 pt-4 border-t border-stone-200">
-          <span className="text-xs text-stone-600 font-medium">검증 코스:</span>
+        <div className="flex items-center gap-2 mb-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+          <span className="text-xs text-stone-600 dark:text-stone-300 font-medium">검증 코스:</span>
           {(['10K', '하프', '풀코스'] as const).map((dist) => (
             <button
               key={dist}
@@ -1489,7 +1489,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 evalSelectedDistance === dist
                   ? 'bg-rose-900 text-white shadow-sm'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200 border border-stone-300'
+                  : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700'
               }`}
             >
               {dist}
@@ -1499,27 +1499,27 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* AI Feasibility Evaluation Card */}
         {goalEvaluation && (
-          <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-emerald-200/60">
+          <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-stone-850 border border-emerald-200 dark:border-emerald-800/60 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-emerald-200/60 dark:border-emerald-800/40">
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-stone-900">
-                  [{evalSelectedDistance}] 목표 VDOT: <span className="text-emerald-800 font-athletic text-sm">{goalEvaluation.targetVDOT.toFixed(1)}</span>
+                <span className="text-xs font-bold text-stone-900 dark:text-white">
+                  [{evalSelectedDistance}] 목표 VDOT: <span className="text-emerald-800 dark:text-emerald-300 font-athletic text-sm">{goalEvaluation.targetVDOT.toFixed(1)}</span>
                 </span>
-                <span className="text-[11px] text-stone-500">
+                <span className="text-[11px] text-stone-500 dark:text-stone-400">
                   (현재 {currentVDOT.toFixed(1)} 대비 {goalEvaluation.diffVDOT > 0 ? `+${goalEvaluation.diffVDOT}` : goalEvaluation.diffVDOT})
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-600">타당성 점수:</span>
-                <strong className="text-sm font-athletic text-stone-900">{goalEvaluation.feasibilityScore}%</strong>
+                <span className="text-xs text-stone-600 dark:text-stone-300">타당성 점수:</span>
+                <strong className="text-sm font-athletic text-stone-900 dark:text-white">{goalEvaluation.feasibilityScore}%</strong>
                 <span
                   className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${
                     goalEvaluation.feasibilityScore >= 70
-                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                       : goalEvaluation.feasibilityScore >= 45
-                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                      : 'bg-rose-100 text-rose-900 border-rose-300'
+                      ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                      : 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700'
                   }`}
                 >
                   {goalEvaluation.feasibilityLevel}
@@ -1527,8 +1527,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               </div>
             </div>
 
-            <div className="text-xs text-stone-700 leading-relaxed">
-              <span className="text-emerald-900 font-semibold mr-1">분석 의견:</span>
+            <div className="text-xs text-stone-700 dark:text-stone-200 leading-relaxed">
+              <span className="text-emerald-900 dark:text-emerald-300 font-semibold mr-1">분석 의견:</span>
               {goalEvaluation.aiFeedback}
             </div>
 
@@ -1574,7 +1574,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
           <div className="flex flex-wrap items-center gap-2">
             {/* CSV File Upload Input (다중 파일 지원, 날짜_훈련제목 형식) */}
-            <label className="px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-rose-800 to-rose-900 hover:from-rose-700 hover:to-rose-800 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5 whitespace-nowrap border border-rose-700">
+            <label className="h-10 px-3.5 text-xs font-bold text-white bg-gradient-to-r from-rose-800 to-rose-900 hover:from-rose-700 hover:to-rose-800 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap border border-rose-700">
               <FileSpreadsheet className="w-3.5 h-3.5 text-amber-300" />
               <span>{isUploadingCsv ? 'CSV 분석 중...' : '가민 CSV 다중 업로드'}</span>
               <input
@@ -1596,7 +1596,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     await onClearAllTrainingSessions();
                   }
                 }}
-                className="px-3 py-2 text-xs font-semibold text-rose-800 hover:text-rose-950 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                className="h-10 px-3 text-xs font-semibold text-rose-800 dark:text-rose-300 hover:text-rose-950 dark:hover:text-rose-100 bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 border border-rose-300 dark:border-rose-800 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5"
                 title="모든 훈련 기록 전체 삭제"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -1609,7 +1609,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               <button
                 type="button"
                 onClick={onOpenTodayWorkoutModal}
-                className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5 border border-emerald-500"
+                className="h-10 px-4 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-sm cursor-pointer inline-flex items-center gap-1.5 border border-emerald-500"
               >
                 <Footprints className="w-3.5 h-3.5" />
                 <span>오늘의 훈련 직접 기록</span>
@@ -1619,27 +1619,27 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* CSV Multi-file Upload Format Tip Banner with warm Gyeongju marathon burgundy tint */}
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs mb-4">
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs mb-4">
           <div className="flex items-center gap-2.5">
             <span className="text-lg flex-shrink-0">📁</span>
-            <div className="text-stone-700 keep-all">
-              <strong className="text-rose-900 font-bold">가민 CSV 다중 파일 업로드 지원:</strong> 여러 개의 훈련 파일을 한 번에 선택할 수 있으며, 파일명이 <code className="text-rose-900 font-mono font-bold bg-rose-100 px-1.5 py-0.5 rounded border border-rose-300">날짜_훈련제목.csv</code> (예: <span className="text-emerald-800 font-mono font-bold">2025-10-12_10km빌드업.csv</span>) 형식인 경우 날짜와 훈련명이 자동 지정됩니다.
+            <div className="text-stone-700 dark:text-stone-300 keep-all">
+              <strong className="text-rose-900 dark:text-rose-300 font-bold">가민 CSV 다중 파일 업로드 지원:</strong> 여러 개의 훈련 파일을 한 번에 선택할 수 있으며, 파일명이 <code className="text-rose-900 dark:text-rose-200 font-mono font-bold bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded border border-rose-300 dark:border-rose-800">날짜_훈련제목.csv</code> (예: <span className="text-emerald-800 dark:text-emerald-300 font-mono font-bold">2025-10-12_10km빌드업.csv</span>) 형식인 경우 날짜와 훈련명이 자동 지정됩니다.
             </div>
           </div>
         </div>
 
         {/* View Mode Switcher: 리스트 보기 vs 달력 보기 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 mb-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-stone-700">보기 모드:</span>
-            <div className="inline-flex p-1 rounded-xl bg-white border border-stone-200 shadow-2xs">
+            <span className="text-xs font-bold text-stone-700 dark:text-stone-300">보기 모드:</span>
+            <div className="inline-flex p-1 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setSessionViewMode('list')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   sessionViewMode === 'list'
                     ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                    : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-750'
                 }`}
               >
                 <List className="w-3.5 h-3.5" />
@@ -1652,7 +1652,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   sessionViewMode === 'calendar'
                     ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-sm'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                    : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-stone-750'
                 }`}
               >
                 <Calendar className="w-3.5 h-3.5" />
@@ -1661,7 +1661,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-stone-500">
+          <div className="text-xs text-stone-500 dark:text-stone-400">
             {sessionViewMode === 'calendar' ? (
               <span>날짜별 칸을 클릭하면 해당 날짜의 훈련 상세 정보와 러닝화 지정이 가능합니다.</span>
             ) : (
@@ -1685,10 +1685,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         {/* List View: Yearly & Monthly Accordion of Training Sessions */}
         {sessionViewMode === 'list' && (
           groupedYearlyTraining.length === 0 ? (
-          <div className="p-8 text-center rounded-xl bg-stone-50 border border-stone-200">
+          <div className="p-8 text-center rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800">
             <Activity className="w-10 h-10 text-stone-400 mx-auto mb-2" />
-            <p className="text-sm text-stone-600">등록된 훈련 기록이 없습니다.</p>
-            <p className="text-xs text-stone-500 mt-1">
+            <p className="text-sm text-stone-600 dark:text-stone-300">등록된 훈련 기록이 없습니다.</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
               가민 등에서 추출한 CSV 파일을 업로드하여 훈련 일지를 등록해보세요.
             </p>
           </div>
@@ -1700,7 +1700,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               return (
                 <div
                   key={yearGroup.yearKey}
-                  className="rounded-2xl bg-stone-50/80 border border-emerald-600/20 overflow-hidden shadow-2xs"
+                  className="rounded-2xl bg-stone-50/80 dark:bg-stone-900 border border-emerald-600/20 dark:border-emerald-500/30 overflow-hidden shadow-2xs"
                 >
                   {/* Year Accordion Header */}
                   <button
@@ -1815,7 +1815,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
                                     <div>
                                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                                        <span className="text-xs font-mono text-emerald-900 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                        <span className="text-xs font-mono text-emerald-900 dark:text-emerald-300 font-semibold bg-emerald-50 dark:bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                                           {session.date}
                                         </span>
 
@@ -1832,8 +1832,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                               onClick={() => setShoeModalSession(session)}
                                               className={`text-xs px-2.5 py-1 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
                                                 displayShoe
-                                                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100 font-semibold'
-                                                  : 'bg-stone-100 text-stone-600 border-stone-200 hover:text-stone-900 hover:border-emerald-300 hover:bg-stone-200'
+                                                  ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 font-semibold'
+                                                  : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:text-stone-900 dark:hover:text-white hover:border-emerald-300 hover:bg-stone-200 dark:hover:bg-stone-750'
                                               }`}
                                               title="착용 러닝화 입력 / 선택"
                                             >
@@ -1845,18 +1845,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                           );
                                         })()}
                                       </div>
-                                      <h4 className="text-sm font-bold text-stone-900 keep-all">
+                                      <h4 className="text-sm font-bold text-stone-900 dark:text-white keep-all">
                                         {session.title}
                                       </h4>
                                       {session.notes && (
-                                        <p className="text-xs text-stone-500 mt-0.5 keep-all">{session.notes}</p>
+                                        <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 keep-all">{session.notes}</p>
                                       )}
                                     </div>
 
                                     <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
                                       <button
                                         onClick={() => setSharingSession(session)}
-                                        className="px-2.5 py-1.5 text-xs font-semibold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
+                                        className="px-2.5 py-1.5 text-xs font-semibold text-emerald-900 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
                                         title="기록 요약 이미지 저장 및 SNS 공유"
                                       >
                                         <Share2 className="w-3.5 h-3.5 flex-shrink-0" />
@@ -1865,7 +1865,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                                       <button
                                         onClick={() => toggleSessionDetail(session.id)}
-                                        className="px-3 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                                        className="px-3 py-1.5 text-xs font-semibold text-stone-700 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-200 dark:border-stone-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap"
                                       >
                                         <span>{isDetailOpen ? '상세 접기' : '상세 (랩 분석)'}</span>
                                         {isDetailOpen ? (
@@ -1891,28 +1891,28 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                   </div>
 
                                   {/* Summary Metrics */}
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-stone-50 border border-stone-200 text-xs">
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-750 text-xs">
                                     <div>
                                       <div className="text-[10px] text-stone-500">총 훈련 거리</div>
-                                      <div className="text-sm sm:text-base font-extrabold text-stone-900 font-athletic">
+                                      <div className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-white font-athletic">
                                         {session.totalDistanceKm} <span className="text-[10px] font-normal text-stone-500">km</span>
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-[10px] text-stone-500">총 소요 시간</div>
-                                      <div className="text-sm sm:text-base font-extrabold text-stone-900 font-athletic">
+                                      <div className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-white font-athletic">
                                         {session.totalTime}
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-[10px] text-stone-500">평균 페이스</div>
-                                      <div className="text-sm sm:text-base font-extrabold text-emerald-800 font-athletic">
+                                      <div className="text-sm sm:text-base font-extrabold text-emerald-800 dark:text-emerald-300 font-athletic">
                                         {session.avgPace} <span className="text-[10px] font-normal text-stone-500">/km</span>
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-[10px] text-stone-500">평균 / 최대 심박</div>
-                                      <div className="text-sm sm:text-base font-extrabold text-rose-900 font-athletic">
+                                      <div className="text-sm sm:text-base font-extrabold text-rose-900 dark:text-rose-300 font-athletic">
                                         {session.avgHr} <span className="text-[10px] font-normal text-stone-500">/ {session.maxHr} bpm</span>
                                       </div>
                                     </div>
@@ -1920,17 +1920,17 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                                   {/* Detail Lap-by-Lap Table (Expands on "상세" click) */}
                                   {isDetailOpen && session.laps && session.laps.length > 0 && (
-                                    <div className="mt-3 pt-3 border-t border-stone-200 animate-fadeIn">
-                                      <div className="text-xs font-semibold text-stone-700 mb-2 flex items-center justify-between">
+                                    <div className="mt-3 pt-3 border-t border-stone-200 dark:border-stone-800 animate-fadeIn">
+                                      <div className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2 flex items-center justify-between">
                                         <span>구간 랩(Lap) 상세 분석표</span>
                                         <span className="text-[11px] text-stone-500">
                                           총 {session.laps.length}개 랩
                                         </span>
                                       </div>
 
-                                      <div className="overflow-x-auto rounded-lg border border-stone-200">
+                                      <div className="overflow-x-auto rounded-lg border border-stone-200 dark:border-stone-750">
                                         <table className="w-full text-left text-xs">
-                                          <thead className="bg-stone-100 text-stone-700 border-b border-stone-200 font-semibold">
+                                          <thead className="bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border-b border-stone-200 dark:border-stone-700 font-semibold">
                                             <tr>
                                               <th className="p-2 sm:p-2.5">랩 #</th>
                                               <th className="p-2 sm:p-2.5">시간</th>
@@ -1942,32 +1942,32 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                               <th className="p-2 sm:p-2.5">최대 심박</th>
                                             </tr>
                                           </thead>
-                                          <tbody className="divide-y divide-stone-200 font-mono">
+                                          <tbody className="divide-y divide-stone-200 dark:divide-stone-750 font-mono">
                                             {session.laps.map((lap, lIdx) => (
                                               <tr
                                                 key={lIdx}
-                                                className="hover:bg-stone-50 transition-colors"
+                                                className="hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
                                               >
-                                                <td className="p-2 sm:p-2.5 font-bold text-stone-900">
+                                                <td className="p-2 sm:p-2.5 font-bold text-stone-900 dark:text-white">
                                                   Lap {lap.lap}
                                                 </td>
-                                                <td className="p-2 sm:p-2.5 text-stone-700">{lap.time}</td>
+                                                <td className="p-2 sm:p-2.5 text-stone-700 dark:text-stone-300">{lap.time}</td>
                                                 <td className="p-2 sm:p-2.5 text-stone-500">
                                                   {lap.cumulativeTime}
                                                 </td>
-                                                <td className="p-2 sm:p-2.5 text-emerald-800 font-bold">
+                                                <td className="p-2 sm:p-2.5 text-emerald-800 dark:text-emerald-400 font-bold">
                                                   {lap.distanceKm} km
                                                 </td>
-                                                <td className="p-2 sm:p-2.5 text-emerald-700">
+                                                <td className="p-2 sm:p-2.5 text-emerald-700 dark:text-emerald-300">
                                                   {lap.avgPace}
                                                 </td>
                                                 <td className="p-2 sm:p-2.5 text-stone-500 hidden sm:table-cell">
                                                   {lap.avgGap || '-'}
                                                 </td>
-                                                <td className="p-2 sm:p-2.5 text-rose-800">
+                                                <td className="p-2 sm:p-2.5 text-rose-800 dark:text-rose-300">
                                                   {lap.avgHr} bpm
                                                 </td>
-                                                <td className="p-2 sm:p-2.5 text-rose-900 font-bold">
+                                                <td className="p-2 sm:p-2.5 text-rose-900 dark:text-rose-200 font-bold">
                                                   {lap.maxHr} bpm
                                                 </td>
                                               </tr>
@@ -2187,14 +2187,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <h3 className="text-sm font-bold text-stone-900">
+                  <h3 className="text-sm font-bold text-stone-900 dark:text-white">
                     현재 참가 예정인 목표 대회가 없습니다.
                   </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-bold">
                     기본 유산소 체력 유지 모드
                   </span>
                 </div>
-                <p className="text-xs text-stone-600 keep-all">
+                <p className="text-xs text-stone-600 dark:text-stone-300 keep-all">
                   {races && races.length > 0
                     ? '등록된 이전 마라톤 대회가 모두 완료되었습니다! 출전할 다음 목표 대회를 등록하시면 실시간 D-Day 카운트다운과 목표 페이스 주기화 훈련이 자동으로 연동됩니다.'
                     : '출전할 마라톤 대회를 등록하시면 실시간 D-Day 카운트다운과 목표 페이스 주기화(테이퍼링) 훈련이 스마트하게 연동됩니다.'}
@@ -2228,7 +2228,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* Training Days & Point Workouts Customization Form */}
         {isCustomizingPlan && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 mb-6 space-y-4 text-stone-800">
+          <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 mb-6 space-y-4 text-stone-800 dark:text-stone-100">
             <div className="flex items-center justify-between border-b border-stone-200 pb-2.5">
               <span className="text-sm font-bold text-emerald-900 flex items-center gap-2">
                 <Gauge className="w-4 h-4 text-emerald-700" />
@@ -2267,8 +2267,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       }}
                       className={`py-2 px-0.5 sm:px-1 rounded-xl text-center border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 min-w-0 overflow-hidden ${
                         isSelected
-                          ? 'bg-emerald-100 border-emerald-400 text-emerald-950 font-bold shadow-2xs'
-                          : 'bg-white border-stone-200 text-stone-500 hover:text-stone-900 hover:bg-stone-100'
+                          ? 'bg-emerald-100 dark:bg-emerald-950/80 border-emerald-400 dark:border-emerald-600 text-emerald-950 dark:text-emerald-200 font-bold shadow-2xs'
+                          : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-750'
                       }`}
                     >
                       <span className="text-xs sm:text-sm font-bold truncate">{day.replace('요일', '')}</span>
@@ -2495,14 +2495,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
         {/* Runner State & Mileage Trend Analysis Summary Card */}
         {runnerStateAnalysis && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 mb-6 space-y-4 text-stone-800 shadow-2xs">
+          <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 mb-6 space-y-4 text-stone-800 dark:text-stone-100 shadow-2xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-200">
                   <BarChart3 className="w-4 h-4 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-stone-900 dark:text-white flex items-center gap-2">
                     <span>러너 실훈련 상태 & 주간 마일리지 추세 정밀 진단</span>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
@@ -2528,10 +2528,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 <span
                   className={`text-xs px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 border ${
                     runnerStateAnalysis.mileageTrend === '증가세'
-                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
                       : runnerStateAnalysis.mileageTrend === '감소세'
-                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                      : 'bg-stone-100 text-stone-800 border-stone-300'
+                      ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                      : 'bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700'
                   }`}
                 >
                   {runnerStateAnalysis.mileageTrend === '증가세' ? (
@@ -2620,7 +2620,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         <Target className="w-3 h-3 text-white" />
                         <span>참가 대회 가중치 & 테이퍼링 정밀 반영</span>
                       </span>
-                      <strong className="text-xs sm:text-sm font-bold text-stone-900">
+                      <strong className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white">
                         {rDetail.raceName} ({rDetail.dDayDays === 0 ? '🏆 D-Day 오늘 결승 레이스' : `D-${rDetail.dDayDays}일`} · {rDetail.course})
                       </strong>
                     </div>
@@ -2653,7 +2653,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                           감량 배제 (0~5%)
                         </span>
                       </div>
-                      <p className="text-[11px] text-stone-800 leading-relaxed keep-all">
+                      <p className="text-[11px] text-stone-800 dark:text-stone-200 leading-relaxed keep-all">
                         {rDetail.easyRunCruiseNote ||
                           `10km 6’00” 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 2~3km 늘어난 가벼운 유산소 부하입니다. 젖산 축적과 근육 피로가 거의 없으므로 무리한 조기 감량(-20~30%)은 오히려 심폐 리듬을 잃게 만듭니다. 따라서 주간 마일리지 100%를 온전히 유지하며, 전날 가벼운 3~4km 리듬 조깅 또는 휴식만으로 최상의 컨디션을 맞춥니다.`}
                       </p>
@@ -2679,7 +2679,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   {/* Multi-race roadmap list (closest first) */}
                   {allUpcomingRacesAnalysis.length > 1 && (
                     <div className="pt-2 border-t border-emerald-200/70 space-y-1.5">
-                      <div className="text-[11px] font-bold text-stone-800 flex items-center justify-between">
+                      <div className="text-[11px] font-bold text-stone-800 dark:text-stone-200 flex items-center justify-between">
                         <span>📋 참가 예정 대회 순서별 중요도 & 강도 로드맵 (가까운 순):</span>
                         <span className="text-[10px] text-stone-500 font-normal">총 {allUpcomingRacesAnalysis.length}개 대회</span>
                       </div>
@@ -2690,19 +2690,19 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                             onClick={() => setSelectedAnalyzedRaceIndex(i)}
                             className={`p-2 rounded-lg border text-[11px] transition-all cursor-pointer ${
                               i === 0
-                                ? 'bg-emerald-100/70 border-emerald-300 font-medium'
-                                : 'bg-white/80 border-stone-200 hover:border-emerald-400'
+                                ? 'bg-emerald-100/70 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 font-medium'
+                                : 'bg-white/80 dark:bg-stone-850/80 border-stone-200 dark:border-stone-700 hover:border-emerald-400'
                             }`}
                           >
-                            <div className="flex items-center justify-between font-bold text-stone-900">
+                            <div className="flex items-center justify-between font-bold text-stone-900 dark:text-white">
                               <span className="flex items-center gap-1">
                                 <span>{i === 0 ? (r.dDayDays === 0 ? '🏆 1순위 (오늘 대회)' : '🥇 1순위 (현재 연동)') : `${i + 1}순위`}</span>
                               </span>
-                              <span className="text-rose-800 font-mono">{r.dDayDays === 0 ? 'D-Day (오늘)' : `D-${r.dDayDays}일`}</span>
+                              <span className="text-rose-800 dark:text-rose-400 font-mono">{r.dDayDays === 0 ? 'D-Day (오늘)' : `D-${r.dDayDays}일`}</span>
                             </div>
-                            <div className="truncate text-stone-800 font-semibold">{r.raceName} ({r.course})</div>
-                            <div className="text-[10px] text-stone-600 flex items-center gap-1.5 mt-0.5">
-                              <span className="px-1.5 py-0.2 rounded bg-stone-100 font-medium text-stone-700">{r.importanceGrade.split(' ')[0]}</span>
+                            <div className="truncate text-stone-800 dark:text-stone-200 font-semibold">{r.raceName} ({r.course})</div>
+                            <div className="text-[10px] text-stone-600 dark:text-stone-400 flex items-center gap-1.5 mt-0.5">
+                              <span className="px-1.5 py-0.2 rounded bg-stone-100 dark:bg-stone-800 font-medium text-stone-700 dark:text-stone-300">{r.importanceGrade.split(' ')[0]}</span>
                               <span>· {r.paceIntensityLevel.split(' ')[0]}</span>
                               <span>· {r.periodizationPhase.split(' ')[0]}</span>
                             </div>
@@ -2870,7 +2870,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       )}
                     </div>
 
-                    <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 flex-wrap keep-all">
+                    <h4 className="text-sm font-bold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap keep-all">
                       <span>{dayPlan.title}</span>
                     </h4>
                     <p className="text-xs text-stone-600 mt-0.5 leading-relaxed keep-all">
@@ -2883,10 +2883,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                         {dayPlan.stages.map((stg, sIdx) => (
                           <div
                             key={sIdx}
-                            className="p-2.5 rounded-lg bg-stone-50 border border-stone-200 text-xs flex flex-col justify-between gap-1 shadow-2xs min-w-0"
+                            className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-750 text-xs flex flex-col justify-between gap-1 shadow-2xs min-w-0"
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-stone-900 text-[11px] truncate">{stg.step}</span>
+                              <span className="font-bold text-stone-900 dark:text-white text-[11px] truncate">{stg.step}</span>
                               <span className="text-[10px] text-emerald-800 font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 border border-emerald-300 whitespace-nowrap flex-shrink-0">
                                 {stg.pace}/km
                               </span>
@@ -2913,7 +2913,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-[10px] text-stone-600 font-semibold whitespace-nowrap">추천 러닝화:</span>
-                              <strong className="text-stone-900 font-bold truncate max-w-[200px]">
+                              <strong className="text-stone-900 dark:text-white font-bold truncate max-w-[200px]">
                                 {dayPlan.recommendedShoe?.shoeName || (shoes.length > 0 ? shoes[0].name : '보유 러닝화 미등록')}
                               </strong>
                               {dayPlan.recommendedShoe?.category && (
@@ -2945,13 +2945,13 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 </div>
 
                 {/* Metrics */}
-                <div className="flex items-center gap-3 sm:gap-5 self-stretch xl:self-center border-t xl:border-t-0 pt-2.5 xl:pt-0 border-stone-200 w-full xl:w-auto justify-between xl:justify-end flex-shrink-0 min-w-0 bg-stone-50 xl:bg-transparent p-2.5 xl:p-0 rounded-xl">
+                <div className="flex items-center gap-3 sm:gap-5 self-stretch xl:self-center border-t xl:border-t-0 pt-2.5 xl:pt-0 border-stone-200 dark:border-stone-800 w-full xl:w-auto justify-between xl:justify-end flex-shrink-0 min-w-0 bg-stone-50 dark:bg-stone-850 xl:bg-transparent xl:dark:bg-transparent p-2.5 xl:p-0 rounded-xl">
                   <div className="text-left sm:text-center xl:text-right min-w-[65px]">
                     <div className="text-[10px] text-stone-500 whitespace-nowrap">
                       {dayPlan.isCompleted ? '실제 주행거리' : '목표 거리'}
                     </div>
                     <div className={`text-sm font-extrabold font-athletic whitespace-nowrap ${
-                      dayPlan.isCompleted ? 'text-emerald-900 text-base' : 'text-stone-900'
+                      dayPlan.isCompleted ? 'text-emerald-900 dark:text-emerald-400 text-base' : 'text-stone-900 dark:text-white'
                     }`}>
                       {dayPlan.distanceKm > 0 ? `${dayPlan.distanceKm} km` : '0 km'}
                     </div>
@@ -2981,12 +2981,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
         </div>
 
         {/* Weekly Total Plan Summary Footer Bar */}
-        <div className="mt-4 p-4 rounded-xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs min-w-0 w-full text-stone-800">
-          <div className="flex items-center gap-2 text-stone-700 min-w-0">
+        <div className="mt-4 p-4 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs min-w-0 w-full text-stone-800 dark:text-stone-100">
+          <div className="flex items-center gap-2 text-stone-700 dark:text-stone-200 min-w-0">
             <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
             <span className="keep-all">
               이번 주간 총 계획 거리:{' '}
-              <strong className="text-stone-900 text-sm font-bold font-athletic whitespace-nowrap">
+              <strong className="text-stone-900 dark:text-white text-sm font-bold font-athletic whitespace-nowrap">
                 {Math.round(activePlan.reduce((acc, d) => acc + (d.distanceKm || 0), 0) * 10) / 10} km
               </strong>{' '}
               <span className="text-stone-500 whitespace-nowrap">
@@ -2997,11 +2997,11 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
             <span className="whitespace-nowrap">
-              스피드: <strong className="text-rose-900">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
+              스피드: <strong className="text-rose-900 dark:text-rose-300">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
             <span className="whitespace-nowrap">
-              장거리(LSD): <strong className="text-purple-900">{activePlan.find(d => d.type === 'LSD')?.distanceKm || 0}km</strong>
+              장거리(LSD): <strong className="text-purple-900 dark:text-purple-300">{activePlan.find(d => d.type === 'LSD')?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
             <span className="whitespace-nowrap">

@@ -525,17 +525,17 @@ export const WeatherWidget: React.FC = () => {
   const gearAdvice = currentWeather ? getRunningGearAdvice(currentWeather.temp) : null;
 
   return (
-    <div className="relative" ref={popoverRef}>
+    <div className="relative flex-shrink-0 flex items-center" ref={popoverRef}>
       {/* Compact Header Pill Button */}
       <button
         type="button"
         onClick={() => setIsPopoverOpen((prev) => !prev)}
-        className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-50/90 dark:bg-stone-850 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-emerald-500/40 text-left transition-all cursor-pointer shadow-xs group"
+        className="h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl bg-stone-50/90 dark:bg-stone-850 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 hover:border-emerald-500/40 text-left transition-all cursor-pointer shadow-xs group"
         title="오늘의 날씨 및 러닝 추천 복장 보기"
         aria-label="오늘의 날씨 정보"
       >
         <div
-          className={`p-1.5 rounded-lg flex items-center justify-center ${config.badgeBg} ${config.iconColor} transition-transform group-hover:scale-110`}
+          className={`p-1.5 rounded-lg flex items-center justify-center flex-shrink-0 ${config.badgeBg} ${config.iconColor} transition-transform group-hover:scale-110`}
         >
           {isLoading && !currentWeather ? (
             <RefreshCw className="w-4 h-4 animate-spin text-stone-400" />
@@ -550,7 +550,7 @@ export const WeatherWidget: React.FC = () => {
             <span>•</span>
             <span>{config.label}</span>
           </div>
-          <div className="text-xs sm:text-sm font-black text-stone-900 dark:text-white font-athletic flex items-center gap-1 mt-0.5">
+          <div className="text-xs sm:text-sm font-black text-stone-900 dark:text-white font-athletic flex items-center gap-1 mt-0.5 leading-none">
             {currentWeather ? (
               <>
                 <span>{currentWeather.temp}°C</span>
@@ -658,7 +658,7 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               fetchWeather();
             }}
             disabled={isLoading}
-            className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border border-stone-200 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white border border-stone-200 dark:border-stone-700 transition-all cursor-pointer"
             title="날씨 새로고침"
           >
             <RefreshCw
@@ -671,7 +671,7 @@ const WeatherPopupCard: React.FC<WeatherPopupCardProps> = ({
               e.stopPropagation();
               onClose();
             }}
-            className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border border-stone-200 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white border border-stone-200 dark:border-stone-700 transition-all cursor-pointer"
             title="닫기"
           >
             <X className="w-3.5 h-3.5" />

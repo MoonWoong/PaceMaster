@@ -223,7 +223,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-500"
+              className="h-10 sm:h-11 w-full sm:w-auto px-4 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 rounded-xl transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 border border-emerald-500"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? '동기화 중...' : '최신 일정 새로고침'}</span>
@@ -299,7 +299,7 @@ export const TabMarathonRaces: React.FC<TabMarathonRacesProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="대회명, 개최 장소, 요일(월/화/수/목/금/토/일), 주관사 검색 (예: 월요일, 서울, JTBC, 춘천, 동아, 경주, 보스턴)..."
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:border-emerald-500"
+              className="h-10 w-full pl-9 pr-4 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-xl text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:border-emerald-500"
             />
           </div>
 

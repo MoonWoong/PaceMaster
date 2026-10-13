@@ -174,21 +174,21 @@ export const DataBackupRestoreFooter: React.FC<DataBackupRestoreFooterProps> = (
       )}
 
       {/* Main Backup & Restore Toolbar Card */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-emerald-800/15 shadow-sm bg-white/95 text-stone-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-emerald-800/15 dark:border-emerald-500/30 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Info & Description */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">
-              <FileJson className="w-4 h-4 text-emerald-800" />
+            <span className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">
+              <FileJson className="w-4 h-4 text-emerald-800 dark:text-emerald-300" />
             </span>
-            <h4 className="text-sm font-bold text-stone-900">
+            <h4 className="text-sm font-bold text-stone-900 dark:text-white">
               데이터 유실 방지: 로컬 JSON 백업 & 복원
             </h4>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium border border-stone-200">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-medium border border-stone-200 dark:border-stone-700">
               오프라인 보존 지원
             </span>
           </div>
-          <p className="text-[11px] text-stone-600 leading-relaxed">
+          <p className="text-[11px] text-stone-600 dark:text-stone-400 leading-relaxed">
             비로그인 상태 또는 브라우저 캐시 삭제 시에도 훈련 기록, 러닝화, 목표 대회가 유실되지 않도록 JSON 파일로 다운로드하여 영구 보관할 수 있습니다.
           </p>
         </div>
@@ -210,9 +210,9 @@ export const DataBackupRestoreFooter: React.FC<DataBackupRestoreFooterProps> = (
             type="button"
             onClick={handleTriggerFileSelect}
             disabled={isProcessing}
-            className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-stone-100 text-stone-800 font-bold text-xs shadow-2xs transition-all flex items-center gap-2 cursor-pointer border border-stone-300 active:scale-[0.98]"
+            className="px-3.5 py-2.5 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-100 font-bold text-xs shadow-2xs transition-all flex items-center gap-2 cursor-pointer border border-stone-300 dark:border-stone-700 active:scale-[0.98]"
           >
-            <Upload className="w-3.5 h-3.5 text-stone-600" />
+            <Upload className="w-3.5 h-3.5 text-stone-600 dark:text-stone-300" />
             <span>백업 파일 복원</span>
           </button>
 
@@ -230,62 +230,62 @@ export const DataBackupRestoreFooter: React.FC<DataBackupRestoreFooterProps> = (
       {/* Confirmation Modal for Restore */}
       {pendingRestorePayload && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-stone-900/60 dark:bg-black/75 backdrop-blur-xs animate-fadeIn"
           onClick={() => setPendingRestorePayload(null)}
         >
           <div
-            className="w-full max-w-md p-5 sm:p-6 rounded-2xl bg-white border border-stone-200 shadow-2xl text-stone-800 space-y-4"
+            className="w-full max-w-md p-5 sm:p-6 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 shadow-2xl text-stone-800 dark:text-stone-100 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2.5 border-b border-stone-200 pb-3">
-              <div className="p-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300">
-                <ShieldCheck className="w-5 h-5 text-amber-800" />
+            <div className="flex items-center gap-2.5 border-b border-stone-200 dark:border-stone-750 pb-3">
+              <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60">
+                <ShieldCheck className="w-5 h-5 text-amber-800 dark:text-amber-300" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-stone-900">
+                <h3 className="text-base font-bold text-stone-900 dark:text-white">
                   러닝 데이터 복원 확인
                 </h3>
-                <p className="text-[11px] text-stone-500">
+                <p className="text-[11px] text-stone-500 dark:text-stone-400">
                   백업 파일 일시: {new Date(pendingRestorePayload.exportedAt).toLocaleString('ko-KR')}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-2 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200">
-              <div className="font-semibold text-stone-800 mb-1">
+            <div className="space-y-2 text-xs bg-stone-50 dark:bg-stone-800/80 p-3.5 rounded-xl border border-stone-200 dark:border-stone-700">
+              <div className="font-semibold text-stone-800 dark:text-stone-200 mb-1">
                 복원될 데이터 요약:
               </div>
-              <ul className="space-y-1 text-stone-700">
+              <ul className="space-y-1 text-stone-700 dark:text-stone-300">
                 <li className="flex items-center justify-between">
                   <span>🏃‍♂️ 실훈련 세션 및 랩타임:</span>
-                  <strong className="font-mono font-bold text-emerald-800">
+                  <strong className="font-mono font-bold text-emerald-800 dark:text-emerald-400">
                     {pendingRestorePayload.summary.totalSessions}건
                   </strong>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>👟 보유 러닝화 컬렉션:</span>
-                  <strong className="font-mono font-bold text-emerald-800">
+                  <strong className="font-mono font-bold text-emerald-800 dark:text-emerald-400">
                     {pendingRestorePayload.summary.totalShoes}켤레
                   </strong>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>🏅 참가 목표 대회:</span>
-                  <strong className="font-mono font-bold text-emerald-800">
+                  <strong className="font-mono font-bold text-emerald-800 dark:text-emerald-400">
                     {pendingRestorePayload.summary.totalRaces}개
                   </strong>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>🎯 PB 기록 & 목표 페이스:</span>
-                  <strong className="text-emerald-800 font-bold">포함됨</strong>
+                  <strong className="text-emerald-800 dark:text-emerald-400 font-bold">포함됨</strong>
                 </li>
                 <li className="flex items-center justify-between">
                   <span>📅 주간 훈련 계획표 & 신체정보:</span>
-                  <strong className="text-emerald-800 font-bold">포함됨</strong>
+                  <strong className="text-emerald-800 dark:text-emerald-400 font-bold">포함됨</strong>
                 </li>
               </ul>
             </div>
 
-            <p className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-lg border border-amber-200 leading-relaxed">
+            <p className="text-xs text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/60 leading-relaxed">
               ⚠️ <strong>주의:</strong> 복원을 진행하면 현재 대시보드의 훈련 기록과 설정이 백업 파일의 내용으로 완전히 갱신 및 동기화됩니다.
             </p>
 
@@ -294,7 +294,7 @@ export const DataBackupRestoreFooter: React.FC<DataBackupRestoreFooterProps> = (
                 type="button"
                 onClick={() => setPendingRestorePayload(null)}
                 disabled={isProcessing}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors cursor-pointer"
               >
                 취소
               </button>

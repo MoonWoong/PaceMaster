@@ -69,59 +69,73 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               title={theme === 'dark' ? '화사하고 밝은 라이트 모드로 전환' : '눈이 편안한 다크 모드로 전환'}
-              className={`h-10 sm:h-11 inline-flex items-center gap-1.5 px-3 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs select-none ${
+              className={`h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs select-none ${
                 theme === 'dark'
-                  ? 'bg-stone-800/90 hover:bg-stone-700 text-amber-300 border-amber-400/40 shadow-stone-950/40 ring-1 ring-amber-400/30'
-                  : 'bg-white hover:bg-stone-50 text-stone-700 border-stone-200 shadow-stone-200/50 hover:text-stone-900'
+                  ? 'bg-stone-850 hover:bg-stone-800 text-amber-300 border-amber-400/40 shadow-stone-950/40 ring-1 ring-amber-400/30'
+                  : 'bg-stone-50/90 hover:bg-stone-100 text-stone-700 border-stone-200 shadow-stone-200/50 hover:text-stone-900'
               }`}
             >
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-400 flex-shrink-0 animate-pulse" />
-                  <span className="font-extrabold text-amber-300">라이트</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                  <span className="font-extrabold text-stone-800">다크</span>
-                </>
-              )}
+              <div
+                className={`p-1.5 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  theme === 'dark' ? 'bg-amber-400/20 text-amber-300' : 'bg-indigo-100 text-indigo-600'
+                }`}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 animate-pulse" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
+              </div>
+              <div className="flex flex-col justify-center text-left whitespace-nowrap">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">
+                  화면 모드
+                </span>
+                <span className="text-xs sm:text-sm font-extrabold font-athletic mt-0.5 leading-none text-stone-900 dark:text-amber-300">
+                  {theme === 'dark' ? '라이트 전환' : '다크 모드'}
+                </span>
+              </div>
             </button>
 
             {/* Nearest Upcoming Race D-Day Badge */}
             {nearestUpcomingRace ? (
-              <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 text-white border border-rose-700/60 shadow-sm flex-shrink-0">
-                <Calendar className="w-4 h-4 text-amber-300 flex-shrink-0" />
+              <div className="h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl bg-gradient-to-r from-rose-900 to-rose-950 text-white border border-rose-700/60 shadow-sm">
+                <div className="p-1.5 rounded-lg bg-rose-800/80 text-amber-300 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
                 <div className="text-left whitespace-nowrap flex flex-col justify-center">
                   <div className="text-[10px] text-rose-200 font-medium leading-none flex items-center gap-1">
                     <span className="truncate max-w-[85px] sm:max-w-[120px]">{nearestUpcomingRace.race.name}</span>
                     <span>·</span>
                     <span>{nearestUpcomingRace.race.course}</span>
                   </div>
-                  <div className="text-xs sm:text-sm font-extrabold text-amber-300 font-athletic mt-0.5 flex items-center gap-1.5">
+                  <div className="text-xs sm:text-sm font-extrabold text-amber-300 font-athletic mt-0.5 leading-none flex items-center gap-1.5">
                     <span>{nearestUpcomingRace.dDay.text}</span>
                     <span className="text-[10px] text-rose-300 font-mono font-normal">({nearestUpcomingRace.race.date})</span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 text-rose-900 dark:text-rose-200 shadow-xs flex-shrink-0">
-                <Calendar className="w-4 h-4 text-rose-700 dark:text-rose-400 flex-shrink-0" />
+              <div className="h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 text-rose-900 dark:text-rose-200 shadow-xs">
+                <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
                 <div className="text-left whitespace-nowrap flex flex-col justify-center">
                   <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">목표 대회</div>
-                  <div className="text-xs font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">D-Day 카운터</div>
+                  <div className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5 leading-none">D-Day 카운터</div>
                 </div>
               </div>
             )}
 
             {/* VDOT Badge with Gyeongju Marathon burgundy & gold tone */}
-            <div className="h-10 sm:h-11 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50/90 dark:bg-stone-800/80 border border-rose-200/80 dark:border-stone-700 shadow-sm flex-shrink-0">
-              <Award className="w-4 h-4 text-rose-700 dark:text-rose-400 flex-shrink-0" />
+            <div className="h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50/90 dark:bg-stone-800/80 border border-rose-200/80 dark:border-stone-700 shadow-sm">
+              <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-stone-700 text-rose-700 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
+                <Award className="w-4 h-4" />
+              </div>
               <div className="text-left whitespace-nowrap flex flex-col justify-center">
                 <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">
                   현재 러닝 엔진
                 </div>
-                <div className="text-xs font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5">
+                <div className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5 leading-none">
                   {currentVDOT > 0 ? `VDOT ${currentVDOT}` : '기록 측정중'}
                 </div>
               </div>

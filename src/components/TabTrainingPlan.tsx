@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   CalendarRange,
   Calendar,
@@ -108,21 +108,40 @@ const loadStoredPlanSettings = (
   const matchedRace = upcomingRaces.find((r) => r.id === targetRaceId) || nearestTargetRace;
 
   // Determine start date and mode
-  let startMode: 'today' | 'next_monday' | 'custom' = fromStorage?.startDateMode || 'next_monday';
-  let initialStartDate = nextMon;
+  let startMode: 'today' | 'next_monday' | 'custom' =
+    fromStorage?.startDateMode || s?.startDateMode || 'today';
+  let initialStartDate = today;
 
-  // If the target race is sooner than next Monday, force startMode to 'today'!
-  if (matchedRace && matchedRace.date < nextMon) {
+  if (fromStorage?.startDateMode === 'custom' && fromStorage.startDate) {
+    startMode = 'custom';
+    initialStartDate = fromStorage.startDate;
+  } else if (s?.startDateMode === 'custom' && s.startDate) {
+    startMode = 'custom';
+    initialStartDate = s.startDate;
+  } else if (fromStorage?.startDateMode === 'next_monday') {
+    startMode = 'next_monday';
+    initialStartDate = nextMon;
+  } else if (fromStorage?.startDateMode === 'today') {
     startMode = 'today';
     initialStartDate = today;
-  } else if (startMode === 'today') {
-    initialStartDate = today;
-  } else if (startMode === 'next_monday') {
+  } else if (s?.startDateMode === 'next_monday') {
+    startMode = 'next_monday';
     initialStartDate = nextMon;
-  } else if (fromStorage?.startDate && fromStorage.startDate >= today) {
+  } else if (s?.startDateMode === 'today') {
+    startMode = 'today';
+    initialStartDate = today;
+  } else if (fromStorage?.startDate) {
     initialStartDate = fromStorage.startDate;
-  } else if (s?.startDate && s.startDate >= today) {
+    startMode = 'custom';
+  } else if (s?.startDate) {
     initialStartDate = s.startDate;
+    startMode = 'custom';
+  } else if (savedPlan?.weeks?.[0]?.startDateStr) {
+    initialStartDate = savedPlan.weeks[0].startDateStr;
+    startMode = 'custom';
+  } else if (matchedRace && matchedRace.date < nextMon) {
+    startMode = 'today';
+    initialStartDate = today;
   }
 
   const goalMode = fromStorage?.goalMode || s?.goalMode || (nearestTargetRace ? 'race' : 'continuous_progression');
@@ -662,7 +681,32 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     );
   }, [savedPlan, currentVDOT, sessions, shoes, races, goals]);
 
-  const activePlan = optimisticPlan || baseActivePlan;
+  const rawActivePlan = optimisticPlan || baseActivePlan;
+
+  // Dynamically synchronize isCurrentWeek for all weeks based on today's real-world date!
+  const activePlan = useMemo<ComprehensiveTrainingPlan>(() => {
+    if (!rawActivePlan || !rawActivePlan.weeks || rawActivePlan.weeks.length === 0) {
+      return rawActivePlan;
+    }
+    const todayStr = getTodayDateStr();
+    let hasChanges = false;
+    const syncedWeeks = rawActivePlan.weeks.map((w) => {
+      const isCur = todayStr >= w.startDateStr && todayStr <= w.endDateStr;
+      if (w.isCurrentWeek !== isCur) {
+        hasChanges = true;
+      }
+      return {
+        ...w,
+        isCurrentWeek: isCur,
+      };
+    });
+
+    if (!hasChanges) return rawActivePlan;
+    return {
+      ...rawActivePlan,
+      weeks: syncedWeeks,
+    };
+  }, [rawActivePlan]);
 
   // Handle One-Click Category Override (고강도 / 중강도 / 저강도(존3) / 장거리 / 회복/휴식)
   const handleUpdateCategoryOverride = async (dayKey: string, newCat: IntensityCategory) => {
@@ -715,13 +759,23 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     }
   }, [savedPlan, currentVDOT, sessions, onSavePlan]);
 
-  // Set initial active week to current week
+  // Set initial active week to current week (only once on load or when plan changes completely)
+  const hasInitializedWeekRef = useRef(false);
+
   useEffect(() => {
-    if (activePlan && activePlan.weeks) {
+    if (!hasInitializedWeekRef.current && activePlan && activePlan.weeks && activePlan.weeks.length > 0) {
       const curIdx = activePlan.weeks.findIndex((w) => w.isCurrentWeek);
       if (curIdx >= 0) {
         setSelectedWeekIdx(curIdx);
+      } else {
+        const todayStr = getTodayDateStr();
+        if (todayStr < activePlan.weeks[0].startDateStr) {
+          setSelectedWeekIdx(0);
+        } else {
+          setSelectedWeekIdx(activePlan.weeks.length - 1);
+        }
       }
+      hasInitializedWeekRef.current = true;
     }
   }, [activePlan]);
 
@@ -781,6 +835,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
       const settings: TrainingPlanPeriodSettings = {
         startDate: formStartDate || formatDate(getMonday(new Date())),
+        startDateMode: formStartDateMode,
         endDate: effectiveEndDate,
         durationWeeks,
         durationPreset: formDurationPreset,
@@ -825,7 +880,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       setOptimisticPlan(enrichedPlan);
       await onSavePlan(enrichedPlan);
       setIsSettingsOpen(false);
-      setSelectedWeekIdx(0);
+      const todayStr = getTodayDateStr();
+      const newCurIdx = enrichedPlan.weeks.findIndex((w) => todayStr >= w.startDateStr && todayStr <= w.endDateStr);
+      setSelectedWeekIdx(newCurIdx >= 0 ? newCurIdx : 0);
     } catch (err) {
       console.error('Plan generation failed:', err);
       alert('플랜 생성 중 오류가 발생했습니다. 다시 시도해 주세요.');
@@ -865,64 +922,124 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   // Current active week data
   const currentWeek = activePlan.weeks[selectedWeekIdx] || activePlan.weeks[0];
 
+  // Dynamically resolve point workouts for the selected week
+  const currentWeekSpeedDayItem = useMemo(() => {
+    if (!currentWeek?.days) return null;
+    const targetDay = activePlan.settings.speedDay;
+    return (
+      currentWeek.days.find((d) => d.day === targetDay) ||
+      currentWeek.days.find((d) =>
+        ['인터벌', '템포런', '언덕훈련', '빌드업주', '변속주(파틀렉)'].includes(d.type)
+      ) ||
+      null
+    );
+  }, [currentWeek, activePlan.settings.speedDay]);
+
+  const currentWeekLongRunDayItem = useMemo(() => {
+    if (!currentWeek?.days) return null;
+    const targetDay = activePlan.settings.longRunDay;
+    return (
+      currentWeek.days.find((d) => d.day === targetDay) ||
+      currentWeek.days.find((d) => d.type === 'LSD' || d.type === '대회') ||
+      null
+    );
+  }, [currentWeek, activePlan.settings.longRunDay]);
+
+  const currentWeekSpeedWorkoutLabel = useMemo(() => {
+    if (!currentWeekSpeedDayItem) {
+      return activePlan.settings.speedWorkoutType || '인터벌';
+    }
+    if (currentWeekSpeedDayItem.type === '휴식') return '휴식';
+    if (currentWeekSpeedDayItem.type === '대회') return '대회 출전';
+
+    const t = currentWeekSpeedDayItem.title || '';
+    if (t.includes('800m')) return '800m 인터벌';
+    if (t.includes('400m') || t.includes('숏 인터벌')) return '400m 숏 인터벌';
+    if (t.includes('롱 크루즈') || t.includes('1~3k')) return '1~3k 인터벌';
+    if (t.includes('크루즈 인터벌')) return '크루즈 인터벌';
+    if (t.includes('마라톤') && (t.includes('지속주') || t.includes('페이스주'))) return '존3 M-페이스주';
+    if (t.includes('모더레이트')) return '존3 모더레이트런';
+    if (t.includes('에어로빅') || t.includes('AeT')) return '존3 유산소 역치주';
+    if (t.includes('언덕')) return '언덕훈련';
+    if (t.includes('빌드업')) return '빌드업주';
+    if (t.includes('변속주') || t.includes('파틀렉')) return '변속주(파틀렉)';
+    if (t.includes('템포런')) return '템포런';
+    if (currentWeekSpeedDayItem.type === '인터벌') return '인터벌';
+    return currentWeekSpeedDayItem.type;
+  }, [currentWeekSpeedDayItem, activePlan.settings.speedWorkoutType]);
+
+  const currentWeekLongRunWorkoutLabel = useMemo(() => {
+    if (!currentWeekLongRunDayItem) {
+      return 'LSD';
+    }
+    if (currentWeekLongRunDayItem.type === '대회') {
+      return `대회 (${currentWeekLongRunDayItem.distanceKm}km)`;
+    }
+    if (currentWeekLongRunDayItem.type === '휴식') return '휴식';
+    if (currentWeekLongRunDayItem.type === '조깅' || currentWeekLongRunDayItem.type === '회복주') {
+      return `${currentWeekLongRunDayItem.type} (${currentWeekLongRunDayItem.distanceKm}km)`;
+    }
+    return `LSD (${currentWeekLongRunDayItem.distanceKm}km)`;
+  }, [currentWeekLongRunDayItem]);
+
   // Helper for workout type style
   const getWorkoutTypeColor = (type: string) => {
     switch (type) {
       case '인터벌':
         return {
-          badge: 'bg-rose-100 text-rose-800 border-rose-300',
+          badge: 'bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-800/70',
           dot: 'bg-rose-600',
-          border: 'border-rose-200',
-          bg: 'bg-rose-50/60',
+          border: 'border-rose-200 dark:border-rose-900/60',
+          bg: 'bg-rose-50/60 dark:bg-rose-950/20',
         };
       case '템포런':
         return {
-          badge: 'bg-amber-100 text-amber-800 border-amber-300',
+          badge: 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800/70',
           dot: 'bg-amber-600',
-          border: 'border-amber-200',
-          bg: 'bg-amber-50/60',
+          border: 'border-amber-200 dark:border-amber-900/60',
+          bg: 'bg-amber-50/60 dark:bg-amber-950/20',
         };
       case 'LSD':
         return {
-          badge: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+          badge: 'bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-200 border-indigo-300 dark:border-indigo-800/70',
           dot: 'bg-indigo-600',
-          border: 'border-indigo-200',
-          bg: 'bg-indigo-50/60',
+          border: 'border-indigo-200 dark:border-indigo-900/60',
+          bg: 'bg-indigo-50/60 dark:bg-indigo-950/20',
         };
       case '조깅':
         return {
-          badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+          badge: 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800/70',
           dot: 'bg-emerald-600',
-          border: 'border-emerald-200',
-          bg: 'bg-emerald-50/60',
+          border: 'border-emerald-200 dark:border-emerald-900/60',
+          bg: 'bg-emerald-50/60 dark:bg-emerald-950/20',
         };
       case '회복주':
         return {
-          badge: 'bg-teal-100 text-teal-800 border-teal-300',
+          badge: 'bg-teal-100 dark:bg-teal-950/70 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-800/70',
           dot: 'bg-teal-600',
-          border: 'border-teal-200',
-          bg: 'bg-teal-50/60',
+          border: 'border-teal-200 dark:border-teal-900/60',
+          bg: 'bg-teal-50/60 dark:bg-teal-950/20',
         };
       case '언덕훈련':
         return {
-          badge: 'bg-orange-100 text-orange-900 border-orange-300',
+          badge: 'bg-orange-100 dark:bg-orange-950/70 text-orange-900 dark:text-orange-200 border-orange-300 dark:border-orange-800/70',
           dot: 'bg-orange-600',
-          border: 'border-orange-200',
-          bg: 'bg-orange-50/60',
+          border: 'border-orange-200 dark:border-orange-900/60',
+          bg: 'bg-orange-50/60 dark:bg-orange-950/20',
         };
       case '대회':
         return {
           badge: 'bg-gradient-to-r from-rose-900 to-rose-950 text-amber-300 border-rose-700',
           dot: 'bg-amber-400',
-          border: 'border-rose-300 ring-2 ring-rose-600/30',
-          bg: 'bg-rose-50/80',
+          border: 'border-rose-300 dark:border-rose-800 ring-2 ring-rose-600/30',
+          bg: 'bg-rose-50/80 dark:bg-rose-950/30',
         };
       default: // 휴식
         return {
-          badge: 'bg-stone-100 text-stone-600 border-stone-300',
+          badge: 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700',
           dot: 'bg-stone-400',
-          border: 'border-stone-200',
-          bg: 'bg-stone-50/50',
+          border: 'border-stone-200 dark:border-stone-800',
+          bg: 'bg-stone-50/50 dark:bg-stone-900/40',
         };
     }
   };
@@ -1248,7 +1365,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               )}
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight font-athletic">
+            <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight font-athletic">
               {activePlan.settings.goalMode === 'race' && activePlan.targetRaceSummary
                 ? `${activePlan.targetRaceSummary.raceName} ${activePlan.totalWeeks}주 완성 마스터 플랜`
                 : activePlan.settings.goalMode === 'target_goal' && activePlan.targetRaceSummary
@@ -1270,7 +1387,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             <button
               type="button"
               onClick={handleCopyPlanSummary}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 transition-colors shadow-2xs cursor-pointer select-none"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 transition-colors shadow-2xs cursor-pointer select-none"
               title="전체 훈련 계획 텍스트 복사"
             >
               {copiedAlert ? (
@@ -1299,12 +1416,12 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
         {/* 4 Key Summary Indicator Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          <div className="p-3.5 rounded-xl bg-white border border-stone-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
             <div className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
               <CalendarRange className="w-3.5 h-3.5 text-emerald-700" />
               총 훈련 기간
             </div>
-            <div className="text-lg sm:text-xl font-black text-stone-900 font-athletic mt-1">
+            <div className="text-lg sm:text-xl font-black text-stone-900 dark:text-white font-athletic mt-1">
               {activePlan.totalWeeks}
               <span className="text-xs font-bold text-stone-500 ml-1">주간</span>
             </div>
@@ -1313,7 +1430,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white border border-stone-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
             <div className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
               <Footprints className="w-3.5 h-3.5 text-blue-700" />
               총 계획 마일리지
@@ -1327,7 +1444,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white border border-stone-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
             <div className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
               <Award className="w-3.5 h-3.5 text-rose-700" />
               기준 러닝 엔진 (VDOT)
@@ -1344,12 +1461,12 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white border border-stone-200/80 shadow-2xs">
+          <div className="p-3.5 rounded-xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
             <div className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
               피로도 & 부하 상태
             </div>
-            <div className="text-sm sm:text-base font-extrabold text-stone-900 mt-1 flex items-center gap-1.5">
+            <div className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-white mt-1 flex items-center gap-1.5">
               <span
                 className={`w-2 h-2 rounded-full ${
                   activePlan.runnerAnalysisSummary.fatigueRisk.includes('안전')
@@ -1376,17 +1493,17 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 </span>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <strong className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
+                    <strong className="text-sm sm:text-base font-black text-stone-900 dark:text-white tracking-tight">
                       {planProgressBarData.targetTitle}
                     </strong>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 text-stone-700 border border-stone-200">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
                       {planProgressBarData.targetCourse}
                     </span>
                   </div>
-                  <div className="text-[11px] text-stone-500 flex items-center gap-1.5 flex-wrap mt-0.5">
-                    <span>훈련 시작: <strong className="text-stone-700 font-mono">{planProgressBarData.planStartDateStr}</strong></span>
+                  <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                    <span>훈련 시작: <strong className="text-stone-700 dark:text-stone-300 font-mono">{planProgressBarData.planStartDateStr}</strong></span>
                     <span>→</span>
-                    <span>대회 결전: <strong className="text-rose-900 font-mono font-bold">{planProgressBarData.targetDateStr}</strong></span>
+                    <span>대회 결전: <strong className="text-rose-900 dark:text-rose-400 font-mono font-bold">{planProgressBarData.targetDateStr}</strong></span>
                   </div>
                 </div>
               </div>
@@ -1399,19 +1516,19 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     <span>🏆 D-Day 오늘 대회 결전일!</span>
                   </span>
                 ) : !planProgressBarData.dDayInfo.isPassed ? (
-                  <span className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
-                    <Target className="w-4 h-4 text-rose-700" />
+                  <span className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
+                    <Target className="w-4 h-4 text-rose-700 dark:text-rose-400" />
                     <span>{planProgressBarData.dDayInfo.text}</span>
-                    <span className="text-[11px] font-normal text-rose-800/80">({planProgressBarData.remainingDays}일 남음)</span>
+                    <span className="text-[11px] font-normal text-rose-800/80 dark:text-rose-300/80">({planProgressBarData.remainingDays}일 남음)</span>
                   </span>
                 ) : (
-                  <span className="px-3 py-1.5 rounded-xl bg-stone-100 border border-stone-300 text-stone-700 font-bold text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  <span className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 font-bold text-xs sm:text-sm shadow-2xs flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                     <span>대회 완주 ({planProgressBarData.dDayInfo.text})</span>
                   </span>
                 )}
 
-                <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-950 border border-emerald-300 font-black text-xs sm:text-sm font-athletic shadow-2xs">
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-black text-xs sm:text-sm font-athletic shadow-2xs">
                   {planProgressBarData.progressPercent}% 진행
                 </span>
               </div>
@@ -1419,7 +1536,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             {/* Main Visual Progress Bar Track */}
             <div className="space-y-1.5">
-              <div className="relative w-full h-5 sm:h-6 rounded-full bg-stone-100 p-0.5 border border-stone-300/80 shadow-inner overflow-hidden">
+              <div className="relative w-full h-5 sm:h-6 rounded-full bg-stone-100 dark:bg-stone-800 p-0.5 border border-stone-300/80 dark:border-stone-700 shadow-inner overflow-hidden">
                 {/* Background milestone ticks */}
                 <div className="absolute inset-0 flex justify-between px-2 items-center pointer-events-none opacity-20 z-0">
                   <span className="h-full w-px bg-stone-400" />
@@ -1464,57 +1581,57 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             {/* 4 Mini Detail Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
-                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
-                  <Calendar className="w-3 h-3 text-emerald-700" />
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1 font-medium">
+                  <Calendar className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
                   대회까지 남은 일수
                 </div>
-                <div className="text-sm font-black text-rose-900 font-athletic mt-0.5">
+                <div className="text-sm font-black text-rose-900 dark:text-rose-400 font-athletic mt-0.5">
                   {planProgressBarData.dDayInfo.isToday ? '오늘 당일 (0일)' : `${planProgressBarData.remainingDays}일`}
                 </div>
-                <div className="text-[10px] text-stone-500 font-mono">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
                   {planProgressBarData.dDayInfo.text}
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
-                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
-                  <TrendingUp className="w-3 h-3 text-blue-700" />
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1 font-medium">
+                  <TrendingUp className="w-3 h-3 text-blue-700 dark:text-blue-400" />
                   주차 진행 현황
                 </div>
-                <div className="text-sm font-black text-stone-900 font-athletic mt-0.5">
+                <div className="text-sm font-black text-stone-900 dark:text-white font-athletic mt-0.5">
                   {planProgressBarData.currentWeekNum}
-                  <span className="text-[11px] font-normal text-stone-500"> / {planProgressBarData.totalWeeks}주차</span>
+                  <span className="text-[11px] font-normal text-stone-500 dark:text-stone-400"> / {planProgressBarData.totalWeeks}주차</span>
                 </div>
-                <div className="text-[10px] text-stone-500 truncate">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 truncate">
                   {planProgressBarData.currentPhase.split(' ')[0]}
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
-                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
-                  <Clock className="w-3 h-3 text-amber-700" />
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1 font-medium">
+                  <Clock className="w-3 h-3 text-amber-700 dark:text-amber-400" />
                   누적 경과 일수
                 </div>
-                <div className="text-sm font-black text-stone-900 font-athletic mt-0.5">
+                <div className="text-sm font-black text-stone-900 dark:text-white font-athletic mt-0.5">
                   {planProgressBarData.daysElapsed}
-                  <span className="text-[11px] font-normal text-stone-500"> / {planProgressBarData.totalPlanDays}일</span>
+                  <span className="text-[11px] font-normal text-stone-500 dark:text-stone-400"> / {planProgressBarData.totalPlanDays}일</span>
                 </div>
-                <div className="text-[10px] text-stone-500 font-mono">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
                   {planProgressBarData.progressPercent}% 타임라인
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/80">
-                <div className="text-[10px] text-stone-500 flex items-center gap-1 font-medium">
-                  <Footprints className="w-3 h-3 text-teal-700" />
+              <div className="p-2.5 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1 font-medium">
+                  <Footprints className="w-3 h-3 text-teal-700 dark:text-teal-400" />
                   훈련 마일리지 소화
                 </div>
-                <div className="text-sm font-black text-emerald-900 font-athletic mt-0.5">
+                <div className="text-sm font-black text-emerald-900 dark:text-emerald-400 font-athletic mt-0.5">
                   {planProgressBarData.totalCompletedKm}
-                  <span className="text-[11px] font-normal text-stone-500"> / {activePlan.totalPlannedKm}km</span>
+                  <span className="text-[11px] font-normal text-stone-500 dark:text-stone-400"> / {activePlan.totalPlannedKm}km</span>
                 </div>
-                <div className="text-[10px] text-stone-500 font-mono">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">
                   {planProgressBarData.mileagePercent}% 달성
                 </div>
               </div>
@@ -1523,7 +1640,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             {/* Current Week Achievement Section: 주간 계획 거리 대비 내가 기록한 훈련의 거리 */}
             {currentWeekProgressData && (
               <div className="pt-2">
-                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70 border border-emerald-500/35 shadow-xs space-y-3.5">
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70 dark:from-emerald-950/40 dark:via-stone-900 dark:to-teal-950/30 border border-emerald-500/35 dark:border-emerald-700/50 shadow-xs space-y-3.5">
                   {/* Top Bar: Title, Week Label, Badge */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1532,17 +1649,17 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       </span>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">
+                          <h4 className="text-sm sm:text-base font-extrabold text-stone-900 dark:text-white tracking-tight">
                             현재 {currentWeekProgressData.weekNumber}주차 달성률
                           </h4>
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white text-stone-700 border border-emerald-300 font-mono shadow-2xs">
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-emerald-300 dark:border-emerald-700 font-mono shadow-2xs">
                             {currentWeekProgressData.startDateStr.slice(5)} ~ {currentWeekProgressData.endDateStr.slice(5)}
                           </span>
                           <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${currentWeekProgressData.phaseBadgeColor}`}>
                             {currentWeekProgressData.phase.split(' ')[0]}
                           </span>
                         </div>
-                        <p className="text-[11px] text-stone-500 mt-0.5">
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
                           주간 계획 거리 대비 내가 기록한 훈련의 거리 달성 현황
                         </p>
                       </div>
@@ -1556,8 +1673,8 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           <span>{currentWeekProgressData.achievementPercent}% 주간 목표 완수!</span>
                         </span>
                       ) : (
-                        <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-950 border border-emerald-300 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5 font-athletic">
-                          <Target className="w-3.5 h-3.5 text-emerald-700" />
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-black text-xs sm:text-sm shadow-2xs flex items-center gap-1.5 font-athletic">
+                          <Target className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                           <span>{currentWeekProgressData.achievementPercent}% 달성 중</span>
                         </span>
                       )}
@@ -1565,60 +1682,60 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   </div>
 
                   {/* Main Metric Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white/95 rounded-xl p-3 sm:p-3.5 border border-emerald-200/80 shadow-2xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-white/95 dark:bg-stone-850/95 rounded-xl p-3 sm:p-3.5 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
                     {/* 1. 내가 기록한 훈련 거리 */}
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 flex-shrink-0">
+                      <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 flex-shrink-0">
                         <Footprints className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] text-stone-500 font-medium">내가 기록한 훈련 거리</div>
-                        <div className="text-base sm:text-lg font-black text-emerald-900 font-athletic tracking-tight flex items-baseline gap-1">
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">내가 기록한 훈련 거리</div>
+                        <div className="text-base sm:text-lg font-black text-emerald-900 dark:text-emerald-300 font-athletic tracking-tight flex items-baseline gap-1">
                           <span>{currentWeekProgressData.recordedKm}</span>
-                          <span className="text-xs font-semibold text-stone-500">km</span>
+                          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">km</span>
                         </div>
                       </div>
                     </div>
 
                     {/* 2. 주간 계획 목표 거리 */}
-                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 pt-2 sm:pt-0 sm:pl-3">
-                      <div className="p-2.5 rounded-xl bg-stone-100 text-stone-700 flex-shrink-0">
-                        <Target className="w-5 h-5" />
+                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 dark:border-stone-750 pt-2 sm:pt-0 sm:pl-3">
+                      <div className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 flex-shrink-0">
+                        <Target className="w-5 h-5 text-stone-600 dark:text-stone-300" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] text-stone-500 font-medium">주간 계획 목표 거리</div>
-                        <div className="text-base sm:text-lg font-black text-stone-800 font-athletic tracking-tight flex items-baseline gap-1">
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">주간 계획 목표 거리</div>
+                        <div className="text-base sm:text-lg font-black text-stone-800 dark:text-stone-200 font-athletic tracking-tight flex items-baseline gap-1">
                           <span>{currentWeekProgressData.plannedKm}</span>
-                          <span className="text-xs font-semibold text-stone-500">km</span>
+                          <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">km</span>
                         </div>
                       </div>
                     </div>
 
                     {/* 3. 목표 달성 및 잔여 현황 */}
-                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 pt-2 sm:pt-0 sm:pl-3">
-                      <div className={`p-2.5 rounded-xl flex-shrink-0 ${currentWeekProgressData.achievementPercent >= 100 ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                    <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-stone-200/70 dark:border-stone-750 pt-2 sm:pt-0 sm:pl-3">
+                      <div className={`p-2.5 rounded-xl flex-shrink-0 ${currentWeekProgressData.achievementPercent >= 100 ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300' : 'bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300'}`}>
                         {currentWeekProgressData.achievementPercent >= 100 ? (
-                          <Award className="w-5 h-5 text-amber-700" />
+                          <Award className="w-5 h-5 text-amber-700 dark:text-amber-300" />
                         ) : (
-                          <TrendingUp className="w-5 h-5 text-blue-700" />
+                          <TrendingUp className="w-5 h-5 text-blue-700 dark:text-blue-300" />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-[11px] text-stone-500 font-medium">
+                        <div className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
                           {currentWeekProgressData.achievementPercent >= 100 ? '초과 달성 마일리지' : '이번 주 남은 거리'}
                         </div>
                         <div className={`text-base sm:text-lg font-black font-athletic tracking-tight flex items-baseline gap-1 ${
-                          currentWeekProgressData.achievementPercent >= 100 ? 'text-amber-700' : 'text-blue-900'
+                          currentWeekProgressData.achievementPercent >= 100 ? 'text-amber-700 dark:text-amber-300' : 'text-blue-900 dark:text-blue-300'
                         }`}>
                           {currentWeekProgressData.achievementPercent >= 100 ? (
                             <>
                               <span>+{currentWeekProgressData.overAchievedKm}</span>
-                              <span className="text-xs font-semibold text-stone-500">km 초과 완주</span>
+                              <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">km 초과 완주</span>
                             </>
                           ) : (
                             <>
                               <span>{currentWeekProgressData.remainingKm}</span>
-                              <span className="text-xs font-semibold text-stone-500">km 남음</span>
+                              <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">km 남음</span>
                             </>
                           )}
                         </div>
@@ -1628,7 +1745,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
                   {/* Progress Bar Track */}
                   <div className="space-y-1">
-                    <div className="relative w-full h-3.5 sm:h-4 rounded-full bg-stone-200/80 p-0.5 border border-stone-300/80 shadow-inner overflow-hidden">
+                    <div className="relative w-full h-3.5 sm:h-4 rounded-full bg-stone-200/80 dark:bg-stone-800 p-0.5 border border-stone-300/80 dark:border-stone-700 shadow-inner overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ease-out shadow-xs relative flex items-center justify-end pr-1 ${
                           currentWeekProgressData.achievementPercent >= 100
@@ -1646,9 +1763,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-stone-500 font-mono px-0.5">
+                    <div className="flex items-center justify-between text-[10px] text-stone-500 dark:text-stone-400 font-mono px-0.5">
                       <span>0.0km (시작)</span>
-                      <span className="font-bold text-emerald-900">
+                      <span className="font-bold text-emerald-900 dark:text-emerald-300">
                         기록: {currentWeekProgressData.recordedKm}km / 계획: {currentWeekProgressData.plannedKm}km ({currentWeekProgressData.achievementPercent}%)
                       </span>
                       <span>목표 {currentWeekProgressData.plannedKm}km</span>
@@ -1656,12 +1773,12 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   </div>
 
                   {/* 7-Day Mini Status Row */}
-                  <div className="pt-1 border-t border-emerald-200/60 space-y-1.5">
+                  <div className="pt-1 border-t border-emerald-200/60 dark:border-emerald-800/40 space-y-1.5">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-stone-700 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                      <span className="font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                         이번 주 요일별 훈련 현황
-                        <span className="text-stone-400 font-normal">
+                        <span className="text-stone-400 dark:text-stone-500 font-normal">
                           (완료 {currentWeekProgressData.completedWorkoutsCount}회 / 계획 {currentWeekProgressData.plannedWorkoutDaysCount}회)
                         </span>
                       </span>
@@ -1669,7 +1786,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                         <button
                           type="button"
                           onClick={() => onOpenLogWorkout(getTodayDateStr())}
-                          className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 cursor-pointer transition-colors"
+                          className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
                         >
                           <CheckSquare className="w-3.5 h-3.5" />
                           <span>오늘 훈련 기록</span>
@@ -1684,35 +1801,35 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                             key={d.dateStr || `${d.day}-${dayIdx}`}
                             className={`p-1.5 sm:p-2 rounded-xl text-center border transition-all ${
                               d.isToday
-                                ? 'ring-2 ring-emerald-600 border-emerald-400 bg-emerald-50/90 shadow-2xs font-semibold'
+                                ? 'ring-2 ring-emerald-600 border-emerald-400 bg-emerald-50/90 dark:bg-emerald-950/70 dark:border-emerald-500 shadow-2xs font-semibold'
                                 : d.isCompleted && d.dayActualKm > 0
-                                ? 'bg-emerald-100/80 border-emerald-300 text-emerald-950'
+                                ? 'bg-emerald-100/80 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-200'
                                 : d.distanceKm > 0
-                                ? 'bg-white border-stone-200 text-stone-700'
-                                : 'bg-stone-50 border-stone-200/60 text-stone-400'
+                                ? 'bg-white dark:bg-stone-850 border-stone-200 dark:border-stone-750 text-stone-700 dark:text-stone-200'
+                                : 'bg-stone-50 dark:bg-stone-850/60 border-stone-200/60 dark:border-stone-800 text-stone-400 dark:text-stone-500'
                             }`}
                           >
                             <div className="flex items-center justify-center gap-1">
-                              <span className="text-[11px] font-bold">{d.dayShort}</span>
+                              <span className="text-[11px] font-bold text-stone-900 dark:text-white">{d.dayShort}</span>
                               {d.isToday && (
                                 <span className="text-[8px] px-1 rounded bg-emerald-700 text-white font-extrabold leading-tight">
                                   오늘
                                 </span>
                               )}
                             </div>
-                            <div className="text-[9px] text-stone-400 font-mono mt-0.5">
+                            <div className="text-[9px] text-stone-400 dark:text-stone-500 font-mono mt-0.5">
                               {d.dateStr ? `${d.dateStr.slice(8)}일` : ''}
                             </div>
                             <div className="mt-1 text-[11px] font-black font-athletic">
                               {d.isCompleted && d.dayActualKm > 0 ? (
-                                <span className="text-emerald-800 flex items-center justify-center gap-0.5">
-                                  <Check className="w-3 h-3 text-emerald-700 inline" />
+                                <span className="text-emerald-800 dark:text-emerald-400 flex items-center justify-center gap-0.5">
+                                  <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400 inline" />
                                   {d.dayActualKm}k
                                 </span>
                               ) : d.distanceKm > 0 ? (
-                                <span className="text-stone-700">{d.distanceKm}k</span>
+                                <span className="text-stone-700 dark:text-stone-300">{d.distanceKm}k</span>
                               ) : (
-                                <span className="text-stone-400 font-normal text-[10px]">휴식</span>
+                                <span className="text-stone-400 dark:text-stone-500 font-normal text-[10px]">휴식</span>
                               )}
                             </div>
                           </div>
@@ -1737,7 +1854,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               </span>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-black text-stone-900 font-athletic">
+                  <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-white font-athletic">
                     다중 대회(2~3개) 복합 연계 주기화 현황
                   </h3>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-950 border border-indigo-300 shadow-2xs">
@@ -1772,10 +1889,10 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                   key={r.raceId || `${r.raceName}-${rIdx}`}
                   className={`p-3.5 rounded-2xl border transition-all ${
                     isMainA
-                      ? 'bg-rose-50/70 border-rose-300/80 shadow-2xs'
+                      ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300/80 dark:border-rose-900/50 shadow-2xs'
                       : isB
-                      ? 'bg-amber-50/70 border-amber-300/80 shadow-2xs'
-                      : 'bg-stone-50/80 border-stone-200'
+                      ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300/80 dark:border-amber-900/50 shadow-2xs'
+                      : 'bg-stone-50/80 dark:bg-stone-850 border-stone-200 dark:border-stone-750'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
@@ -1790,31 +1907,31 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     >
                       {r.priority}등급 레이스
                     </span>
-                    <span className="text-xs font-black font-athletic text-stone-800">
+                    <span className="text-xs font-black font-athletic text-stone-800 dark:text-stone-200">
                       {r.dDayText} ({r.dDayDays}일 남음)
                     </span>
                   </div>
 
-                  <h5 className="font-extrabold text-stone-900 text-sm tracking-tight truncate">
+                  <h5 className="font-extrabold text-stone-900 dark:text-white text-sm tracking-tight truncate">
                     {r.raceName}
                   </h5>
-                  <div className="text-[11px] text-stone-500 flex items-center gap-2 mt-0.5">
-                    <span>코스: <strong className="text-stone-700">{r.course}</strong></span>
+                  <div className="text-[11px] text-stone-500 dark:text-stone-400 flex items-center gap-2 mt-0.5">
+                    <span>코스: <strong className="text-stone-700 dark:text-stone-300">{r.course}</strong></span>
                     <span>·</span>
-                    <span>일정: <strong className="text-stone-700 font-mono">{r.raceDate}</strong></span>
+                    <span>일정: <strong className="text-stone-700 dark:text-stone-300 font-mono">{r.raceDate}</strong></span>
                   </div>
 
                   {r.targetPace && (
-                    <div className="text-[11px] text-stone-600 mt-1">
-                      목표 페이스: <strong className="text-rose-900 font-mono">{r.targetPace}/km</strong>
-                      {r.targetTime && <span className="text-stone-500 font-mono ml-1">({r.targetTime})</span>}
+                    <div className="text-[11px] text-stone-600 dark:text-stone-300 mt-1">
+                      목표 페이스: <strong className="text-rose-900 dark:text-rose-400 font-mono">{r.targetPace}/km</strong>
+                      {r.targetTime && <span className="text-stone-500 dark:text-stone-400 font-mono ml-1">({r.targetTime})</span>}
                     </div>
                   )}
 
-                  <div className="mt-2.5 pt-2 border-t border-stone-200/70 text-[11px] text-stone-600 leading-snug">
-                    <span className="font-bold text-stone-800">역할: </span>
-                    <span className="text-indigo-900 font-semibold">{r.role}</span>
-                    <p className="text-stone-600 mt-0.5 text-[10px] leading-relaxed">
+                  <div className="mt-2.5 pt-2 border-t border-stone-200/70 dark:border-stone-750 text-[11px] text-stone-600 dark:text-stone-300 leading-snug">
+                    <span className="font-bold text-stone-800 dark:text-stone-200">역할: </span>
+                    <span className="text-indigo-900 dark:text-indigo-300 font-semibold">{r.role}</span>
+                    <p className="text-stone-600 dark:text-stone-400 mt-0.5 text-[10px] leading-relaxed">
                       {r.periodizationStrategy}
                     </p>
                   </div>
@@ -1824,8 +1941,8 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
           </div>
 
           {/* Coaching Guidance */}
-          <div className="mt-3.5 p-3 rounded-xl bg-white border border-stone-200/90 text-xs text-stone-600 flex items-start gap-2">
-            <Info className="w-4 h-4 text-indigo-700 flex-shrink-0 mt-0.5" />
+          <div className="mt-3.5 p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200/90 dark:border-stone-750 text-xs text-stone-600 dark:text-stone-300 flex items-start gap-2">
+            <Info className="w-4 h-4 text-indigo-700 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
             <div className="leading-relaxed">
               {activePlan.multiRaceSummary.coachingGuidance}
             </div>
@@ -1835,22 +1952,22 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
       {/* 1.5 Goal-Fitness Match Audit Report (목표-실력 정합성 & AI 코칭 진단 리포트) */}
       {activePlan.fitnessAudit && (
-        <section className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/5 via-white to-emerald-50/60 shadow-sm transition-all">
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-200">
+        <section className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/5 via-white to-emerald-50/60 dark:from-emerald-950/30 dark:via-stone-900 dark:to-emerald-950/20 shadow-sm transition-all">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-200 dark:border-stone-800">
             <div className="flex items-center gap-2.5 flex-wrap">
               <span className="p-2 rounded-xl bg-emerald-800 text-white shadow-xs">
                 <Target className="w-4 h-4 text-amber-300" />
               </span>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-black text-stone-900 font-athletic">
+                  <h3 className="text-base sm:text-lg font-black text-stone-900 dark:text-white font-athletic">
                     목표-실력 정합성 및 AI 코칭 진단 리포트
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                     {activePlan.fitnessAudit.fitGrade} ({activePlan.fitnessAudit.fitScore}점)
                   </span>
                 </div>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
                   현재 러너의 PB 기량(VDOT {activePlan.fitnessAudit.currentVdot})과 목표({activePlan.settings.targetCourse || '하프'} {activePlan.settings.targetTime || '1:29:59'}) 간의 훈련 적합성을 과학적으로 검토했습니다.
                 </p>
               </div>
@@ -1859,7 +1976,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             <button
               type="button"
               onClick={() => setIsAuditExpanded((prev) => !prev)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-600 hover:text-stone-900 bg-white border border-stone-200 shadow-2xs hover:bg-stone-50 transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 shadow-2xs hover:bg-stone-50 dark:hover:bg-stone-750 transition-colors cursor-pointer"
             >
               <span>{isAuditExpanded ? '접기' : '상세 진단 보기'}</span>
               {isAuditExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1871,7 +1988,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               {/* 4 Metric Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* 1) VDOT Gap */}
-                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
                     <span className="flex items-center gap-1">
                       <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
@@ -1881,7 +1998,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       월 +{activePlan.fitnessAudit.requiredMonthlyVdotGain}
                     </span>
                   </div>
-                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                  <div className="text-lg font-black text-stone-900 dark:text-white font-athletic flex items-baseline gap-1.5">
                     <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.currentVdot}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-blue-500" />
                     <span className="text-blue-800 text-xl font-bold">{activePlan.fitnessAudit.targetVdot}</span>
@@ -1893,7 +2010,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 </div>
 
                 {/* 2) Target Pace Match */}
-                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
                     <span className="flex items-center gap-1">
                       <Zap className="w-3.5 h-3.5 text-amber-600" />
@@ -1903,7 +2020,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       {activePlan.fitnessAudit.paceGapSeconds < 0 ? `${Math.abs(activePlan.fitnessAudit.paceGapSeconds)}초 가속` : '정속'}
                     </span>
                   </div>
-                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                  <div className="text-lg font-black text-stone-900 dark:text-white font-athletic flex items-baseline gap-1.5">
                     <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.currentEstimatedPaceFormatted}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-amber-500" />
                     <span className="text-amber-800 text-xl font-bold">{activePlan.fitnessAudit.targetPaceFormatted}</span>
@@ -1914,7 +2031,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 </div>
 
                 {/* 3) Weekly Mileage Cap */}
-                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
                     <span className="flex items-center gap-1">
                       <Footprints className="w-3.5 h-3.5 text-emerald-600" />
@@ -1924,7 +2041,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       피크 {activePlan.fitnessAudit.peakWeeklyKm}km
                     </span>
                   </div>
-                  <div className="text-lg font-black text-stone-900 font-athletic flex items-baseline gap-1.5">
+                  <div className="text-lg font-black text-stone-900 dark:text-white font-athletic flex items-baseline gap-1.5">
                     <span className="text-stone-500 text-sm font-semibold">{activePlan.fitnessAudit.baselineWeeklyKm}km</span>
                     <ArrowRight className="w-3.5 h-3.5 text-emerald-500" />
                     <span className="text-emerald-800 text-xl font-bold">{activePlan.fitnessAudit.peakWeeklyKm}km</span>
@@ -1935,7 +2052,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 </div>
 
                 {/* 4) LSD Distance Cap */}
-                <div className="p-3.5 rounded-2xl bg-white border border-stone-200/80 shadow-2xs">
+                <div className="p-3.5 rounded-2xl bg-white dark:bg-stone-850 border border-stone-200/80 dark:border-stone-750 shadow-2xs">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-stone-500 mb-1">
                     <span className="flex items-center gap-1">
                       <Award className="w-3.5 h-3.5 text-purple-600" />
@@ -1957,20 +2074,20 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               {/* 4 Detailed Evaluation Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {activePlan.fitnessAudit.auditDetails.map((item, idx) => (
-                  <div key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-stone-200 shadow-2xs">
+                  <div key={idx} className="p-3.5 rounded-2xl bg-white/90 dark:bg-stone-850/90 border border-stone-200 dark:border-stone-750 shadow-2xs">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-xs font-bold text-stone-800 dark:text-stone-200 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                         {item.title}
                       </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                         {item.status}
                       </span>
                     </div>
-                    <div className="text-[11px] font-medium text-stone-600 mb-1">
+                    <div className="text-[11px] font-medium text-stone-600 dark:text-stone-400 mb-1">
                       {item.summary}
                     </div>
-                    <div className="text-[11px] text-emerald-900/90 bg-emerald-50/60 p-2 rounded-xl border border-emerald-100 leading-relaxed">
+                    <div className="text-[11px] text-emerald-900/90 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/40 p-2 rounded-xl border border-emerald-100 dark:border-emerald-800/60 leading-relaxed">
                       💡 {item.recommendation}
                     </div>
                   </div>
@@ -1999,18 +2116,18 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       )}
 
       {/* 2. View Mode Switcher: 주간 뷰 (Weekly) vs 월간 뷰 (Monthly) */}
-      <div className="flex items-center justify-between gap-3 bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200">
+      <div className="flex items-center justify-between gap-3 bg-stone-100/90 dark:bg-stone-800/90 p-1.5 rounded-2xl border border-stone-200 dark:border-stone-700">
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setViewMode('weekly')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none ${
               viewMode === 'weekly'
-                ? 'bg-white text-emerald-950 shadow-sm border border-stone-200 font-extrabold'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-white dark:bg-stone-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-stone-200 dark:border-stone-700 font-extrabold'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
             }`}
           >
-            <CalendarRange className="w-4 h-4 text-emerald-700" />
+            <CalendarRange className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             <span>주간 상세 훈련 뷰 (Weekly)</span>
           </button>
 
@@ -2019,23 +2136,23 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             onClick={() => setViewMode('monthly')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer select-none ${
               viewMode === 'monthly'
-                ? 'bg-white text-emerald-950 shadow-sm border border-stone-200 font-extrabold'
-                : 'text-stone-600 hover:text-stone-900'
+                ? 'bg-white dark:bg-stone-900 text-emerald-950 dark:text-emerald-300 shadow-sm border border-stone-200 dark:border-stone-700 font-extrabold'
+                : 'text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
             }`}
           >
-            <Calendar className="w-4 h-4 text-emerald-700" />
+            <Calendar className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
             <span>월간 캘린더 뷰 (Monthly)</span>
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 pr-2">
-          <span>포인트 요일:</span>
-          <span className="font-semibold text-rose-800">
-            ⚡ {activePlan.settings.speedDay} ({activePlan.settings.speedWorkoutType})
+        <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 pr-2">
+          <span>{currentWeek ? `${currentWeek.weekNumber}주차 포인트:` : '포인트 요일:'}</span>
+          <span className="font-semibold text-rose-700 dark:text-rose-400">
+            ⚡ {currentWeekSpeedDayItem?.day || activePlan.settings.speedDay} ({currentWeekSpeedWorkoutLabel})
           </span>
           <span>·</span>
-          <span className="font-semibold text-indigo-800">
-            🏃 {activePlan.settings.longRunDay} (LSD)
+          <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+            🏃 {currentWeekLongRunDayItem?.day || activePlan.settings.longRunDay} ({currentWeekLongRunWorkoutLabel})
           </span>
         </div>
       </div>
@@ -2044,23 +2161,40 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       {viewMode === 'weekly' && currentWeek && (
         <div className="space-y-6">
           {/* Week Selector Ribbon / Pills */}
-          <div className="glass-panel p-3.5 rounded-2xl border border-stone-200 bg-white/95">
+          <div className="glass-panel p-3.5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95">
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-emerald-700" />
+              <span className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
                 주차별 주기화 타임라인
               </span>
               <div className="flex items-center gap-1">
+                {activePlan.weeks.some((w) => w.isCurrentWeek) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const curIdx = activePlan.weeks.findIndex((w) => w.isCurrentWeek);
+                      if (curIdx >= 0) setSelectedWeekIdx(curIdx);
+                    }}
+                    className={`text-[11px] px-2 py-0.5 rounded-lg border font-bold cursor-pointer transition-colors ${
+                      activePlan.weeks[selectedWeekIdx]?.isCurrentWeek
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                        : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-750'
+                    }`}
+                    title="현재 진행 중인 이번주로 바로 이동"
+                  >
+                    이번주로 이동
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedWeekIdx((prev) => Math.max(0, prev - 1))}
                   disabled={selectedWeekIdx === 0}
-                  className="p-1 rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="p-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-750 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="이전 주차"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-xs font-bold text-stone-800 px-1">
+                <span className="text-xs font-bold text-stone-800 dark:text-stone-200 px-1">
                   {selectedWeekIdx + 1} / {activePlan.totalWeeks}주
                 </span>
                 <button
@@ -2069,7 +2203,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     setSelectedWeekIdx((prev) => Math.min(activePlan.weeks.length - 1, prev + 1))
                   }
                   disabled={selectedWeekIdx === activePlan.weeks.length - 1}
-                  className="p-1 rounded-lg border border-stone-200 bg-white text-stone-600 hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="p-1 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-750 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   title="다음 주차"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -2082,6 +2216,8 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               {activePlan.weeks.map((w, idx) => {
                 const isSelected = selectedWeekIdx === idx;
                 const hasRace = !!w.raceInThisWeek;
+                const todayStr = getTodayDateStr();
+                const isUpcomingStart = !w.isCurrentWeek && idx === 0 && todayStr < w.startDateStr;
 
                 return (
                   <button
@@ -2091,7 +2227,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     className={`flex-shrink-0 flex flex-col items-start p-2.5 rounded-xl border text-left transition-all cursor-pointer select-none min-w-[125px] ${
                       isSelected
                         ? 'bg-emerald-900 text-white border-emerald-950 shadow-md ring-2 ring-emerald-600/30'
-                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                        : 'bg-stone-50 dark:bg-stone-800/90 hover:bg-stone-100 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full text-[11px] font-bold">
@@ -2102,6 +2238,11 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                             이번주
                           </span>
                         )}
+                        {isUpcomingStart && (
+                          <span className={`text-[9px] px-1 py-0.2 rounded font-bold ${isSelected ? 'bg-blue-300 text-stone-900' : 'bg-blue-600 text-white'}`}>
+                            시작주
+                          </span>
+                        )}
                       </span>
                       {hasRace && (
                         <span className="text-amber-400 font-extrabold" title="대회 참가 주간">
@@ -2109,12 +2250,12 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className={`text-[10px] truncate max-w-[110px] mt-0.5 ${isSelected ? 'text-emerald-200' : 'text-stone-500'}`}>
+                    <div className={`text-[10px] truncate max-w-[110px] mt-0.5 ${isSelected ? 'text-emerald-200' : 'text-stone-500 dark:text-stone-400'}`}>
                       {w.startDateStr.slice(5).replace('-', '/')} ~ {w.endDateStr.slice(5).replace('-', '/')}
                     </div>
-                    <div className="flex items-center justify-between w-full mt-1.5 pt-1 border-t border-white/10 text-[10px] font-athletic font-bold">
+                    <div className="flex items-center justify-between w-full mt-1.5 pt-1 border-t border-white/10 dark:border-stone-700 text-[10px] font-athletic font-bold">
                       <span>{w.targetWeeklyKm}km</span>
-                      <span className={`text-[9px] font-normal truncate max-w-[60px] ${isSelected ? 'text-emerald-200' : 'text-stone-500'}`}>
+                      <span className={`text-[9px] font-normal truncate max-w-[60px] ${isSelected ? 'text-emerald-200' : 'text-stone-500 dark:text-stone-400'}`}>
                         {w.phase.split(' ')[0]}
                       </span>
                     </div>
@@ -2134,11 +2275,19 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                 <span className={`px-2.5 py-0.5 rounded-lg text-xs font-extrabold border ${currentWeek.phaseBadgeColor}`}>
                   {currentWeek.phase}
                 </span>
-                {currentWeek.isCurrentWeek && (
+                {currentWeek.isCurrentWeek ? (
                   <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[11px] font-bold">
-                    진행 중인 주간
+                    진행 중인 주간 (이번주)
                   </span>
-                )}
+                ) : getTodayDateStr() < (activePlan.weeks[0]?.startDateStr || '') && selectedWeekIdx === 0 ? (
+                  <span className="px-2 py-0.5 rounded-md bg-blue-500 text-white text-[11px] font-bold">
+                    시작 예정 주간
+                  </span>
+                ) : getTodayDateStr() > (activePlan.weeks[activePlan.weeks.length - 1]?.endDateStr || '') ? (
+                  <span className="px-2 py-0.5 rounded-md bg-stone-500 text-white text-[11px] font-bold">
+                    완료된 주간
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
@@ -2247,20 +2396,20 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               return (
                 <div
                   key={dayKey}
-                  className={`rounded-2xl border transition-all ${typeColor.border} ${typeColor.bg} bg-white shadow-2xs overflow-hidden`}
+                  className={`rounded-2xl border transition-all ${typeColor.border} ${typeColor.bg} bg-white dark:bg-stone-900 shadow-2xs overflow-hidden`}
                 >
                   {/* Card Header Row */}
                   <div
                     onClick={() => toggleDayAccordion(dayKey)}
-                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none hover:bg-stone-50/50 transition-colors"
+                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer select-none hover:bg-stone-50/50 dark:hover:bg-stone-800/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       {/* Day of Week Badge */}
-                      <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-white border border-stone-200/80 shadow-2xs flex-shrink-0">
+                      <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 shadow-2xs flex-shrink-0">
                         <span className="text-[10px] font-bold text-stone-500 uppercase">
                           {dayItem.dayShort}
                         </span>
-                        <span className="text-sm font-black text-stone-900 font-athletic">
+                        <span className="text-sm font-black text-stone-900 dark:text-white font-athletic">
                           {dayItem.day.slice(0, 1)}
                         </span>
                         {dayItem.dateStr && (
@@ -2283,7 +2432,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           {/* Stored Training Load Badge */}
                           {dayItem.trainingLoad !== undefined && dayItem.distanceKm > 0 && (
                             <span
-                              className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 text-stone-800 border border-stone-200 flex items-center gap-1 shadow-2xs"
+                              className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 border border-stone-200 dark:border-stone-700 flex items-center gap-1 shadow-2xs"
                               title={`플랜에 저장된 부하값: ${dayItem.trainingLoad}pt (${dayItem.loadMultiplier || 1.0}x 배수)${dayItem.userCategoryOverride ? ' [원클릭 수동 강도 변환 반영됨]' : ''}`}
                             >
                               <Flame className="w-3 h-3 text-amber-500" />
@@ -2292,7 +2441,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                                 <span className="text-[9px] text-stone-500 font-normal">({dayItem.loadMultiplier}x)</span>
                               ) : null}
                               {dayItem.userCategoryOverride && (
-                                <span className="text-[9px] text-teal-700 bg-teal-50 px-1 rounded font-bold border border-teal-200">
+                                <span className="text-[9px] text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1 rounded font-bold border border-teal-200 dark:border-teal-800/60">
                                   수동
                                 </span>
                               )}
@@ -2313,7 +2462,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           )}
                         </div>
 
-                        <h4 className="text-base sm:text-lg font-bold text-stone-900 mt-1">
+                        <h4 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white mt-1">
                           {dayItem.title}
                         </h4>
                       </div>
@@ -2323,11 +2472,11 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     <div className="flex items-center gap-4 text-right flex-shrink-0 self-end md:self-center">
                       {dayItem.distanceKm > 0 ? (
                         <div>
-                          <div className="text-lg sm:text-xl font-black text-stone-900 font-athletic">
+                          <div className="text-lg sm:text-xl font-black text-stone-900 dark:text-white font-athletic">
                             {dayItem.distanceKm}
                             <span className="text-xs font-semibold text-stone-500 ml-0.5">km</span>
                           </div>
-                          <div className="text-xs font-mono font-bold text-emerald-800">
+                          <div className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-400">
                             {dayItem.targetPace}/km
                           </div>
                         </div>
@@ -2343,19 +2492,19 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
                   {/* Expanded Workout Content */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 border-t border-stone-200/60 bg-white/70 space-y-3.5">
+                    <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-1 border-t border-stone-200/60 dark:border-stone-800 bg-white/70 dark:bg-stone-850/70 space-y-3.5">
                       {/* Description & Target Zone */}
-                      <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
                         {dayItem.description}
                       </p>
 
                       {/* 1. Detailed Training Purpose (상세 훈련 목적) */}
                       {dayItem.purpose && (
-                        <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-xs flex items-start gap-2.5">
-                          <Target className="w-4 h-4 text-emerald-700 flex-shrink-0 mt-0.5" />
+                        <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 text-xs flex items-start gap-2.5">
+                          <Target className="w-4 h-4 text-emerald-700 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-extrabold text-emerald-950">훈련 목적 & 생리학적 적응: </span>
-                            <span className="text-emerald-900 font-medium">{dayItem.purpose}</span>
+                            <span className="font-extrabold text-emerald-950 dark:text-emerald-300">훈련 목적 & 생리학적 적응: </span>
+                            <span className="text-emerald-900 dark:text-emerald-200 font-medium">{dayItem.purpose}</span>
                           </div>
                         </div>
                       )}
@@ -2364,11 +2513,11 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       {dayItem.stages && dayItem.stages.length > 0 && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
+                            <span className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center gap-1">
                               <Layers className="w-3.5 h-3.5 text-stone-500" />
                               단계별 상세 세부 훈련 구성 (진행과정)
                             </span>
-                            <span className="text-[11px] text-stone-500 font-mono">
+                            <span className="text-[11px] text-stone-500 dark:text-stone-400 font-mono">
                               총 {Math.round(dayItem.stages.reduce((sum, s) => sum + s.distanceKm, 0) * 10) / 10}km
                             </span>
                           </div>
@@ -2384,17 +2533,17 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                                   key={sIdx}
                                   className={`p-3 rounded-xl border text-xs space-y-1.5 transition-all flex flex-col justify-between ${
                                     isMain
-                                      ? 'bg-gradient-to-br from-amber-50/90 via-white to-amber-50/50 border-amber-300 ring-1 ring-amber-400/50 shadow-xs'
+                                      ? 'bg-gradient-to-br from-amber-50/90 via-white to-amber-50/50 dark:from-amber-950/40 dark:via-stone-900 dark:to-amber-950/20 border-amber-300 dark:border-amber-700/60 ring-1 ring-amber-400/50 dark:ring-amber-500/30 shadow-xs'
                                       : isWarm
-                                      ? 'bg-sky-50/60 border-sky-200'
+                                      ? 'bg-sky-50/60 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50'
                                       : isCool
-                                      ? 'bg-teal-50/50 border-teal-200'
-                                      : 'bg-stone-50 border-stone-200'
+                                      ? 'bg-teal-50/50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/50'
+                                      : 'bg-stone-50 dark:bg-stone-850 border-stone-200 dark:border-stone-750'
                                   }`}
                                 >
                                   <div>
                                     <div className="flex items-center justify-between gap-1 mb-1">
-                                      <span className="font-bold text-stone-900 truncate text-[11px]">
+                                      <span className="font-bold text-stone-900 dark:text-white truncate text-[11px]">
                                         {stage.step}
                                       </span>
                                       {isMain ? (
@@ -2412,20 +2561,20 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                                       ) : null}
                                     </div>
 
-                                    <div className="flex items-center justify-between text-[11px] font-mono font-bold bg-white/80 p-1 rounded-lg border border-stone-200/70 mb-1">
-                                      <span className="text-stone-900 font-athletic text-xs">{stage.distanceKm}km</span>
-                                      <span className={`px-1.5 py-0.2 rounded text-[11px] ${isMain ? 'text-amber-900 bg-amber-100/80 font-extrabold' : 'text-emerald-800 bg-emerald-50'}`}>
+                                    <div className="flex items-center justify-between text-[11px] font-mono font-bold bg-white/80 dark:bg-stone-800/80 p-1 rounded-lg border border-stone-200/70 dark:border-stone-700 mb-1">
+                                      <span className="text-stone-900 dark:text-white font-athletic text-xs">{stage.distanceKm}km</span>
+                                      <span className={`px-1.5 py-0.2 rounded text-[11px] ${isMain ? 'text-amber-900 dark:text-amber-200 bg-amber-100/80 dark:bg-amber-950/60 font-extrabold' : 'text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60'}`}>
                                         {stage.pace}
                                       </span>
                                     </div>
 
-                                    <div className="text-[10px] text-stone-500 flex items-center gap-1">
+                                    <div className="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1">
                                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isMain ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                                       <span className="truncate font-medium">{stage.zone}</span>
                                     </div>
                                   </div>
 
-                                  <div className="text-[11px] text-stone-700 leading-snug pt-1.5 border-t border-stone-200/60 keep-all">
+                                  <div className="text-[11px] text-stone-700 dark:text-stone-300 leading-snug pt-1.5 border-t border-stone-200/60 dark:border-stone-750 keep-all">
                                     {stage.focus}
                                   </div>
                                 </div>
@@ -2458,7 +2607,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                             <Footprints className="w-4 h-4 text-rose-700 flex-shrink-0" />
                             <span>
                               추천 러닝화:{' '}
-                              <strong className="text-stone-900 font-semibold">
+                              <strong className="text-stone-900 dark:text-white font-semibold">
                                 {dayItem.recommendedShoe.shoeName}
                               </strong>
                               {dayItem.recommendedShoe.category && (
@@ -2529,29 +2678,29 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
       {/* 4. VIEW MODE B: Monthly Calendar View */}
       {viewMode === 'monthly' && (
-        <div className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 bg-white/95 space-y-5">
+        <div className="glass-panel p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-stone-200 dark:border-stone-800 bg-white/95 dark:bg-stone-900/95 space-y-5">
           {/* Month Header & Navigation */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200 dark:border-stone-800">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1.5 rounded-xl border border-stone-300 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                className="p-1.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 cursor-pointer"
                 title="이전 달"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
-              <h3 className="text-xl sm:text-2xl font-black text-stone-900 font-athletic flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white font-athletic flex items-center gap-2">
                 <span>{monthCalendarData.year}년</span>
-                <span className="text-emerald-800">{monthCalendarData.month}월</span>
-                <span className="text-xs font-normal text-stone-500 font-sans">훈련 캘린더</span>
+                <span className="text-emerald-800 dark:text-emerald-400">{monthCalendarData.month}월</span>
+                <span className="text-xs font-normal text-stone-500 dark:text-stone-400 font-sans">훈련 캘린더</span>
               </h3>
 
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1.5 rounded-xl border border-stone-300 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                className="p-1.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 cursor-pointer"
                 title="다음 달"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -2560,13 +2709,13 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             {/* Monthly Stat Badges */}
             <div className="flex items-center gap-3 text-xs flex-wrap">
-              <div className="px-3 py-1.5 rounded-xl bg-stone-100 text-stone-700 border border-stone-200">
-                월 계획 거리: <strong className="text-stone-900 font-athletic text-sm ml-1">{monthCalendarData.monthPlannedKm}km</strong>
+              <div className="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+                월 계획 거리: <strong className="text-stone-900 dark:text-white font-athletic text-sm ml-1">{monthCalendarData.monthPlannedKm}km</strong>
               </div>
-              <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
                 훈련 횟수: <strong className="font-athletic text-sm ml-1">{monthCalendarData.monthSessionCount}회</strong>
               </div>
-              <div className="px-3 py-1.5 rounded-xl bg-rose-50 text-rose-800 border border-rose-200">
+              <div className="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
                 포인트 훈련: <strong className="font-athletic text-sm ml-1">{monthCalendarData.monthPointCount}회</strong>
               </div>
             </div>
@@ -2575,14 +2724,14 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
           {/* 7-Column Calendar Grid */}
           <div className="w-full">
             {/* Days of week header */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-xs font-bold text-stone-500">
-              <span className="text-rose-600">일 (SUN)</span>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-xs font-bold text-stone-500 dark:text-stone-400">
+              <span className="text-rose-600 dark:text-rose-400">일 (SUN)</span>
               <span>월 (MON)</span>
               <span>화 (TUE)</span>
               <span>수 (WED)</span>
               <span>목 (THU)</span>
               <span>금 (FRI)</span>
-              <span className="text-blue-600">토 (SAT)</span>
+              <span className="text-blue-600 dark:text-blue-400">토 (SAT)</span>
             </div>
 
             {/* Calendar Cells */}
@@ -2608,15 +2757,15 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     }}
                     className={`min-h-[78px] sm:min-h-[96px] p-1.5 sm:p-2 rounded-xl border flex flex-col justify-between transition-all ${
                       cell.isCurrentMonth
-                        ? 'bg-white text-stone-800 border-stone-200/90 hover:border-emerald-600 hover:shadow-sm cursor-pointer'
-                        : 'bg-stone-50/60 text-stone-400 border-stone-100 cursor-default'
-                    } ${cell.isToday ? 'ring-2 ring-emerald-600 font-bold bg-emerald-50/20' : ''}`}
+                        ? 'bg-white dark:bg-stone-850 text-stone-800 dark:text-stone-100 border-stone-200/90 dark:border-stone-750 hover:border-emerald-600 dark:hover:border-emerald-500 hover:shadow-sm cursor-pointer'
+                        : 'bg-stone-50/60 dark:bg-stone-900/40 text-stone-400 dark:text-stone-600 border-stone-100 dark:border-stone-800/40 cursor-default'
+                    } ${cell.isToday ? 'ring-2 ring-emerald-600 font-bold bg-emerald-50/20 dark:bg-emerald-950/40' : ''}`}
                   >
                     {/* Top Row: Date Number & Badges */}
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-xs font-athletic font-bold ${
-                          cell.isToday ? 'text-emerald-700 font-extrabold' : ''
+                          cell.isToday ? 'text-emerald-700 dark:text-emerald-400 font-extrabold' : 'text-stone-800 dark:text-stone-200'
                         }`}
                       >
                         {cell.dayNum}
@@ -2639,15 +2788,15 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     {item && (
                       <div className="mt-1">
                         {item.type === '휴식' ? (
-                          <div className="text-[10px] text-stone-400 truncate">휴식</div>
+                          <div className="text-[10px] text-stone-400 dark:text-stone-500 truncate">휴식</div>
                         ) : (
                           <div
                             className={`p-1 rounded-md text-[10px] sm:text-[11px] font-bold leading-tight truncate ${
                               isRace
                                 ? 'bg-rose-900 text-amber-300'
                                 : isPoint
-                                ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                                : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800/60'
+                                : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800/60'
                             }`}
                           >
                             <div className="truncate">{item.type} {item.distanceKm}km</div>
@@ -2660,9 +2809,9 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     )}
 
                     {/* Bottom Status / Checkmark */}
-                    <div className="flex items-center justify-between text-[9px] text-stone-400 pt-0.5">
+                    <div className="flex items-center justify-between text-[9px] text-stone-400 dark:text-stone-500 pt-0.5">
                       {item?.isCompleted ? (
-                        <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
                           <Check className="w-2.5 h-2.5" /> 완료
                         </span>
                       ) : (
@@ -2684,21 +2833,21 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
       {/* 5. Selected Day Detail Modal (from Monthly View click or preview) */}
       {selectedDayDetail && (
-        <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-stone-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+        <div className="fixed inset-0 z-50 bg-stone-900/60 dark:bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-stone-900 rounded-2xl sm:rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-stone-200 dark:border-stone-750 text-stone-900 dark:text-stone-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                   {selectedDayDetail.day.day} ({selectedDayDetail.day.dateStr})
                 </span>
-                <span className="text-xs text-stone-500 font-semibold">
+                <span className="text-xs text-stone-500 dark:text-stone-400 font-semibold">
                   {selectedDayDetail.weekLabel}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedDayDetail(null)}
-                className="p-1.5 rounded-xl hover:bg-stone-100 text-stone-500 cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-500 dark:text-stone-400 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2706,56 +2855,56 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded text-xs font-extrabold bg-stone-900 text-white">
+                <span className="px-2.5 py-0.5 rounded text-xs font-extrabold bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900">
                   {selectedDayDetail.day.type}
                 </span>
-                <span className="text-xs font-bold text-stone-500">
+                <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
                   {selectedDayDetail.phase}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-stone-900">
+              <h3 className="text-lg font-bold text-stone-900 dark:text-white">
                 {selectedDayDetail.day.title}
               </h3>
             </div>
 
             {/* Metrics */}
             {selectedDayDetail.day.distanceKm > 0 ? (
-              <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs">
+              <div className="grid grid-cols-3 gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 text-xs">
                 <div>
-                  <span className="text-stone-500">목표 거리:</span>
-                  <div className="text-base font-black text-stone-900 font-athletic">
+                  <span className="text-stone-500 dark:text-stone-400">목표 거리:</span>
+                  <div className="text-base font-black text-stone-900 dark:text-white font-athletic">
                     {selectedDayDetail.day.distanceKm}km
                   </div>
                 </div>
                 <div>
-                  <span className="text-stone-500">목표 페이스:</span>
-                  <div className="text-base font-black text-emerald-800 font-mono">
+                  <span className="text-stone-500 dark:text-stone-400">목표 페이스:</span>
+                  <div className="text-base font-black text-emerald-800 dark:text-emerald-400 font-mono">
                     {selectedDayDetail.day.targetPace}/km
                   </div>
                 </div>
                 <div>
-                  <span className="text-stone-500">훈련 부하:</span>
-                  <div className="text-base font-black text-rose-600 font-athletic flex items-center gap-1">
-                    <Flame className="w-3.5 h-3.5 text-rose-500" />
+                  <span className="text-stone-500 dark:text-stone-400">훈련 부하:</span>
+                  <div className="text-base font-black text-rose-600 dark:text-rose-400 font-athletic flex items-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                     <span>{selectedDayDetail.day.trainingLoad ?? '-'}pt</span>
                     {selectedDayDetail.day.loadMultiplier ? (
-                      <span className="text-[10px] text-stone-500 font-mono">({selectedDayDetail.day.loadMultiplier}x)</span>
+                      <span className="text-[10px] text-stone-500 dark:text-stone-400 font-mono">({selectedDayDetail.day.loadMultiplier}x)</span>
                     ) : null}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-stone-50 text-xs text-stone-500 font-semibold flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-stone-50 dark:bg-stone-850 text-xs text-stone-500 dark:text-stone-400 font-semibold flex items-center justify-between border border-stone-200 dark:border-stone-750">
                 <span>완전 휴식 및 리커버리 데이입니다.</span>
-                <span className="font-bold text-stone-700">부하: 0pt</span>
+                <span className="font-bold text-stone-700 dark:text-stone-300">부하: 0pt</span>
               </div>
             )}
 
             {/* Description & Purpose */}
-            <div className="text-xs text-stone-700 leading-relaxed space-y-2">
+            <div className="text-xs text-stone-700 dark:text-stone-300 leading-relaxed space-y-2">
               <p>{selectedDayDetail.day.description}</p>
               {selectedDayDetail.day.purpose && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 font-medium">
+                <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-200 font-medium">
                   <strong>훈련 목적: </strong>
                   {selectedDayDetail.day.purpose}
                 </div>
@@ -2766,17 +2915,17 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
             {selectedDayDetail.day.stages && selectedDayDetail.day.stages.length > 0 && (
               <div className="space-y-2.5 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
-                    <Layers className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                     단계별 상세 세부 훈련 구성 (진행과정)
                   </span>
-                  <span className="text-xs font-mono font-bold text-stone-600">
+                  <span className="text-xs font-mono font-bold text-stone-600 dark:text-stone-400">
                     합계: {Math.round(selectedDayDetail.day.stages.reduce((s, st) => s + st.distanceKm, 0) * 10) / 10}km
                   </span>
                 </div>
 
                 {/* Progress bar visual */}
-                <div className="w-full h-2 rounded-full bg-stone-200 overflow-hidden flex shadow-inner">
+                <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden flex shadow-inner">
                   {selectedDayDetail.day.stages.map((stg, i) => {
                     const totalDist = Math.max(1, selectedDayDetail.day.distanceKm);
                     const pct = Math.max(8, Math.min(100, (stg.distanceKm / totalDist) * 100));
@@ -2807,16 +2956,16 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                         key={i}
                         className={`p-3 rounded-xl border text-xs space-y-1.5 transition-all ${
                           isMain
-                            ? 'bg-amber-50/80 border-amber-300 ring-1 ring-amber-400/40'
+                            ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/60 ring-1 ring-amber-400/40 dark:ring-amber-500/30'
                             : isWarm
-                            ? 'bg-sky-50/70 border-sky-200'
+                            ? 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/50'
                             : isCool
-                            ? 'bg-teal-50/60 border-teal-200'
-                            : 'bg-stone-50 border-stone-200'
+                            ? 'bg-teal-50/60 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/50'
+                            : 'bg-stone-50 dark:bg-stone-850 border-stone-200 dark:border-stone-750'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1.5">
-                          <span className="font-extrabold text-stone-900 text-xs">
+                          <span className="font-extrabold text-stone-900 dark:text-white text-xs">
                             {stg.step}
                           </span>
                           {isMain ? (
@@ -2834,26 +2983,26 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           ) : null}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 bg-white/90 p-2 rounded-lg border border-stone-200/80 text-center font-mono">
+                        <div className="grid grid-cols-3 gap-2 bg-white/90 dark:bg-stone-800/90 p-2 rounded-lg border border-stone-200/80 dark:border-stone-700 text-center font-mono">
                           <div>
-                            <span className="text-[10px] text-stone-400 block font-sans">거리</span>
-                            <span className="text-xs font-bold text-stone-900 font-athletic">{stg.distanceKm}km</span>
+                            <span className="text-[10px] text-stone-400 dark:text-stone-500 block font-sans">거리</span>
+                            <span className="text-xs font-bold text-stone-900 dark:text-white font-athletic">{stg.distanceKm}km</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 block font-sans">목표 페이스</span>
-                            <span className={`text-xs font-bold ${isMain ? 'text-amber-900 font-extrabold' : 'text-emerald-800'}`}>
+                            <span className="text-[10px] text-stone-400 dark:text-stone-500 block font-sans">목표 페이스</span>
+                            <span className={`text-xs font-bold ${isMain ? 'text-amber-900 dark:text-amber-200 font-extrabold' : 'text-emerald-800 dark:text-emerald-300'}`}>
                               {stg.pace}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-stone-400 block font-sans">심박 강도</span>
-                            <span className="text-[11px] font-bold text-stone-700 truncate block">
+                            <span className="text-[10px] text-stone-400 dark:text-stone-500 block font-sans">심박 강도</span>
+                            <span className="text-[11px] font-bold text-stone-700 dark:text-stone-300 truncate block">
                               {stg.zone}
                             </span>
                           </div>
                         </div>
 
-                        <div className="text-[11px] text-stone-700 leading-relaxed pt-1 border-t border-stone-200/60 keep-all">
+                        <div className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed pt-1 border-t border-stone-200/60 dark:border-stone-750 keep-all">
                           {stg.focus}
                         </div>
                       </div>
@@ -2865,8 +3014,8 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
 
             {/* Shoe Recommendation */}
             {selectedDayDetail.day.recommendedShoe && (
-              <div className="text-xs text-stone-600 pt-2 border-t border-stone-200">
-                👟 추천 러닝화: <strong className="text-stone-900">{selectedDayDetail.day.recommendedShoe.shoeName}</strong> ({selectedDayDetail.day.recommendedShoe.reason})
+              <div className="text-xs text-stone-600 dark:text-stone-300 pt-2 border-t border-stone-200 dark:border-stone-800">
+                👟 추천 러닝화: <strong className="text-stone-900 dark:text-white">{selectedDayDetail.day.recommendedShoe.shoeName}</strong> ({selectedDayDetail.day.recommendedShoe.reason})
               </div>
             )}
 
@@ -2874,7 +3023,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedDayDetail(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-900 text-white cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-200 cursor-pointer transition-colors"
               >
                 닫기
               </button>
@@ -3075,7 +3224,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                           className={`flex-1 py-1.5 rounded-lg text-xs font-bold border cursor-pointer transition-all ${
                             formTargetCourse.includes(course)
                               ? 'bg-rose-900 text-white border-rose-950 shadow-2xs'
-                              : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                              : 'bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700'
                           }`}
                         >
                           {course}
@@ -3764,11 +3913,11 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200 dark:border-stone-750">
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
                 >
                   취소
                 </button>

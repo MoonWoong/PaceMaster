@@ -286,6 +286,7 @@ export interface PlanWeek {
 
 export interface TrainingPlanPeriodSettings {
   startDate: string; // YYYY-MM-DD
+  startDateMode?: 'today' | 'next_monday' | 'custom';
   endDate: string; // YYYY-MM-DD
   durationWeeks: number;
   durationPreset: TrainingPlanDurationPreset;

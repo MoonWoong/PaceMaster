@@ -105,13 +105,13 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
       } else if (wearPct >= 80) {
         status = 'near_limit';
         statusLabel = '사용 중';
-        statusColor = 'text-stone-700';
-        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
+        statusColor = 'text-stone-700 dark:text-stone-300';
+        badgeBg = 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700';
       } else if (wearPct >= 50) {
         status = 'warning';
         statusLabel = '사용 중';
-        statusColor = 'text-stone-700';
-        badgeBg = 'bg-stone-100 text-stone-700 border-stone-200';
+        statusColor = 'text-stone-700 dark:text-stone-300';
+        badgeBg = 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-200 dark:border-stone-700';
       } else {
         status = 'optimal';
         statusLabel = '최상 컨디션';

@@ -2200,6 +2200,14 @@ export function enrichWeeklyPlanWithActualSessions(
     futureRunningDays.reduce((sum, d) => sum + (d.distanceKm || 0), 0) * 10
   ) / 10;
 
+  // Count uncompleted running days in the past of this week (actually missed workouts)
+  const missedPastRunningDaysCount = plan.filter((d, i) => {
+    const dayDate = new Date(currentWeekMonday.getTime() + i * 24 * 60 * 60 * 1000);
+    const dayDateStart = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate()).getTime();
+    const isPast = dayDateStart < todayStart;
+    return isPast && !completedDayIndices.includes(i) && d.type !== '휴식';
+  }).length;
+
   return plan.map((pDay, idx) => {
     const dayDate = new Date(currentWeekMonday.getTime() + idx * 24 * 60 * 60 * 1000);
     const y = dayDate.getFullYear();
@@ -2365,7 +2373,8 @@ export function enrichWeeklyPlanWithActualSessions(
     let adjustedTitle = pDay.title;
     let adjustedStages = pDay.stages ? [...pDay.stages] : undefined;
 
-    if (futurePlannedSum > 0) {
+    // Only apply safe load reanalysis if past running days were actually MISSED in this week
+    if (missedPastRunningDaysCount > 0 && futurePlannedSum > 0) {
       // Calculate safe scale factor:
       // Even if past days were missed, NEVER spike training load beyond +12% (prevent injury)
       // And don't drop below 85% if regular volume is desired
