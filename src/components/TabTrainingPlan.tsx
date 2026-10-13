@@ -53,7 +53,7 @@ import {
   calculateSpecificRacePace,
   DayOfWeek,
 } from '../lib/comprehensivePlanGenerator';
-import { parseTimeToSeconds, formatSecondsToTime, formatPace } from '../lib/vdot';
+import { parseTimeToSeconds, formatSecondsToTime, formatPace, getTrainingPaces } from '../lib/vdot';
 import { calculateDDay } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
 
@@ -922,32 +922,52 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   // Current active week data
   const currentWeek = activePlan.weeks[selectedWeekIdx] || activePlan.weeks[0];
 
+  const runnerPaces = useMemo(() => {
+    const v = currentVDOT || activePlan.runnerAnalysisSummary?.currentVdot || 38;
+    return getTrainingPaces(v > 28 ? v : 45);
+  }, [currentVDOT, activePlan.runnerAnalysisSummary?.currentVdot]);
+
   // Dynamically resolve point workouts for the selected week
   const currentWeekSpeedDayItem = useMemo(() => {
     if (!currentWeek?.days) return null;
     const targetDay = activePlan.settings.speedDay;
-    return (
-      currentWeek.days.find((d) => d.day === targetDay) ||
-      currentWeek.days.find((d) =>
-        ['인터벌', '템포런', '언덕훈련', '빌드업주', '변속주(파틀렉)'].includes(d.type)
-      ) ||
-      null
+    if (targetDay && targetDay !== '없음') {
+      const exactDay = currentWeek.days.find((d) => d.day === targetDay);
+      if (exactDay && exactDay.type !== '휴식') {
+        return exactDay;
+      }
+    }
+
+    // Find any point speed workout in this active week (excluding LSD and rest)
+    const pointSpeedDay = currentWeek.days.find((d) =>
+      ['인터벌', '템포런', '언덕훈련', '빌드업주', '변속주(파틀렉)'].includes(d.type) ||
+      (d.title && (d.title.includes('인터벌') || d.title.includes('템포런') || d.title.includes('파틀렉') || d.title.includes('언덕') || d.title.includes('M-페이스') || d.title.includes('크루즈') || d.title.includes('빌드업주'))) && d.type !== 'LSD'
     );
+    if (pointSpeedDay) return pointSpeedDay;
+
+    if (targetDay && targetDay !== '없음') {
+      return currentWeek.days.find((d) => d.day === targetDay) || null;
+    }
+    return null;
   }, [currentWeek, activePlan.settings.speedDay]);
 
   const currentWeekLongRunDayItem = useMemo(() => {
     if (!currentWeek?.days) return null;
     const targetDay = activePlan.settings.longRunDay;
+    const exactDay = currentWeek.days.find((d) => d.day === targetDay);
+    if (exactDay && (exactDay.type === 'LSD' || exactDay.type === '대회' || exactDay.title.includes('LSD') || exactDay.title.includes('장거리'))) {
+      return exactDay;
+    }
     return (
-      currentWeek.days.find((d) => d.day === targetDay) ||
-      currentWeek.days.find((d) => d.type === 'LSD' || d.type === '대회') ||
+      currentWeek.days.find((d) => d.type === 'LSD' || d.type === '대회' || d.title.includes('LSD') || d.title.includes('장거리')) ||
+      exactDay ||
       null
     );
   }, [currentWeek, activePlan.settings.longRunDay]);
 
   const currentWeekSpeedWorkoutLabel = useMemo(() => {
     if (!currentWeekSpeedDayItem) {
-      return activePlan.settings.speedWorkoutType || '인터벌';
+      return activePlan.settings.speedWorkoutType || '스피드 포인트';
     }
     if (currentWeekSpeedDayItem.type === '휴식') return '휴식';
     if (currentWeekSpeedDayItem.type === '대회') return '대회 출전';
@@ -956,14 +976,14 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     if (t.includes('800m')) return '800m 인터벌';
     if (t.includes('400m') || t.includes('숏 인터벌')) return '400m 숏 인터벌';
     if (t.includes('롱 크루즈') || t.includes('1~3k')) return '1~3k 인터벌';
-    if (t.includes('크루즈 인터벌')) return '크루즈 인터벌';
+    if (t.includes('크루즈')) return '크루즈 인터벌';
     if (t.includes('마라톤') && (t.includes('지속주') || t.includes('페이스주'))) return '존3 M-페이스주';
     if (t.includes('모더레이트')) return '존3 모더레이트런';
     if (t.includes('에어로빅') || t.includes('AeT')) return '존3 유산소 역치주';
     if (t.includes('언덕')) return '언덕훈련';
-    if (t.includes('빌드업')) return '빌드업주';
-    if (t.includes('변속주') || t.includes('파틀렉')) return '변속주(파틀렉)';
-    if (t.includes('템포런')) return '템포런';
+    if (t.includes('빌드업') || currentWeekSpeedDayItem.type === '빌드업주') return '빌드업주';
+    if (t.includes('변속주') || t.includes('파틀렉') || currentWeekSpeedDayItem.type === '변속주(파틀렉)') return '변속주(파틀렉)';
+    if (t.includes('템포런') || t.includes('LT') || currentWeekSpeedDayItem.type === '템포런') return 'LT 템포런';
     if (currentWeekSpeedDayItem.type === '인터벌') return '인터벌';
     return currentWeekSpeedDayItem.type;
   }, [currentWeekSpeedDayItem, activePlan.settings.speedWorkoutType]);
@@ -998,6 +1018,20 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
           dot: 'bg-amber-600',
           border: 'border-amber-200 dark:border-amber-900/60',
           bg: 'bg-amber-50/60 dark:bg-amber-950/20',
+        };
+      case '빌드업주':
+        return {
+          badge: 'bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800/70',
+          dot: 'bg-amber-500',
+          border: 'border-amber-200 dark:border-amber-900/60',
+          bg: 'bg-amber-50/60 dark:bg-amber-950/20',
+        };
+      case '변속주(파틀렉)':
+        return {
+          badge: 'bg-purple-100 dark:bg-purple-950/70 text-purple-800 dark:text-purple-200 border-purple-300 dark:border-purple-800/70',
+          dot: 'bg-purple-600',
+          border: 'border-purple-200 dark:border-purple-900/60',
+          bg: 'bg-purple-50/60 dark:bg-purple-950/20',
         };
       case 'LSD':
         return {
@@ -2025,8 +2059,14 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     <ArrowRight className="w-3.5 h-3.5 text-amber-500" />
                     <span className="text-amber-800 text-xl font-bold">{activePlan.fitnessAudit.targetPaceFormatted}</span>
                   </div>
-                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
-                    수요일 역치 템포런(4&apos;10&quot;~4&apos;15&quot;) 및 인터벌(3&apos;50&quot;~3&apos;58&quot;)로 스피드 버퍼 확보
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-1 leading-snug">
+                    {activePlan.settings.speedDay && activePlan.settings.speedDay !== '없음'
+                      ? `${activePlan.settings.speedDay} `
+                      : '주간 포인트 데이 '}
+                    {runnerPaces
+                      ? `역치 템포런(${runnerPaces.thresholdPace.pace}) 및 인터벌(${runnerPaces.intervalPace.pace})`
+                      : '역치 템포런 및 인터벌'}
+                    로 스피드 버퍼 확보
                   </div>
                 </div>
 
@@ -2046,8 +2086,8 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                     <ArrowRight className="w-3.5 h-3.5 text-emerald-500" />
                     <span className="text-emerald-800 text-xl font-bold">{activePlan.fitnessAudit.peakWeeklyKm}km</span>
                   </div>
-                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
-                    하프 최적 권장 피크: <span className="font-bold text-stone-800">{activePlan.fitnessAudit.recommendedPeakKmRange}</span> (과도한 70km+ 배제로 부상 차단)
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-1 leading-snug">
+                    {activePlan.settings.targetCourse || '대회'} 최적 권장 피크: <span className="font-bold text-stone-800 dark:text-stone-200">{activePlan.fitnessAudit.recommendedPeakKmRange}</span> (과도한 부상 위험 배제)
                   </div>
                 </div>
 
@@ -2062,11 +2102,11 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                       최장 {activePlan.fitnessAudit.peakLsdKm}km
                     </span>
                   </div>
-                  <div className="text-lg font-black text-purple-900 font-athletic">
-                    {activePlan.fitnessAudit.peakLsdKm}km <span className="text-xs font-semibold text-stone-500">(권장: {activePlan.fitnessAudit.recommendedLsdKmRange})</span>
+                  <div className="text-lg font-black text-purple-900 dark:text-purple-300 font-athletic">
+                    {activePlan.fitnessAudit.peakLsdKm}km <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">(권장: {activePlan.fitnessAudit.recommendedLsdKmRange})</span>
                   </div>
-                  <div className="text-[11px] text-stone-600 mt-1 leading-snug">
-                    하프 대회 거리(21.1km)를 완벽 충족하며, 과도한 장거리로 인한 관절 피로를 사전에 방지
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400 mt-1 leading-snug">
+                    {activePlan.settings.targetCourse || '목표'} 대회 거리 최적 충족 및 과도한 장거리로 인한 관절 피로 사전 방지
                   </div>
                 </div>
               </div>
@@ -2146,14 +2186,31 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
         </div>
 
         <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400 pr-2">
-          <span>{currentWeek ? `${currentWeek.weekNumber}주차 포인트:` : '포인트 요일:'}</span>
-          <span className="font-semibold text-rose-700 dark:text-rose-400">
-            ⚡ {currentWeekSpeedDayItem?.day || activePlan.settings.speedDay} ({currentWeekSpeedWorkoutLabel})
-          </span>
-          <span>·</span>
-          <span className="font-semibold text-indigo-700 dark:text-indigo-400">
-            🏃 {currentWeekLongRunDayItem?.day || activePlan.settings.longRunDay} ({currentWeekLongRunWorkoutLabel})
-          </span>
+          {viewMode === 'weekly' && currentWeek ? (
+            <>
+              <span className="font-medium text-stone-700 dark:text-stone-300">
+                {currentWeek.weekNumber}주차 포인트 ({currentWeek.phase.split(' ')[0]}):
+              </span>
+              <span className="font-semibold text-rose-700 dark:text-rose-400">
+                ⚡ {currentWeekSpeedDayItem?.day || (activePlan.settings.speedDay !== '없음' ? activePlan.settings.speedDay : '스피드')} ({currentWeekSpeedWorkoutLabel})
+              </span>
+              <span>·</span>
+              <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                🏃 {currentWeekLongRunDayItem?.day || (activePlan.settings.longRunDay !== '없음' ? activePlan.settings.longRunDay : '장거리')} ({currentWeekLongRunWorkoutLabel})
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-stone-700 dark:text-stone-300">포인트 요일:</span>
+              <span className="font-semibold text-rose-700 dark:text-rose-400">
+                ⚡ {activePlan.settings.speedDay && activePlan.settings.speedDay !== '없음' ? activePlan.settings.speedDay : '스피드 미지정'} (주차별 스피드 순환)
+              </span>
+              <span>·</span>
+              <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                🏃 {activePlan.settings.longRunDay && activePlan.settings.longRunDay !== '없음' ? activePlan.settings.longRunDay : '장거리 미지정'} (장거리 LSD)
+              </span>
+            </>
+          )}
         </div>
       </div>
 

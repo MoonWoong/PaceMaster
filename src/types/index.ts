@@ -198,7 +198,7 @@ export interface WeeklyPlanDay {
   day: string; // 월요일, 화요일, ...
   dayShort: string; // Mon, Tue, ...
   dateStr?: string; // YYYY-MM-DD
-  type: '조깅' | '템포런' | '인터벌' | 'LSD' | '회복주' | '휴식' | '대회' | '언덕훈련';
+  type: '조깅' | '템포런' | '인터벌' | 'LSD' | '회복주' | '휴식' | '대회' | '언덕훈련' | '빌드업주' | '변속주(파틀렉)';
   title: string;
   distanceKm: number;
   targetPace: string;

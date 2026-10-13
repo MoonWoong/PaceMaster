@@ -338,15 +338,15 @@ export function selectIntelligentSpeedWorkoutType(params: {
       else if (type === '400m 숏 인터벌') score -= 70;
     }
 
-    // B. Recovery / Deload Week
+    // B. Recovery / Deload Week (Rotate across gentle tempo, cruise, fartlek, buildup)
     if (isDeload) {
-      if (type === '존3 모더레이트런') score += 55; // Gentle steady aerobic volume
-      else if (type === '변속주(파틀렉)') score += 50; // Playful, enjoyable
-      else if (type === '존3 마라톤 페이스주') score += 40;
-      else if (type === '빌드업주') score += 40;
-      else if (type === '존3 유산소 역치주') score += 35;
-      else if (type === '템포런') score += 25;
-      else if (type === '크루즈 인터벌') score += 20;
+      if (type === '존3 모더레이트런') score += 50; // Gentle steady aerobic volume
+      else if (type === '변속주(파틀렉)') score += 45; // Playful, enjoyable
+      else if (type === '크루즈 인터벌') score += 40; // Controlled threshold with rest
+      else if (type === '템포런') score += 35;
+      else if (type === '존3 마라톤 페이스주') score += 35;
+      else if (type === '존3 유산소 역치주') score += 30;
+      else if (type === '빌드업주') score += 20; // Lower priority to avoid repeating buildup every deload week
       else if (type === '언덕훈련') score += 15;
       else if (type === '인터벌') score -= 45; // Avoid maximal anaerobic burnout
       else if (type === '800m 인터벌') score -= 45;
@@ -599,9 +599,20 @@ export function generateComprehensivePlan(params: {
   const speedTypes: SpeedWorkoutType[] =
     settings.speedWorkoutTypes && settings.speedWorkoutTypes.length > 0
       ? settings.speedWorkoutTypes
-      : settings.speedWorkoutType
-      ? [settings.speedWorkoutType]
-      : ['인터벌', '템포런', '언덕훈련'];
+      : [
+          '인터벌',
+          '800m 인터벌',
+          '400m 숏 인터벌',
+          '템포런',
+          '크루즈 인터벌',
+          '1~3k 인터벌',
+          '변속주(파틀렉)',
+          '빌드업주',
+          '언덕훈련',
+          '존3 마라톤 페이스주',
+          '존3 모더레이트런',
+          '존3 유산소 역치주',
+        ];
 
   // 5. Generate Weekly Schedules
   const weeks: PlanWeek[] = [];
@@ -879,11 +890,17 @@ export function generateComprehensivePlan(params: {
     }
 
     // Training days setup
-    const trainingDays = settings.trainingDays && settings.trainingDays.length > 0
+    const rawTrainingDays = settings.trainingDays && settings.trainingDays.length > 0
       ? settings.trainingDays
       : (['화요일', '목요일', '토요일', '일요일'] as DayOfWeek[]);
     const speedDay = settings.speedDay || '화요일';
     const longRunDay = settings.longRunDay || '일요일';
+
+    // Ensure speedDay and longRunDay are in trainingDays so point workouts are never accidentally skipped as Rest
+    const trainingDaysSet = new Set<DayOfWeek>(rawTrainingDays);
+    if (speedDay && speedDay !== '없음') trainingDaysSet.add(speedDay as DayOfWeek);
+    if (longRunDay && longRunDay !== '없음') trainingDaysSet.add(longRunDay as DayOfWeek);
+    const trainingDays = Array.from(trainingDaysSet);
 
     const isRaceWeek = phase === '대회 직전 조정기 (Race Week)';
     const isTaper = phase === '테이퍼링 감량기 (Tapering)';
@@ -2225,7 +2242,7 @@ export function generateComprehensivePlan(params: {
             day: dayName,
             dayShort,
             dateStr,
-            type: '템포런',
+            type: '빌드업주',
             title: isHeavyLongRunWeek
               ? `[장거리 부하 완화] 점진적 가속 빌드업주 (${speedKm}km)`
               : `점진적 가속 빌드업주 (${speedKm}km)`,
@@ -2942,7 +2959,7 @@ export function generateComprehensivePlan(params: {
       title: `목표 페이스(${effectiveTargetPace}/km) 및 젖산 역치 세팅`,
       summary: `현재 추정 페이스(${currentEstimatedPaceFormatted}/km) 대비 ${Math.abs(paceGapSeconds)}초/km ${paceGapSeconds < 0 ? '가속 목표' : '안정 지속'} (VDOT ${vdot} ➡️ ${targetVdot})`,
       recommendation: isHalfCourse
-        ? `하프마라톤은 젖산 역치(LT) 속도 유지가 핵심입니다. 주 1회 수요일 템포런(4'10"~4'15") 및 VO2max 인터벌(3'50"~3'58") 세트가 실전 페이스 감각을 극대화합니다.`
+        ? `하프마라톤은 젖산 역치(LT) 속도 유지가 핵심입니다. 주 1회 ${settings.speedDay || '포인트 요일'} 템포런 및 인터벌 포인트 세트가 실전 페이스 감각을 극대화합니다.`
         : `목표 페이스에 맞춘 포인트 세트로 역치 페이스와 심폐 지구력을 동시 강화합니다.`,
     },
     {
@@ -2975,7 +2992,7 @@ export function generateComprehensivePlan(params: {
   }
 
   const coachingSummary = isHalfCourse
-    ? `현재 VDOT ${vdot}에서 목표 하프 ${effectiveTargetFinishTime} 달성을 위한 ${totalWeeks}주 마스터플랜입니다. 주간 마일리지는 하프 최적 상한선인 피크 ${peakWeeklyKm}km로 정밀 제한하여 부상 위험을 차단하고, 수요일 역치런과 주말 LSD를 통해 ${effectiveTargetPace} 페이스 경제성을 완벽하게 체화하도록 설계되었습니다.`
+    ? `현재 VDOT ${vdot}에서 목표 하프 ${effectiveTargetFinishTime} 달성을 위한 ${totalWeeks}주 마스터플랜입니다. 주간 마일리지는 하프 최적 상한선인 피크 ${peakWeeklyKm}km로 정밀 제한하여 부상 위험을 차단하고, ${settings.speedDay || '포인트 요일'} 역치런과 ${settings.longRunDay || '장거리 요일'} LSD를 통해 ${effectiveTargetPace} 페이스 경제성을 완벽하게 체화하도록 설계되었습니다.`
     : `현재 기량(VDOT ${vdot})과 목표(${targetCourseName} ${effectiveTargetFinishTime})를 과학적으로 매칭한 주기화 플랜입니다. 체계적인 3:1 웨이브로 피로를 제어하며 목표를 달성합니다.`;
 
   const fitnessAudit: PlanFitnessAudit = {

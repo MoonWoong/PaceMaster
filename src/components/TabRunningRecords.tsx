@@ -516,11 +516,29 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   const resolvedAutoSpeedType: SpeedWorkoutType = useMemo(() => {
     if (!targetRaceAnalysis) return '인터벌';
     if (targetRaceAnalysis.isRaceThisWeek) return '변속주(파틀렉)';
+
+    // Directly respect the speed repetition note from race plan analysis
+    const repNote = targetRaceAnalysis.taperingSpeedRepNote || '';
+    if (repNote.includes('800m')) return '800m 인터벌';
+    if (repNote.includes('400m') || repNote.includes('숏')) return '400m 숏 인터벌';
+    if (repNote.includes('크루즈')) return '크루즈 인터벌';
+    if (repNote.includes('1~3k')) return '1~3k 인터벌';
+    if (repNote.includes('인터벌')) return '인터벌';
+    if (repNote.includes('템포런') || repNote.includes('역치')) return '템포런';
+    if (repNote.includes('파틀렉') || repNote.includes('변속주')) return '변속주(파틀렉)';
+    if (repNote.includes('빌드업')) return '빌드업주';
+
     if (targetRaceAnalysis.periodizationPhase.includes('테이퍼링')) {
       return targetRaceAnalysis.dDayDays <= 7 ? '변속주(파틀렉)' : '크루즈 인터벌';
     }
     if (targetRaceAnalysis.periodizationPhase.includes('회복')) return '빌드업주';
-    if (targetRaceAnalysis.taperingLsdDistKm >= 26 || (targetRaceAnalysis.course || '').includes('풀')) {
+    if (targetRaceAnalysis.periodizationPhase.includes('피크') || targetRaceAnalysis.periodizationPhase.includes('Peak')) {
+      return (targetRaceAnalysis.course || '').includes('풀') ? '800m 인터벌' : '인터벌';
+    }
+    if (targetRaceAnalysis.periodizationPhase.includes('빌드업') || targetRaceAnalysis.periodizationPhase.includes('Build')) {
+      return '인터벌';
+    }
+    if (targetRaceAnalysis.periodizationPhase.includes('기초') || targetRaceAnalysis.periodizationPhase.includes('Base')) {
       return '템포런';
     }
     if (targetRaceAnalysis.dDayWeeks <= 3) return '인터벌';
@@ -1209,12 +1227,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             )}
 
             {/* VDOT & Tier Hero Badge */}
-            <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-rose-50/90 border border-rose-200 shadow-xs">
+            <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-rose-50/90 dark:bg-stone-800 border border-rose-200 dark:border-rose-900/60 shadow-xs">
               <div className="text-right">
-                <div className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
+                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-semibold uppercase tracking-wider">
                   VDOT
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-rose-900 font-athletic">
+                <div className="text-xl sm:text-2xl font-black text-rose-900 dark:text-rose-400 font-athletic">
                   {currentVDOT > 0 ? currentVDOT.toFixed(1) : '--'}
                 </div>
               </div>
@@ -2154,17 +2172,17 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                 <p className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed">
                   {targetRaceAnalysis.taperingIntensityStrategy}
                 </p>
-                <div className="text-[10px] text-rose-800 dark:text-rose-300 font-mono font-semibold pt-1 border-t border-rose-100 dark:border-rose-900 flex items-center justify-between">
-                  <span>LSD: {targetRaceAnalysis.taperingLsdDistKm}km</span>
-                  <span>스피드: {targetRaceAnalysis.taperingSpeedRepNote}</span>
+                <div className="text-[11px] text-rose-900 dark:text-rose-200 font-semibold pt-1.5 border-t border-rose-200 dark:border-rose-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 leading-snug">
+                  <span className="whitespace-nowrap">🏃 LSD: <strong>{targetRaceAnalysis.taperingLsdDistKm}km</strong></span>
+                  <span className="break-words">⚡ 스피드: <strong>{targetRaceAnalysis.taperingSpeedRepNote}</strong></span>
                 </div>
               </div>
             </div>
 
             {/* Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-emerald-200/60">
-              <span className="text-[11px] text-stone-600 flex items-center gap-1.5">
-                <span className="text-emerald-700 font-bold">✓ 훈련 계획표 연동:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-emerald-200/60 dark:border-emerald-800/60">
+              <span className="text-[11px] text-stone-600 dark:text-stone-300 flex items-center gap-1.5 flex-wrap">
+                <span className="text-emerald-700 dark:text-emerald-400 font-bold">✓ 훈련 계획표 연동:</span>
                 <span>
                   대회 일정과 목표 페이스({targetRaceAnalysis.targetRacePace}/km)에 따라 주간 볼륨과 테이퍼링 강도가 아래 계획표에 세분화되어 반영됩니다.
                 </span>
@@ -2381,14 +2399,17 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   복잡한 종목 계산이나 마일리지 설정을 직접 하실 필요가 없습니다. <strong>포인트 요일만 지정</strong>하시면, 등록된 2~3개 대회 일정(남은 D-Day)과 주기화 단계, VDOT 및 최근 러닝 기록에 맞추어 주차별 최적 종목과 거리를 시스템이 알아서 배정합니다.
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
-                  <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-emerald-200 dark:border-emerald-700 font-mono">
-                    🎯 자동 배정 종목: <strong className="text-emerald-800 dark:text-emerald-300">{effectiveSpeedType}</strong>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-emerald-200 dark:border-emerald-700 font-mono whitespace-nowrap">
+                    🏃 LSD(장거리): <strong className="text-emerald-800 dark:text-emerald-300">{targetRaceAnalysis ? `${targetRaceAnalysis.taperingLsdDistKm}km` : (effectiveCourse === '풀코스' ? '26km' : effectiveCourse === '하프' ? '18km' : '14km')}</strong>
                   </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-indigo-200 dark:border-indigo-700 font-mono">
+                  <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-rose-200 dark:border-rose-700 font-mono whitespace-nowrap">
+                    ⚡ 스피드 종목: <strong className="text-rose-800 dark:text-rose-300">{effectiveSpeedType}</strong>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-700 dark:text-stone-200 border border-indigo-200 dark:border-indigo-700 font-mono whitespace-nowrap">
                     📏 기준 대회 코스: <strong className="text-indigo-800 dark:text-indigo-300">{effectiveCourse}</strong>
                   </span>
                   {targetRaceAnalysis && (
-                    <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700">
+                    <span className="px-2.5 py-1 rounded-lg bg-white/90 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 truncate max-w-full">
                       연계 대회: {targetRaceAnalysis.raceName} (D-{targetRaceAnalysis.dDayDays}일)
                     </span>
                   )}
@@ -2613,8 +2634,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
               const rDetail = runnerStateAnalysis.raceWeightDetail;
 
               return (
-                <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-amber-50/60 to-rose-50/80 border border-emerald-300 shadow-2xs space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/70 pb-2">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-50/90 via-amber-50/60 to-rose-50/80 dark:from-emerald-950/40 dark:via-stone-850 dark:to-stone-900 border border-emerald-300 dark:border-emerald-700/60 shadow-2xs space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/70 dark:border-emerald-800/60 pb-2">
                     <div className="flex items-center gap-2">
                       <span className="p-1 rounded-md bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
                         <Target className="w-3 h-3 text-white" />
@@ -2626,10 +2647,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-900 border border-rose-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 border border-rose-300 dark:border-rose-800">
                         목표 강도: {rDetail.paceIntensityLevel} ({rDetail.targetRacePace}/km)
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800">
                         {rDetail.periodizationPhase}
                       </span>
                     </div>
@@ -2637,17 +2658,17 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                   {/* Tapering Scale Note Highlight */}
                   {rDetail.taperScaleNote && (
-                    <div className="p-2 rounded-lg bg-emerald-100/70 border border-emerald-300 text-[11px] text-emerald-950 font-medium flex items-center gap-1.5">
-                      <span className="font-bold text-emerald-800">🎯 테이퍼링 맞춤 조율:</span>
+                    <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 text-[11px] text-emerald-950 dark:text-emerald-200 font-medium flex items-center gap-1.5">
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300">🎯 테이퍼링 맞춤 조율:</span>
                       <span>{rDetail.taperScaleNote}</span>
                     </div>
                   )}
 
                   {/* Easy Run Cruise Load Physiological Insight Card */}
                   {rDetail.isEasyRunCruiseLoad && (
-                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-amber-100/70 border-2 border-emerald-400/80 text-xs text-emerald-950 space-y-1.5 shadow-2xs">
-                      <div className="flex items-center gap-2 font-bold text-emerald-900 text-xs sm:text-sm">
-                        <Sparkles className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-100/90 via-teal-100/80 to-amber-100/70 dark:from-emerald-950/60 dark:via-teal-950/40 dark:to-stone-900 border-2 border-emerald-400/80 dark:border-emerald-600 text-xs text-emerald-950 dark:text-emerald-100 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-300 text-xs sm:text-sm">
+                        <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400 flex-shrink-0" />
                         <span>🌿 평소 이지런 연장 부하 (Zone 2 Easy Cruise) 맞춤 테이퍼링 진단</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-700 text-white font-mono">
                           감량 배제 (0~5%)
@@ -2655,23 +2676,23 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                       </div>
                       <p className="text-[11px] text-stone-800 dark:text-stone-200 leading-relaxed keep-all">
                         {rDetail.easyRunCruiseNote ||
-                          `10km 6’00” 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 2~3km 늘어난 가벼운 유산소 부하입니다. 젖산 축적과 근육 피로가 거의 없으므로 무리한 조기 감량(-20~30%)은 오히려 심폐 리듬을 잃게 만듭니다. 따라서 주간 마일리지 100%를 온전히 유지하며, 전날 가벼운 3~4km 리듬 조깅 또는 휴식만으로 최상의 컨디션을 맞춥니다.`}
+                          `${rDetail.course || '10K'} ${rDetail.targetRacePace} 페이스는 심박수 Zone 2(유산소 조깅) 영역으로, 평소 일상 이지런 대비 거리만 살짝 늘어난 가벼운 유산소 부하입니다. 젖산 축적과 근육 피로가 거의 없으므로 무리한 조기 감량은 불필요하며, 주간 마일리지를 온전히 유지하고 전날 가벼운 3~4km 리듬 조깅 또는 휴식만으로 최상의 컨디션을 맞춥니다.`}
                       </p>
-                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-emerald-800 font-semibold border-t border-emerald-300/60">
+                      <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold border-t border-emerald-300/60 dark:border-emerald-800/60">
                         <span>💡 권장 주말/주초 전략:</span>
-                        <span className="text-stone-700 font-normal">
-                          대회 전날(일요일) 3~4km 가벼운 조깅 또는 휴식 ➡️ 월요일 10km 편안한 유산소 완주 ➡️ 화요일 가벼운 리커버리 후 정상 훈련 복귀
+                        <span className="text-stone-700 dark:text-stone-300 font-normal">
+                          대회 전날 3~4km 가벼운 조깅 또는 휴식 ➡️ {rDetail.raceName} ({rDetail.course}) 편안한 유산소 완주 ➡️ 익일 가벼운 리커버리 후 정상 훈련 복귀
                         </span>
                       </div>
                     </div>
                   )}
 
-                  <div className="text-[11px] text-stone-700 leading-relaxed keep-all">
+                  <div className="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed keep-all">
                     💡 <strong>가중치 분석 로직:</strong> 최근 4주 누적 기록(평균 {runnerStateAnalysis.avgWeeklyMileage4Weeks}km, ACWR {runnerStateAnalysis.acwr})과 
                     목표 페이스 강도(<strong>{rDetail.paceIntensityLevel}</strong>)를 복합 연산하여 
                     주간 총 권장 볼륨({runnerStateAnalysis.recommendedWeeklyKm}km)과 감량폭({rDetail.taperingVolumeCutPct > 0 ? `-${rDetail.taperingVolumeCutPct}%` : '감량 없이 100% 가동'}), 
                     포인트 세션(LSD {runnerStateAnalysis.longRunRecommendedKm}km / 스피드 {runnerStateAnalysis.speedVolumeRecommendedKm}km)의 거리와 강도가 맞춤 산출되었습니다.
-                    <span className="text-stone-500 block pt-0.5">
+                    <span className="text-stone-500 dark:text-stone-400 block pt-0.5">
                       * 목표 강도와 일정이 감안되어, 조기 감량으로 인한 심폐 엔진 저하를 막고 안전한 테이퍼링 및 훈련 흐름을 유지합니다.
                     </span>
                   </div>
@@ -2798,9 +2819,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             const typeBadgeColors: Record<string, string> = {
               템포런: 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800',
               인터벌: 'bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800',
-              LSD: 'bg-rose-50 dark:bg-rose-950/50 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800',
+              '800m 인터벌': 'bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800',
+              '400m 숏 인터벌': 'bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800',
+              '1~3k 인터벌': 'bg-rose-100 dark:bg-rose-950/80 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-800',
+              '크루즈 인터벌': 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800',
+              언덕훈련: 'bg-orange-100 dark:bg-orange-950/80 text-orange-900 dark:text-orange-300 border-orange-300 dark:border-orange-800',
+              빌드업주: 'bg-amber-100 dark:bg-amber-950/80 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-800',
+              '변속주(파틀렉)': 'bg-purple-100 dark:bg-purple-950/80 text-purple-900 dark:text-purple-300 border-purple-300 dark:border-purple-800',
+              LSD: 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-900 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800',
               조깅: 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
-              회복주: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+              회복주: 'bg-teal-100 dark:bg-teal-950/80 text-teal-900 dark:text-teal-300 border-teal-300 dark:border-teal-800',
               휴식: 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700',
               대회: 'bg-rose-900 text-amber-300 border-rose-700 font-bold',
             };
@@ -2829,42 +2857,42 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                   <div className="flex-1 min-w-0 w-full">
                     <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
                       <span
-                        className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border ${
-                          typeBadgeColors[dayPlan.type]
+                        className={`text-[11px] px-2 py-0.5 rounded-md font-semibold border whitespace-nowrap flex-shrink-0 ${
+                          typeBadgeColors[dayPlan.type] || 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
                         }`}
                       >
                         {dayPlan.type}
                       </span>
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-md font-medium border ${
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-medium border whitespace-nowrap flex-shrink-0 ${
                           intensityBadgeColors[dayPlan.intensity]
                         }`}
                       >
                         강도: {dayPlan.intensity}
                       </span>
                       {dayPlan.isCompleted && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1 shadow-2xs">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 shadow-2xs whitespace-nowrap flex-shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
                           <span>실제 훈련 완료</span>
                         </span>
                       )}
                       {dayPlan.title.includes('D-DAY 목표 대회') ? (
-                        <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-900 border border-amber-600 flex items-center gap-1 shadow-xs animate-pulse">
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400 to-amber-500 text-stone-900 border border-amber-600 flex items-center gap-1 shadow-xs animate-pulse whitespace-nowrap flex-shrink-0">
                           <span>🏆 대회 결승 레이스 D-DAY</span>
                         </span>
                       ) : dayPlan.title.includes('테이퍼링') ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-rose-50 text-rose-900 border border-rose-300 flex items-center gap-1">
-                          <Target className="w-3 h-3 text-rose-700" />
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-rose-50 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-800 flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                          <Target className="w-3 h-3 text-rose-700 dark:text-rose-400" />
                           <span>대회 테이퍼링 감량 반영</span>
                         </span>
                       ) : targetRaceAnalysis && dayPlan.type !== '휴식' && !dayPlan.isCompleted && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold flex items-center gap-1">
-                          <Target className="w-2.5 h-2.5 text-emerald-700" />
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+                          <Target className="w-2.5 h-2.5 text-emerald-700 dark:text-emerald-400" />
                           <span>대회 주기화 연동</span>
                         </span>
                       )}
                       {!dayPlan.isCompleted && runnerStateAnalysis?.thisWeekLoggedKm && runnerStateAnalysis.thisWeekLoggedKm > 0 && dayPlan.type !== '휴식' && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-900 border border-emerald-200 font-semibold">
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold whitespace-nowrap flex-shrink-0">
                           실훈련 반영 맞춤
                         </span>
                       )}
@@ -2873,7 +2901,7 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                     <h4 className="text-sm font-bold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap keep-all">
                       <span>{dayPlan.title}</span>
                     </h4>
-                    <p className="text-xs text-stone-600 mt-0.5 leading-relaxed keep-all">
+                    <p className="text-xs text-stone-600 dark:text-stone-300 mt-0.5 leading-relaxed keep-all">
                       {dayPlan.description}
                     </p>
 
@@ -2886,16 +2914,16 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                             className="p-2.5 rounded-lg bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-750 text-xs flex flex-col justify-between gap-1 shadow-2xs min-w-0"
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-stone-900 dark:text-white text-[11px] truncate">{stg.step}</span>
-                              <span className="text-[10px] text-emerald-800 font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 border border-emerald-300 whitespace-nowrap flex-shrink-0">
+                              <span className="font-bold text-stone-900 dark:text-white text-[11px] truncate whitespace-nowrap">{stg.step}</span>
+                              <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-800 whitespace-nowrap flex-shrink-0">
                                 {stg.pace}/km
                               </span>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] text-stone-600">
+                            <div className="flex items-center justify-between text-[10px] text-stone-600 dark:text-stone-400">
                               <span className="truncate">{stg.zone}</span>
-                              <span className="text-stone-500 whitespace-nowrap">{stg.distanceKm}km</span>
+                              <span className="text-stone-500 dark:text-stone-400 whitespace-nowrap font-medium">{stg.distanceKm}km</span>
                             </div>
-                            <div className="text-[10px] text-stone-500 leading-tight border-t border-stone-200 pt-1 mt-0.5 keep-all">
+                            <div className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight border-t border-stone-200 dark:border-stone-700 pt-1 mt-0.5 keep-all">
                               {stg.focus}
                             </div>
                           </div>
@@ -2905,14 +2933,14 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                     {/* Recommended Running Shoe & Rotation Rationale (기록된 훈련은 추천 신발 박스 제외) */}
                     {dayPlan.type !== '휴식' && !dayPlan.isCompleted && (
-                      <div className="mt-3 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs min-w-0 w-full">
+                      <div className="mt-3 p-2.5 rounded-xl bg-emerald-50/70 dark:bg-stone-850 border border-emerald-200 dark:border-stone-750 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs min-w-0 w-full">
                         <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                          <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 flex-shrink-0">
+                          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-stone-800 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-stone-700 flex-shrink-0">
                             <span className="text-base">👟</span>
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-[10px] text-stone-600 font-semibold whitespace-nowrap">추천 러닝화:</span>
+                              <span className="text-[10px] text-stone-600 dark:text-stone-400 font-semibold whitespace-nowrap">추천 러닝화:</span>
                               <strong className="text-stone-900 dark:text-white font-bold truncate max-w-[200px]">
                                 {dayPlan.recommendedShoe?.shoeName || (shoes.length > 0 ? shoes[0].name : '보유 러닝화 미등록')}
                               </strong>
@@ -2921,10 +2949,10 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                                   className={`text-[9px] px-1.5 py-0.2 rounded font-semibold whitespace-nowrap ${
                                     dayPlan.recommendedShoe.category === '스피드' ||
                                     dayPlan.recommendedShoe.category === '레이싱'
-                                      ? 'bg-rose-100 text-rose-900 border border-rose-300'
+                                      ? 'bg-rose-100 dark:bg-rose-950/70 text-rose-900 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
                                       : dayPlan.recommendedShoe.category === '장거리'
-                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                                      : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                      ? 'bg-amber-100 dark:bg-amber-950/70 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                      : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
                                   }`}
                                 >
                                   {dayPlan.recommendedShoe.category}
@@ -2932,8 +2960,8 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
                               )}
                             </div>
                             {dayPlan.recommendedShoe?.reason && (
-                              <div className="text-[11px] text-stone-700 mt-0.5 flex items-start gap-1.5 keep-all">
-                                <span className="text-emerald-700 font-mono flex-shrink-0 mt-0.5">💡</span>
+                              <div className="text-[11px] text-stone-700 dark:text-stone-300 mt-0.5 flex items-start gap-1.5 keep-all">
+                                <span className="text-emerald-700 dark:text-emerald-400 font-mono flex-shrink-0 mt-0.5">💡</span>
                                 <span>{dayPlan.recommendedShoe.reason}</span>
                               </div>
                             )}
@@ -2995,18 +3023,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500 dark:text-stone-400">
             <span className="whitespace-nowrap">
-              스피드: <strong className="text-rose-900 dark:text-rose-300">{activePlan.find(d => d.type === '인터벌' || d.title.includes('스피드'))?.distanceKm || 0}km</strong>
+              스피드: <strong className="text-rose-900 dark:text-rose-300">{activePlan.find(d => ['인터벌', '템포런', '언덕훈련', '빌드업주', '변속주(파틀렉)'].includes(d.type) || (d.title && (d.title.includes('스피드') || d.title.includes('인터벌') || d.title.includes('템포런') || d.title.includes('빌드업') || d.title.includes('크루즈') || d.title.includes('언덕') || d.title.includes('모더레이트') || d.title.includes('포인트'))))?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
             <span className="whitespace-nowrap">
-              장거리(LSD): <strong className="text-purple-900 dark:text-purple-300">{activePlan.find(d => d.type === 'LSD')?.distanceKm || 0}km</strong>
+              장거리(LSD): <strong className="text-purple-900 dark:text-purple-300">{activePlan.find(d => d.type === 'LSD' || d.title.includes('LSD') || d.title.includes('장거리'))?.distanceKm || 0}km</strong>
             </span>
             <span>•</span>
             <span className="whitespace-nowrap">
-              유산소/회복: <strong className="text-emerald-800">
-                {Math.round(activePlan.filter(d => d.type === '조깅' || d.type === '회복주').reduce((acc, d) => acc + d.distanceKm, 0) * 10) / 10}km
+              유산소/회복: <strong className="text-emerald-800 dark:text-emerald-300">
+                {Math.round(activePlan.filter(d => (d.type === '조깅' || d.type === '회복주') && !d.title.includes('포인트') && !d.title.includes('모더레이트') && !d.title.includes('스피드') && !d.title.includes('LSD') && !d.title.includes('장거리')).reduce((acc, d) => acc + d.distanceKm, 0) * 10) / 10}km
               </strong>
             </span>
           </div>
