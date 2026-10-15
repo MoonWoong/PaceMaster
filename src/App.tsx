@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { TabsNav, TabKey } from './components/TabsNav';
 import { TabMyInfo } from './components/TabMyInfo';
 import { SecurityPromptModal } from './components/SecurityPromptModal';
-import { WeeklyDistanceBarChart } from './components/WeeklyDistanceBarChart';
+import { DashboardAnalyticsDeck, DashboardAnalyticsTab } from './components/DashboardAnalyticsDeck';
 import { MarathonDDayHeroWidget } from './components/MarathonDDayHeroWidget';
 import { StadiumTrackBackground } from './components/StadiumTrackBackground';
 import { ThemeProvider } from './lib/themeContext';
@@ -69,6 +69,7 @@ import { estimateBestVDOT } from './lib/vdot';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('my_info');
+  const [dashboardTab, setDashboardTab] = useState<DashboardAnalyticsTab>('rolling7');
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
   const [isPaceCalcOpen, setIsPaceCalcOpen] = useState(false);
   const [isTodayWorkoutModalOpen, setIsTodayWorkoutModalOpen] = useState(false);
@@ -246,16 +247,13 @@ export default function App() {
   };
 
   const handleNavigateToGoals = () => {
-    setActiveTab('running_records');
+    setDashboardTab('goals');
     setTimeout(() => {
-      const el = document.getElementById('running-goals-card');
+      const el = document.getElementById('dashboard-analytics-deck');
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.focus();
-        el.classList.add('ring-2', 'ring-purple-400');
-        setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400'), 2500);
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 100);
+    }, 50);
   };
 
   const handleNavigateToPlan = () => {
@@ -453,9 +451,16 @@ export default function App() {
             onUpdateRace={handleUpdateRace}
           />
 
-          {/* 2. Dashboard 7-Day Distance Bar Chart */}
-          <WeeklyDistanceBarChart
+          {/* 2. Unified Dashboard Analytics Deck (최근 7일, 주간, PB, 러닝목표) */}
+          <DashboardAnalyticsDeck
             sessions={trainingSessions}
+            records={runningRecords}
+            goals={runningGoals}
+            activeTab={dashboardTab}
+            onChangeTab={setDashboardTab}
+            onSaveRecords={handleSaveRecords}
+            onSaveGoals={handleSaveGoals}
+            onOpenPaceCalculator={() => setIsPaceCalcOpen(true)}
             onNavigateToRecords={() => setActiveTab('running_records')}
           />
 

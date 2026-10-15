@@ -112,7 +112,7 @@ export function parseAndValidateBackupJson(jsonContent: string): BackupValidatio
     const sessions = Array.isArray(dataCandidate.trainingSessions) ? dataCandidate.trainingSessions : [];
     const shoes = Array.isArray(dataCandidate.shoes) ? dataCandidate.shoes : [];
     const races = Array.isArray(dataCandidate.races) ? dataCandidate.races : [];
-    const physical = dataCandidate.physicalInfo || { height: 175, weight: 68, age: 30 };
+    const physical = dataCandidate.physicalInfo || { height: 175, weight: 68, age: 30, birthYear: 1996 };
     const records = dataCandidate.runningRecords || { pb5k: '', pb10k: '', pbHalf: '', pbFull: '', maxHr: 190, thresholdHr: 170 };
     const goals = dataCandidate.runningGoals || { target10k: '', targetHalf: '', targetFull: '' };
     const weeklyPlan = Array.isArray(dataCandidate.weeklyPlan) ? dataCandidate.weeklyPlan : [];

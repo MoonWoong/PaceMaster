@@ -152,7 +152,7 @@ export function validateBackupJSON(rawContent: string): BackupValidationResult {
       appName: parsed.appName || 'PaceMaster Running Dashboard',
       exportedAt: parsed.exportedAt || new Date().toISOString(),
       data: {
-        physicalInfo: phys || { height: 176, weight: 68.5, age: 33 },
+        physicalInfo: phys || { height: 176, weight: 68.5, age: 33, birthYear: 1993 },
         shoes,
         races,
         runningRecords: records || {

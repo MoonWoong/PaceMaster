@@ -134,6 +134,7 @@ export const DEFAULT_PHYSICAL: PhysicalInfo = {
   height: 176,
   weight: 68.5,
   age: 33,
+  birthYear: 1993,
   updatedAt: new Date().toISOString(),
 };
 

@@ -3,7 +3,8 @@ export type ShoeCategory = '데일리' | '스피드' | '장거리' | '레이싱'
 export interface PhysicalInfo {
   height: number; // cm
   weight: number; // kg
-  age: number; // years
+  age: number; // years (auto-calculated from birthYear)
+  birthYear?: number; // 출생년도 (예: 1993)
   updatedAt?: string;
 }
 

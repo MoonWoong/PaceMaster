@@ -42,6 +42,7 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
   // Mode: 'rolling7' (최근 7일) or 'calendarWeek' (이번 주 월~일)
   const [viewMode, setViewMode] = useState<'rolling7' | 'calendarWeek'>('rolling7');
   const [hoveredDay, setHoveredDay] = useState<DayData | null>(null);
+  const [selectedDayDateStr, setSelectedDayDateStr] = useState<string | null>(null);
 
   // Compute reference date: today or latest session date if today has no data and latest session is recent
   const referenceDate = useMemo(() => {
@@ -198,6 +199,21 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
 
   // Max value for chart Y-axis scale (minimum 15km to look balanced)
   const chartMaxY = Math.max(15, Math.ceil((summary.maxDayDist + 2) / 5) * 5);
+
+  // Active display day for the permanent fixed detail section
+  const activeDay = useMemo<DayData | null>(() => {
+    if (hoveredDay) return hoveredDay;
+    if (selectedDayDateStr) {
+      const found = daysData.find((d) => d.dateStr === selectedDayDateStr);
+      if (found) return found;
+    }
+    // Default fallback: today or the most recent day with runs, or the last day
+    const todayItem = daysData.find((d) => d.isToday);
+    if (todayItem) return todayItem;
+    const latestRunItem = [...daysData].reverse().find((d) => d.totalDistanceKm > 0);
+    if (latestRunItem) return latestRunItem;
+    return daysData[daysData.length - 1] || null;
+  }, [hoveredDay, selectedDayDateStr, daysData]);
 
   return (
     <section className="w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-emerald-600/20 dark:border-stone-800 shadow-md relative overflow-hidden bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
@@ -357,6 +373,7 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
               const heightPct =
                 chartMaxY > 0 ? Math.min(100, Math.max(6, (d.totalDistanceKm / chartMaxY) * 100)) : 6;
               const hasRun = d.totalDistanceKm > 0;
+              const isActive = activeDay?.dateStr === d.dateStr;
               const isHovered = hoveredDay?.dateStr === d.dateStr;
 
               return (
@@ -365,21 +382,33 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
                   className="flex flex-col items-center h-full justify-end group cursor-pointer"
                   onMouseEnter={() => setHoveredDay(d)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  onClick={() => setHoveredDay(isHovered ? null : d)}
+                  onClick={() => setSelectedDayDateStr(d.dateStr)}
                 >
                   {/* Distance text on top of bar */}
                   <div
                     className={`mb-1.5 text-center transition-all ${
-                      isHovered ? 'scale-110 -translate-y-1' : ''
+                      isActive ? 'scale-110 -translate-y-1' : ''
                     }`}
                   >
                     {hasRun ? (
-                      <span className="inline-block px-1 sm:px-2 py-0.5 rounded-md bg-white dark:bg-stone-800 border border-emerald-600/30 dark:border-stone-700 text-[10px] sm:text-xs font-black text-emerald-900 dark:text-emerald-300 font-athletic shadow-2xs">
+                      <span
+                        className={`inline-block px-1 sm:px-2 py-0.5 rounded-md border text-[10px] sm:text-xs font-black font-athletic shadow-2xs transition-all ${
+                          isActive
+                            ? 'bg-emerald-600 text-white border-emerald-500 ring-2 ring-emerald-400/40'
+                            : 'bg-white dark:bg-stone-800 border-emerald-600/30 dark:border-stone-700 text-emerald-900 dark:text-emerald-300'
+                        }`}
+                      >
                         {d.totalDistanceKm.toFixed(1)}
                         <span className="text-[9px] font-normal hidden sm:inline ml-0.5">k</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] sm:text-[11px] text-stone-400 dark:text-stone-500 font-medium">
+                      <span
+                        className={`text-[10px] sm:text-[11px] font-medium transition-all ${
+                          isActive
+                            ? 'text-emerald-700 dark:text-emerald-400 font-bold'
+                            : 'text-stone-400 dark:text-stone-500'
+                        }`}
+                      >
                         휴식
                       </span>
                     )}
@@ -389,13 +418,13 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
                   <div className="w-full max-w-[48px] flex items-end justify-center h-full max-h-[140px] sm:max-h-[160px]">
                     <div
                       style={{ height: `${hasRun ? heightPct : 6}%` }}
-                      className={`w-full rounded-t-xl transition-all duration-500 ease-out relative ${
+                      className={`w-full rounded-t-xl transition-all duration-300 ease-out relative ${
                         hasRun
                           ? d.isToday
                             ? 'bg-gradient-to-t from-[#881337] via-[#16a34a] to-[#22c55e] shadow-md border-t-2 border-emerald-400'
                             : 'bg-gradient-to-t from-[#881337] via-[#15803d] to-[#4ade80] hover:from-[#991b1b] hover:via-[#16a34a] hover:to-[#86efac] shadow-sm'
                           : 'bg-stone-200/60 dark:bg-stone-800/60 border border-dashed border-stone-300 dark:border-stone-700'
-                      } ${isHovered ? 'ring-2 ring-emerald-500 scale-[1.04]' : ''}`}
+                      } ${isActive ? 'ring-2 ring-emerald-500 scale-[1.04]' : isHovered ? 'ring-1 ring-emerald-400/60' : ''}`}
                     >
                       {/* Top highlight cap */}
                       {hasRun && (
@@ -408,7 +437,11 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
                   <div className="mt-2 text-center">
                     <div
                       className={`text-xs sm:text-sm font-bold leading-tight ${
-                        d.isToday ? 'text-emerald-800 dark:text-emerald-400 font-black' : 'text-stone-700 dark:text-stone-300'
+                        d.isToday
+                          ? 'text-emerald-800 dark:text-emerald-400 font-black'
+                          : isActive
+                          ? 'text-emerald-900 dark:text-emerald-300 font-bold'
+                          : 'text-stone-700 dark:text-stone-300'
                       }`}
                     >
                       {d.dayLabel}
@@ -426,77 +459,93 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
           </div>
         </div>
 
-        {/* Hovered Day Tooltip Card */}
-        {hoveredDay && (
-          <div className="mt-4 p-3.5 rounded-xl bg-white dark:bg-stone-850 border border-emerald-600/30 dark:border-stone-700 shadow-lg animate-fadeIn text-stone-800 dark:text-stone-100">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 dark:border-stone-750 pb-2 mb-2">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-stone-900 dark:text-white">{hoveredDay.fullDateLabel}</span>
-                {hoveredDay.isToday && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
-                    오늘
+        {/* Fixed Day Detail Section (고정 영역: 마우스 이동 시 흔들림 방지) */}
+        <div className="mt-4 p-3.5 rounded-xl bg-white/95 dark:bg-stone-850/95 border border-emerald-600/25 dark:border-stone-700 shadow-xs text-stone-800 dark:text-stone-100 min-h-[114px] flex flex-col justify-between">
+          {activeDay ? (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 dark:border-stone-750 pb-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-stone-900 dark:text-white flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                    <span>{activeDay.fullDateLabel}</span>
                   </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-stone-600 dark:text-stone-300">
-                  총 거리:{' '}
-                  <span className="text-emerald-800 dark:text-emerald-400 font-bold font-athletic text-sm">
-                    {hoveredDay.totalDistanceKm}km
+                  {activeDay.isToday && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
+                      오늘
+                    </span>
+                  )}
+                  {activeDay.dateStr === selectedDayDateStr && !activeDay.isToday && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
+                      선택됨
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs flex-wrap">
+                  <span className="text-stone-600 dark:text-stone-300">
+                    총 거리:{' '}
+                    <span className="text-emerald-800 dark:text-emerald-400 font-bold font-athletic text-sm">
+                      {activeDay.totalDistanceKm.toFixed(1)}km
+                    </span>
                   </span>
-                </span>
-                {hoveredDay.totalDistanceKm > 0 && (
-                  <>
-                    <span className="text-stone-600 dark:text-stone-300">
-                      평균 페이스:{' '}
-                      <span className="text-rose-900 dark:text-rose-300 font-bold font-athletic">
-                        {hoveredDay.avgPaceStr}
-                      </span>
-                    </span>
-                    <span className="text-stone-600 dark:text-stone-300">
-                      시간:{' '}
-                      <span className="text-stone-900 dark:text-stone-100 font-mono font-semibold">
-                        {formatSecondsToTime(hoveredDay.totalSeconds, true)}
-                      </span>
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* List of training sessions on this day */}
-            {hoveredDay.sessions.length > 0 ? (
-              <div className="space-y-1.5">
-                {hoveredDay.sessions.map((sess, idx) => (
-                  <div
-                    key={sess.id || idx}
-                    className="flex flex-wrap items-center justify-between p-2 rounded-lg bg-stone-50 dark:bg-stone-800 text-xs border border-stone-200 dark:border-stone-700"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" />
-                      <span className="font-semibold text-stone-900 dark:text-stone-100">{sess.title}</span>
-                      {sess.shoeName && (
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                          👟 {sess.shoeName}
+                  {activeDay.totalDistanceKm > 0 && (
+                    <>
+                      <span className="text-stone-600 dark:text-stone-300">
+                        평균 페이스:{' '}
+                        <span className="text-rose-900 dark:text-rose-300 font-bold font-athletic">
+                          {activeDay.avgPaceStr}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-stone-600 dark:text-stone-300 font-mono text-[11px]">
-                      <span>{sess.totalDistanceKm}km</span>
-                      <span>{sess.totalTime}</span>
-                      <span className="text-emerald-800 dark:text-emerald-400 font-semibold">{sess.avgPace}/km</span>
-                      {sess.avgHr && <span>심박 {sess.avgHr}bpm</span>}
-                    </div>
+                      </span>
+                      <span className="text-stone-600 dark:text-stone-300">
+                        시간:{' '}
+                        <span className="text-stone-900 dark:text-stone-100 font-mono font-semibold">
+                          {formatSecondsToTime(activeDay.totalSeconds, true)}
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* List of training sessions on this day */}
+              <div className="min-h-[46px] flex flex-col justify-center">
+                {activeDay.sessions.length > 0 ? (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                    {activeDay.sessions.map((sess, idx) => (
+                      <div
+                        key={sess.id || idx}
+                        className="flex flex-wrap items-center justify-between p-2 rounded-lg bg-stone-50 dark:bg-stone-800 text-xs border border-stone-200/90 dark:border-stone-700/90"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Flame className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400 shrink-0" />
+                          <span className="font-semibold text-stone-900 dark:text-stone-100 truncate">{sess.title}</span>
+                          {sess.shoeName && (
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
+                              👟 {sess.shoeName}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-stone-600 dark:text-stone-300 font-mono text-[11px] shrink-0">
+                          <span>{sess.totalDistanceKm}km</span>
+                          <span>{sess.totalTime}</span>
+                          <span className="text-emerald-800 dark:text-emerald-400 font-semibold">{sess.avgPace}/km</span>
+                          {sess.avgHr && <span>심박 {sess.avgHr}bpm</span>}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="text-xs text-stone-500 dark:text-stone-400 py-1.5 flex items-center gap-2">
+                    <span>🛌 휴식일(Rest Day)</span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-xs text-stone-500 dark:text-stone-400 py-1 flex items-center gap-2">
-                <span>🛌 훈련 기록이 없는 휴식일(Rest Day)입니다. 몸의 회복과 재생도 훈련의 일부입니다.</span>
-              </div>
-            )}
-          </div>
-        )}
+            </>
+          ) : (
+            <div className="text-xs text-stone-400 py-4 text-center">
+              막대를 마우스로 올리거나 클릭하면 일자별 세부 훈련 세션이 여기에 표시됩니다.
+            </div>
+          )}
+        </div>
 
         {/* Empty State Banner if no distance in last 7 days */}
         {summary.totalDist === 0 && (

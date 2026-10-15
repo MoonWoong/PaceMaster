@@ -64,25 +64,36 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
   // Physical Info State
   const [height, setHeight] = useState(physicalInfo?.height != null ? physicalInfo.height.toString() : '175');
   const [weight, setWeight] = useState(physicalInfo?.weight != null ? physicalInfo.weight.toString() : '68');
-  const [age, setAge] = useState(physicalInfo?.age != null ? physicalInfo.age.toString() : '30');
+  const currentYear = new Date().getFullYear();
+  const initialBirthYear = physicalInfo?.birthYear ?? (physicalInfo?.age ? currentYear - physicalInfo.age : 1993);
+  const [birthYear, setBirthYear] = useState(initialBirthYear.toString());
   const [isSavingPhysical, setIsSavingPhysical] = useState(false);
   const [physicalSavedAlert, setPhysicalSavedAlert] = useState(false);
   const [isPhysicalTouched, setIsPhysicalTouched] = useState(false);
+
+  // Derived age from birthYear
+  const parsedBirthYear = parseInt(birthYear, 10);
+  const calculatedAge = (parsedBirthYear >= 1920 && parsedBirthYear <= currentYear)
+    ? (currentYear - parsedBirthYear)
+    : (physicalInfo?.age || 30);
 
   // Sync form inputs with physicalInfo prop whenever updated from Firestore or storage
   useEffect(() => {
     if (!isPhysicalTouched && physicalInfo) {
       if (physicalInfo.height != null) setHeight(physicalInfo.height.toString());
       if (physicalInfo.weight != null) setWeight(physicalInfo.weight.toString());
-      if (physicalInfo.age != null) setAge(physicalInfo.age.toString());
+      if (physicalInfo.birthYear != null) {
+        setBirthYear(physicalInfo.birthYear.toString());
+      } else if (physicalInfo.age != null) {
+        setBirthYear((currentYear - physicalInfo.age).toString());
+      }
     }
-  }, [physicalInfo?.height, physicalInfo?.weight, physicalInfo?.age, isPhysicalTouched]);
+  }, [physicalInfo?.height, physicalInfo?.weight, physicalInfo?.age, physicalInfo?.birthYear, isPhysicalTouched, currentYear]);
 
   // Shoes State
   const [selectedShoeCategory, setSelectedShoeCategory] = useState<string>('데일리');
   const [shoeStatusFilter, setShoeStatusFilter] = useState<'all' | 'needs_replacement' | 'safe'>('all');
   const [shoeSortBy, setShoeSortBy] = useState<'urgent_first' | 'mileage_desc' | 'wear_pct_desc' | 'recent_worn' | 'name_asc'>('urgent_first');
-  const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
   const [shoeSearchQuery, setShoeSearchQuery] = useState<string>('');
   const [isShoeModalOpen, setIsShoeModalOpen] = useState(false);
   const [newShoeName, setNewShoeName] = useState('');
@@ -167,12 +178,16 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
     setIsSavingPhysical(true);
     const updatedHeight = parseFloat(height) || 175;
     const updatedWeight = parseFloat(weight) || 68;
-    const updatedAge = parseInt(age, 10) || 30;
+    const updatedBirthYear = parseInt(birthYear, 10) || 1993;
+    const updatedAge = (updatedBirthYear >= 1920 && updatedBirthYear <= currentYear)
+      ? (currentYear - updatedBirthYear)
+      : (physicalInfo?.age || 30);
 
     await onSavePhysical({
       height: updatedHeight,
       weight: updatedWeight,
       age: updatedAge,
+      birthYear: updatedBirthYear,
     });
     setIsPhysicalTouched(false);
     setIsSavingPhysical(false);
@@ -810,20 +825,32 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
-                나이 (만 연령)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300">
+                  생년 (출생년도)
+                </label>
+                {parsedBirthYear >= 1920 && parsedBirthYear <= currentYear && (
+                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700">
+                    만 {calculatedAge}세
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
-                value={age}
+                min="1920"
+                max={currentYear}
+                value={birthYear}
                 onChange={(e) => {
                   setIsPhysicalTouched(true);
-                  setAge(e.target.value);
+                  setBirthYear(e.target.value);
                 }}
                 required
                 className="w-full px-4 py-2.5 glass-input rounded-xl text-sm font-semibold"
-                placeholder="32"
+                placeholder="예: 1993"
               />
+              <p className="text-[10px] text-stone-500 dark:text-stone-400 mt-1">
+                출생년도 4자리를 입력하시면 만 연령이 자동 계산됩니다.
+              </p>
             </div>
           </div>
 
@@ -882,14 +909,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setIsGuidanceOpen((prev) => !prev)}
-              className="px-3 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-300 dark:border-stone-700 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <Info className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-              <span>{isGuidanceOpen ? '가이드 접기' : '교체 기준 가이드'}</span>
-            </button>
+            
             <button
               type="button"
               onClick={() => setIsShoeModalOpen(true)}
@@ -1023,40 +1043,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
         )}
 
         {/* Sports Science Guidance Expandable Panel */}
-        {isGuidanceOpen && (
-          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs text-stone-700 dark:text-stone-300 space-y-3 animate-fadeIn">
-            <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-300 text-sm">
-              <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-              <span>스포츠 사이언스 기반 러닝화 카테고리별 교체 기준</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-rose-900 dark:text-rose-400">카본 레이싱화 (250~350km)</span>
-                <p className="text-[11px] text-stone-600 dark:text-stone-400">
-                  초임계 폼(ZoomX, Lightstrike Pro 등)과 카본 플레이트의 최고 반발탄성은 300km 내외에서 감쇄됩니다. 대회용 이후에는 템포/인터벌 연습화로 전환 추천.
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-amber-800 dark:text-amber-400">스피드/템포 트레이너 (400~500km)</span>
-                <p className="text-[11px] text-stone-600 dark:text-stone-400">
-                  인터벌 및 빠른 페이스 주행을 지탱하는 나일론 플레이트/반발 쿠션화. 지면 충격 흡수 한계 도달 시 교체 준비.
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">데일리 쿠션화 (600~800km)</span>
-                <p className="text-[11px] text-stone-600 dark:text-stone-400">
-                  매일 신는 조깅/회복주 신발. 겉창(아웃솔) 마모가 보이지 않더라도 미드솔 내부 기포가 영구 압축되므로 600km 초과 시 관절 보호를 위해 교체 요망.
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-1 shadow-2xs">
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">장거리 LSD / 맥스쿠션 (600~750km)</span>
-                <p className="text-[11px] text-stone-600 dark:text-stone-400">
-                  장거리 20~35km 주행 시 체중의 3~4배 하중을 분산. 힐카운터 비틀림 및 미드솔 주름 발생 시 즉각 은퇴 권장.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        
 
         {/* Search bar & Category Filter Buttons */}
         <div className="space-y-3">
@@ -1697,7 +1684,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                               }`}
                             >
                               <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                              <span>{isDNF ? 'DNF (미완주)' : isDNS ? 'DNS (불참)' : '🏆 완주 완료'}</span>
+                              <span>{isDNF ? 'DNF (미완주)' : isDNS ? 'DNS (불참)' : '🏆 완주'}</span>
                             </span>
                             <span className="text-xs text-stone-500 dark:text-stone-400 font-mono font-medium">{race.date}</span>
                             <span className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">({dDay.text})</span>
@@ -1794,10 +1781,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
                       {/* Footer Actions */}
                       <div className="pt-3 border-t border-stone-100 dark:border-stone-750 flex items-center justify-between text-xs">
-                        <span className="text-stone-500 dark:text-stone-400 font-medium">
-                          {dDay.text} 완주 완료
-                        </span>
-
+                        
                         <div className="flex items-center gap-2">
                           {race.websiteUrl && (
                             <a
@@ -2817,7 +2801,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                       className="w-full px-2.5 py-1.5 glass-input rounded-lg text-xs bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 font-medium"
                     >
                       <option value="scheduled">참가 예정 (Scheduled)</option>
-                      <option value="completed">🏆 완주 완료 (Completed)</option>
+                      <option value="completed">🏆 완주 (Completed)</option>
                       <option value="dnf">⚠️ DNF (중도 포기)</option>
                       <option value="dns">DNS (불참)</option>
                     </select>

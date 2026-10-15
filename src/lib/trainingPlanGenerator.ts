@@ -1731,67 +1731,36 @@ export function generateWeeklyTrainingPlan(
       const cooldownDist = actualLsdDist <= 8 ? 1.5 : 2.0;
       const rawMainDist = Math.max(1, Math.round((actualLsdDist - warmupDist - cooldownDist) * 10) / 10);
 
-      // Check whether this LSD includes late race pace check (taper or peak or specific marathon progression)
-      const hasTargetPaceFinish = (isTaper || (targetRacePlan && targetRacePlan.periodizationPhase.includes('피크'))) && actualLsdDist >= 12;
-      const targetPaceKm = hasTargetPaceFinish ? (actualLsdDist >= 24 ? 4.0 : actualLsdDist >= 16 ? 3.0 : 2.0) : 0;
-      const mainBaseKm = Math.max(1.0, Math.round((rawMainDist - targetPaceKm) * 10) / 10);
+      // LSD is fundamentally a pure Zone 2 steady aerobic endurance run (no unexpected build-up)
+      const hasTargetPaceFinish = false;
+      const targetPaceKm = 0;
+      const mainBaseKm = rawMainDist;
 
-      const lsdStages: WorkoutStage[] = hasTargetPaceFinish
-        ? [
-            {
-              step: `1구간: 워밍업 (0 ~ ${warmupDist}km, ${warmupDist}km)`,
-              distanceKm: warmupDist,
-              pace: easyMax,
-              zone: 'Zone 1~2',
-              focus: isTaper ? '워밍업 및 가벼운 다리 털기, 체온 상승' : '워밍업 및 체온 상승, 가벼운 호흡 리듬 조성',
-            },
-            {
-              step: `2구간: 본운동 1단계 Zone 2 안정 이지 정속주 (${warmupDist} ~ ${Math.round((warmupDist + mainBaseKm) * 10) / 10}km, ${mainBaseKm}km)`,
-              distanceKm: mainBaseKm,
-              pace: `${easyMin} ~ ${easyMax}`,
-              zone: 'Zone 2 (유산소 정속 순항)',
-              focus: `${targetRacePlan?.raceName || '대회'} 대비 안정된 Zone 2 이지 페이스(${easyMin} ~ ${easyMax}) 정속 주행 및 글리코겐 보존`,
-            },
-            {
-              step: `3구간: 본운동 2단계 목표 레이스 페이스 점검 (${Math.round((warmupDist + mainBaseKm) * 10) / 10} ~ ${Math.round((warmupDist + mainBaseKm + targetPaceKm) * 10) / 10}km, ${targetPaceKm}km)`,
-              distanceKm: targetPaceKm,
-              pace: effectiveRacePace,
-              zone: 'Zone 3~4 (레이스 텐션 점검)',
-              focus: `실전 레이스 목표 페이스(${effectiveRacePace})로 부드럽게 가속하며 후반 레이스 주법과 심폐 텐션 정밀 점검`,
-            },
-            {
-              step: `4구간: 쿨다운 (${Math.round((warmupDist + mainBaseKm + targetPaceKm) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
-              distanceKm: cooldownDist,
-              pace: `${easyMax} ~ 6'40"`,
-              zone: 'Zone 1 (회복)',
-              focus: '심박 안정화 및 하체 피로 털기 스트레칭',
-            },
-          ]
-        : [
-            {
-              step: `1구간: 워밍업 (0 ~ ${warmupDist}km, ${warmupDist}km)`,
-              distanceKm: warmupDist,
-              pace: easyMax,
-              zone: 'Zone 1~2',
-              focus: '워밍업 및 체온 상승, 가벼운 호흡 리듬 조성',
-            },
-            {
-              step: `2구간: 본운동 Zone 2 순수 유산소 정속 지속주 (${warmupDist} ~ ${Math.round((warmupDist + rawMainDist) * 10) / 10}km, ${rawMainDist}km)`,
-              distanceKm: rawMainDist,
-              pace: `${easyMin} ~ ${easyMax}`,
-              zone: 'Zone 2 (유산소 지구력)',
-              focus: targetRacePlan
-                ? `${targetRacePlan.raceName} 대비 안정된 Zone 2 유산소 지구력 적응(${easyMin} ~ ${easyMax}) 및 5km마다 뉴트리션 섭취 시뮬레이션`
-                : `안정된 Zone 2 유산소 지구력 적응(${easyMin} ~ ${easyMax}) 및 지방 대사 최적화`,
-            },
-            {
-              step: `3구간: 쿨다운 (${Math.round((warmupDist + rawMainDist) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
-              distanceKm: cooldownDist,
-              pace: `${easyMax} ~ 6'40"`,
-              zone: 'Zone 1 (회복)',
-              focus: '심박 안정화 및 하체 피로 털기 스트레칭',
-            },
-          ];
+      const lsdStages: WorkoutStage[] = [
+        {
+          step: `1구간: 워밍업 (0 ~ ${warmupDist}km, ${warmupDist}km)`,
+          distanceKm: warmupDist,
+          pace: easyMax,
+          zone: 'Zone 1~2',
+          focus: '워밍업 및 체온 상승, 가벼운 호흡 리듬 조성',
+        },
+        {
+          step: `2구간: 본운동 Zone 2 순수 유산소 정속 지속주 (${warmupDist} ~ ${Math.round((warmupDist + rawMainDist) * 10) / 10}km, ${rawMainDist}km)`,
+          distanceKm: rawMainDist,
+          pace: `${easyMin} ~ ${easyMax}`,
+          zone: 'Zone 2 (유산소 지구력)',
+          focus: targetRacePlan
+            ? `${targetRacePlan.raceName} 대비 안정된 Zone 2 유산소 정속 주행(${easyMin} ~ ${easyMax}) 및 5km마다 뉴트리션 섭취 시뮬레이션`
+            : `안정된 Zone 2 유산소 지구력 적응(${easyMin} ~ ${easyMax}) 및 지방 대사 최적화`,
+        },
+        {
+          step: `3구간: 쿨다운 (${Math.round((warmupDist + rawMainDist) * 10) / 10} ~ ${actualLsdDist}km, ${cooldownDist}km)`,
+          distanceKm: cooldownDist,
+          pace: `${easyMax} ~ 6'40"`,
+          zone: 'Zone 1 (회복)',
+          focus: '심박 안정화 및 하체 피로 털기 스트레칭',
+        },
+      ];
 
       const isRaceInFuture = targetRacePlan && targetRacePlan.raceDate >= dateStr && targetRacePlan.dDayDays >= 0;
       const lsdTitle = isTaper && isRaceInFuture
@@ -1802,17 +1771,13 @@ export function generateWeeklyTrainingPlan(
         ? `[포인트: 장거리] ${targetRacePlan.raceName.slice(0, 14)} 완주 후 회복 지속주 (LSD ${actualLsdDist}km)`
         : `[포인트: 장거리] 주말 장거리 지속주(LSD) ${actualLsdDist}km`;
 
-      const lsdDesc = hasTargetPaceFinish && isRaceInFuture
-        ? `대회 대비 장거리 LSD(${actualLsdDist}km)입니다. 초반 ${mainBaseKm}km는 안정된 Zone 2 이지 페이스(${easyMin} ~ ${easyMax}/km)로 정속 순항하고, 후반 ${targetPaceKm}km는 실전 목표 페이스(${effectiveRacePace}/km)로 부드럽게 가속하며 레이스 리듬과 페이스 유지력을 완성합니다.`
-        : targetRacePlan && isRaceInFuture
-        ? `${targetRacePlan.raceName} (${targetRacePlan.course}) 대비 ${targetRacePlan.periodizationPhase}. 전 구간 안정적인 Zone 2 지속주(${easyMin} ~ ${easyMax}/km)로 심폐 모세혈관 발달과 글리코겐 대사 지구력을 기릅니다.`
+      const lsdDesc = targetRacePlan && isRaceInFuture
+        ? `${targetRacePlan.raceName} (${targetRacePlan.course}) 대비 ${targetRacePlan.periodizationPhase}. 전 구간 안정적인 Zone 2 지속주(${easyMin} ~ ${easyMax}/km)로 심폐 모세혈관 발달과 글리코겐 지방 대사 지구력을 기릅니다. (과도한 빌드업 없이 편안한 정속 페이스 유지)`
         : targetRacePlan && !isRaceInFuture
         ? `${targetRacePlan.raceName} 대회 완주 후 다리 근육의 피로를 털어내며 기초 지구력을 유지하는 부드러운 회복 지속주(${easyMin} ~ ${easyMax}/km)입니다.`
-        : `${targetRaceCourse} 완주를 위한 심폐 및 글리코겐 고갈 적응 훈련. 편안한 이지 페이스(${easyMin} ~ ${easyMax}/km)를 유지하며 5km/10km/15km 지점 수분 및 뉴트리션 섭취를 시뮬레이션합니다.`;
+        : `${targetRaceCourse} 완주를 위한 심폐 및 글리코겐 고갈 적응 훈련. 전 구간 편안한 Zone 2 이지 페이스(${easyMin} ~ ${easyMax}/km)를 유지하며 5km/10km/15km 지점 수분 및 뉴트리션 섭취를 시뮬레이션합니다.`;
 
-      const lsdTargetPace = hasTargetPaceFinish
-        ? `${easyMin} ~ ${easyMax} ➡️ 후반 ${effectiveRacePace}`
-        : `${easyMin} ~ ${easyMax}`;
+      const lsdTargetPace = `${easyMin} ~ ${easyMax}`;
 
       return {
         day: dayName,
