@@ -19,6 +19,7 @@ interface WeeklyDistanceBarChartProps {
   sessions: TrainingSession[];
   onOpenPaceCalculator?: () => void;
   onNavigateToRecords?: () => void;
+  isNested?: boolean;
 }
 
 interface DayData {
@@ -38,6 +39,7 @@ const KOREAN_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
   sessions,
   onNavigateToRecords,
+  isNested = false,
 }) => {
   // Mode: 'rolling7' (최근 7일) or 'calendarWeek' (이번 주 월~일)
   const [viewMode, setViewMode] = useState<'rolling7' | 'calendarWeek'>('rolling7');
@@ -216,7 +218,7 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
   }, [hoveredDay, selectedDayDateStr, daysData]);
 
   return (
-    <section className="w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-emerald-600/20 dark:border-stone-800 shadow-md relative overflow-hidden bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100">
+    <section className={isNested ? "w-full relative overflow-hidden text-stone-800 dark:text-stone-100" : "w-full glass-panel rounded-2xl p-4 sm:p-6 mb-6 border border-emerald-600/20 dark:border-stone-800 shadow-md relative overflow-hidden bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100"}>
       {/* Top Header & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 relative z-10">
         <div className="flex items-center gap-3">

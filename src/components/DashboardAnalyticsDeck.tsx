@@ -24,9 +24,10 @@ import {
 import { verifyRunnerSecurityKey } from '../lib/security';
 import { WeeklyDistanceBarChart } from './WeeklyDistanceBarChart';
 import { TrainingAnalyticsDashboard } from './TrainingAnalyticsDashboard';
+import { HeartRateTrendAnalytics } from './HeartRateTrendAnalytics';
 import { GoalProgressBarSection } from './GoalProgressBarSection';
 
-export type DashboardAnalyticsTab = 'rolling7' | 'weekly' | 'pb' | 'goals';
+export type DashboardAnalyticsTab = 'rolling7' | 'weekly' | 'heartrate' | 'pb' | 'goals';
 
 interface DashboardAnalyticsDeckProps {
   sessions: TrainingSession[];
@@ -176,61 +177,110 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
   const TABS: { id: DashboardAnalyticsTab; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'rolling7', label: '최근 7일', icon: Calendar },
     { id: 'weekly', label: '주간', icon: TrendingUp },
+    { id: 'heartrate', label: '심박', icon: Heart },
     { id: 'pb', label: 'PB', icon: Award },
     { id: 'goals', label: '러닝목표', icon: Target },
   ];
 
   return (
     <section id="dashboard-analytics-deck" className="w-full mb-6">
-      {/* 4-Tab Navigation Selector Bar */}
-      <div className="w-full flex items-center justify-between mb-3.5 bg-stone-100/90 dark:bg-stone-850/90 p-1.5 rounded-2xl border border-emerald-600/20 dark:border-stone-800 shadow-2xs backdrop-blur-sm">
-        <div className="grid grid-cols-4 gap-1 sm:gap-1.5 w-full">
+      {/* Connected Tab Header Bar (상위 탭 제목 영역 - 하위 컨텐츠와 빈틈없이 일체형 연결) */}
+      <div className="relative pt-1 px-1 sm:px-2 bg-stone-100/90 dark:bg-stone-900/90 border-x-2 border-t-2 border-emerald-600/30 dark:border-emerald-500/30 backdrop-blur-md rounded-t-2xl sm:rounded-t-3xl transition-colors">
+        {/* Category Context Strip */}
+        <div className="flex items-center justify-between px-2.5 py-1 mb-1 text-[11px] text-stone-600 dark:text-stone-300">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-700 dark:bg-rose-400" />
+            <span className="font-mono font-bold uppercase tracking-wider text-stone-800 dark:text-stone-200">
+              마일리지 & 생체 분석 덱
+            </span>
+            <span className="text-stone-400">/</span>
+            <span className="text-rose-900 dark:text-rose-300 font-bold truncate">
+              {currentTab === 'rolling7' && '최근 7일간 일자별 훈련 마일리지 대시보드'}
+              {currentTab === 'weekly' && '주간 마일리지 추세 & 훈련 부하 강도 분석'}
+              {currentTab === 'heartrate' && '페이스별 심박 흐름 & 심폐 유산소 효율 분석'}
+              {currentTab === 'pb' && '러닝 PB & 생리학적 5대 심박존 분석'}
+              {currentTab === 'goals' && '러닝 목표 & AI 실현 타당성 분석'}
+            </span>
+          </div>
+        </div>
+
+        {/* 5-Tab Navigation Buttons Row - Active tab bottom blends seamlessly into body container below */}
+        <nav
+          aria-label="상위 마일리지 및 생체 분석 탭"
+          className="grid grid-cols-5 gap-1 sm:gap-2 items-end -mb-[1px] relative z-10"
+        >
           {TABS.map((tab) => {
             const isActive = currentTab === tab.id;
             const Icon = tab.icon;
+
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setTab(tab.id)}
-                className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+                className={`group relative flex items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2.5 px-0.5 sm:px-2.5 transition-all duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-rose-800 to-rose-950 text-white shadow-sm ring-1 ring-rose-700/60'
-                    : 'text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white hover:bg-white dark:hover:bg-stone-800'
+                    ? 'bg-white/95 dark:bg-stone-900/95 text-stone-900 dark:text-white font-black shadow-none border-t-2 border-x-2 border-b-0 border-emerald-600/30 dark:border-emerald-500/30 rounded-t-xl sm:rounded-t-2xl z-20'
+                    : 'bg-stone-200/50 dark:bg-stone-800/50 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/80 dark:hover:bg-stone-800/80 font-bold border border-transparent rounded-t-lg sm:rounded-t-xl mb-0.5'
                 }`}
               >
-                <Icon className={`w-3.5 sm:w-4 h-3.5 sm:h-4 ${isActive ? 'text-amber-300' : 'text-stone-400 dark:text-stone-500'}`} />
-                <span>{tab.label}</span>
+                <Icon
+                  className={`w-3 sm:w-4 h-3 sm:h-4 shrink-0 transition-colors ${
+                    isActive
+                      ? 'text-rose-700 dark:text-rose-400'
+                      : 'text-stone-400 dark:text-stone-500 group-hover:text-stone-700 dark:group-hover:text-stone-300'
+                  }`}
+                />
+                <span className="text-[11px] sm:text-sm truncate font-semibold sm:font-bold">{tab.label}</span>
+                {isActive && (
+                  <span className="absolute top-0 left-2 right-2 h-0.5 bg-gradient-to-r from-rose-800 via-rose-600 to-rose-900 rounded-full" />
+                )}
               </button>
             );
           })}
-        </div>
+        </nav>
       </div>
 
-      {/* Tab 1: 최근 7일간 훈련 마일리지 대시보드 */}
-      {currentTab === 'rolling7' && (
-        <div className="animate-fadeIn">
-          <WeeklyDistanceBarChart
-            sessions={sessions}
-            onNavigateToRecords={onNavigateToRecords}
-          />
-        </div>
-      )}
+      {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
+      <div className="w-full p-4 sm:p-6 rounded-b-2xl sm:rounded-b-3xl bg-white/95 dark:bg-stone-900/95 border-b-2 border-x-2 border-emerald-600/30 dark:border-emerald-500/30 shadow-xl text-stone-800 dark:text-stone-100 transition-colors">
+        {/* Tab 1: 최근 7일간 훈련 마일리지 대시보드 */}
+        {currentTab === 'rolling7' && (
+          <div className="animate-fadeIn">
+            <WeeklyDistanceBarChart
+              sessions={sessions}
+              onNavigateToRecords={onNavigateToRecords}
+              isNested={true}
+            />
+          </div>
+        )}
 
-      {/* Tab 2: 주간 마일리지 추세 & 훈련 강도 분석 */}
-      {currentTab === 'weekly' && (
-        <div className="animate-fadeIn">
-          <TrainingAnalyticsDashboard
-            sessions={sessions}
-            maxHr={parseInt(maxHr, 10) || 190}
-            thresholdHr={parseInt(thresholdHr, 10) || 172}
-          />
-        </div>
-      )}
+        {/* Tab 2: 주간 마일리지 추세 & 훈련 강도 분석 */}
+        {currentTab === 'weekly' && (
+          <div className="animate-fadeIn">
+            <TrainingAnalyticsDashboard
+              sessions={sessions}
+              maxHr={parseInt(maxHr, 10) || 190}
+              thresholdHr={parseInt(thresholdHr, 10) || 172}
+              isNested={true}
+            />
+          </div>
+        )}
 
-      {/* Tab 3: 러닝 PB & 생리학적 심박존 분석 */}
-      {currentTab === 'pb' && (
-        <section className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 animate-fadeIn">
+        {/* Tab 3: 페이스별 심박 흐름 & 심폐 효율 분석 */}
+        {currentTab === 'heartrate' && (
+          <div className="animate-fadeIn">
+            <HeartRateTrendAnalytics
+              sessions={sessions}
+              maxHr={parseInt(maxHr, 10) || 190}
+              thresholdHr={parseInt(thresholdHr, 10) || 172}
+              isNested={true}
+            />
+          </div>
+        )}
+
+        {/* Tab 4: 러닝 PB & 생리학적 심박존 분석 */}
+        {currentTab === 'pb' && (
+          <div className="space-y-6 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-2.5">
               <div className="p-2.5 bg-gradient-to-br from-rose-800 to-rose-950 text-white rounded-xl border border-rose-700/40 shadow-xs">
@@ -454,15 +504,15 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
               </div>
             </div>
           )}
-        </section>
+        </div>
       )}
 
-      {/* Tab 4: 러닝 목표 & AI 실현 타당성 분석 */}
+      {/* Tab 5: 러닝 목표 & AI 실현 타당성 분석 */}
       {currentTab === 'goals' && (
-        <section
+        <div
           id="running-goals-card"
           tabIndex={-1}
-          className="glass-panel rounded-2xl p-5 sm:p-7 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 outline-none transition-all duration-300 text-stone-800 dark:text-stone-100 animate-fadeIn"
+          className="space-y-6 outline-none transition-all duration-300 animate-fadeIn"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2.5">
@@ -617,8 +667,9 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
               </div>
             </div>
           )}
-        </section>
+        </div>
       )}
+      </div>
     </section>
   );
 };

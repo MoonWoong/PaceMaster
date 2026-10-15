@@ -22,6 +22,7 @@ interface TrainingAnalyticsDashboardProps {
   sessions: TrainingSession[];
   maxHr?: number;
   thresholdHr?: number;
+  isNested?: boolean;
 }
 
 interface WeeklyDataPoint {
@@ -54,6 +55,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
   sessions,
   maxHr = 190,
   thresholdHr = 172,
+  isNested = false,
 }) => {
   const [timeRange, setTimeRange] = useState<'4w' | '8w' | '12w' | 'all'>('4w');
   const [hoveredWeek, setHoveredWeek] = useState<WeeklyDataPoint | null>(null);
@@ -630,7 +632,7 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
   }, [intensityData, hoveredZone, polarizedRatio]);
 
   return (
-    <section className="glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 space-y-6">
+    <section className={isNested ? "w-full text-stone-800 dark:text-stone-100 space-y-6" : "glass-panel rounded-2xl p-4 sm:p-6 border border-emerald-600/20 dark:border-stone-800 shadow-sm bg-white/95 dark:bg-stone-900/95 text-stone-800 dark:text-stone-100 space-y-6"}>
       {/* Dashboard Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200 dark:border-stone-800">
         <div>
