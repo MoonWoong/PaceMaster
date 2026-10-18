@@ -297,17 +297,7 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              {onOpenPaceCalculator && (
-                <button
-                  type="button"
-                  onClick={onOpenPaceCalculator}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-                  title="목표 거리와 예상 완주 시간으로 필요한 평균 페이스 계산하기"
-                >
-                  <Calculator className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
-                  <span>목표 페이스 계산기</span>
-                </button>
-              )}
+              
 
               {/* VDOT & Tier Hero Badge */}
               <div className="flex items-center gap-3 p-2 px-3.5 rounded-xl bg-rose-50/90 dark:bg-stone-800 border border-rose-200 dark:border-rose-900/60 shadow-xs">
@@ -528,6 +518,20 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+              {onOpenPaceCalculator && (
+                <button
+                  type="button"
+                  onClick={onOpenPaceCalculator}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-750 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  title="목표 거리와 예상 완주 시간으로 필요한 평균 페이스 계산하기"
+                >
+                  <Calculator className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                  <span>목표 페이스 계산기</span>
+                </button>
+              )}
           </div>
 
           {/* Goals Input Form */}

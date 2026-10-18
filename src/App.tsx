@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Header } from './components/Header';
 import { TabsNav, TabKey } from './components/TabsNav';
 import { TabMyInfo } from './components/TabMyInfo';
@@ -105,80 +105,108 @@ export default function App() {
     getLocalItem<ComprehensiveTrainingPlan | null>('training_plan', null)
   );
 
-  // Non-blocking background sync with Firestore (runs asynchronously without blocking UI)
-  useEffect(() => {
-    let isMounted = true;
-    async function syncCloudData() {
-      setIsSyncing(true);
-      try {
-        function fetchWithTimeout<T>(p: Promise<T>, fallback: T, ms = 4000): Promise<T> {
-          return Promise.race([
-            p,
-            new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-          ]);
-        }
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncToastMessage, setSyncToastMessage] = useState<string | null>(null);
 
-        const pPhys = fetchWithTimeout(getPhysicalInfo(), physicalInfo).then((phys) => {
-          if (isMounted && phys) setPhysicalInfo(phys);
-        });
+  // Reliable cloud sync with Firestore: hydrates local storage and updates state without dropping slow responses
+  const syncCloudData = useCallback(async (isManual = false) => {
+    setIsSyncing(true);
+    try {
+      console.log('[Sync] Starting cloud Firestore synchronization...');
 
-        const pShoes = fetchWithTimeout(getShoes(), shoes).then((shoeList) => {
-          if (isMounted && shoeList && shoeList.length > 0) setShoes(shoeList);
-        });
+      const [
+        physResult,
+        shoesResult,
+        racesResult,
+        recordsResult,
+        goalsResult,
+        sessionsResult,
+        planResult,
+        planSettingsResult,
+        compPlanResult,
+      ] = await Promise.allSettled([
+        getPhysicalInfo(),
+        getShoes(),
+        getRaces(),
+        getRunningRecords(),
+        getRunningGoals(),
+        getTrainingSessions(),
+        getWeeklyPlan(),
+        getWeeklyPlanSettings(),
+        getComprehensiveTrainingPlan(),
+      ]);
 
-        const pRaces = fetchWithTimeout(getRaces(), races).then((raceList) => {
-          if (isMounted && raceList && raceList.length > 0) setRaces(raceList);
-        });
-
-        const pRecords = fetchWithTimeout(getRunningRecords(), runningRecords).then((recordsData) => {
-          if (isMounted && recordsData) setRunningRecords(recordsData);
-        });
-
-        const pGoals = fetchWithTimeout(getRunningGoals(), runningGoals).then((goalsData) => {
-          if (isMounted && goalsData) setRunningGoals(goalsData);
-        });
-
-        const pSessions = fetchWithTimeout(getTrainingSessions(), trainingSessions).then((sessionsData) => {
-          if (isMounted && sessionsData) setTrainingSessions(sessionsData);
-        });
-
-        const pPlan = fetchWithTimeout(getWeeklyPlan(), weeklyPlan).then((planData) => {
-          if (isMounted && planData) setWeeklyPlan(planData);
-        });
-
-        const pPlanSettings = fetchWithTimeout(getWeeklyPlanSettings(), weeklyPlanSettings).then((planSettingsData) => {
-          if (isMounted && planSettingsData) setWeeklyPlanSettings(planSettingsData);
-        });
-
-        const pCompPlan = fetchWithTimeout(getComprehensiveTrainingPlan(), comprehensivePlan).then((planData) => {
-          if (isMounted && planData) setComprehensivePlan(planData);
-        });
-
-        await Promise.allSettled([
-          pPhys,
-          pShoes,
-          pRaces,
-          pRecords,
-          pGoals,
-          pSessions,
-          pPlan,
-          pPlanSettings,
-          pCompPlan,
-        ]);
-      } catch (err) {
-        console.warn('[Sync] Non-blocking cloud sync completed with notice:', err);
-      } finally {
-        if (isMounted) {
-          setIsSyncing(false);
-        }
+      if (physResult.status === 'fulfilled' && physResult.value) {
+        setPhysicalInfo(physResult.value);
       }
-    }
+      if (shoesResult.status === 'fulfilled' && shoesResult.value && shoesResult.value.length > 0) {
+        setShoes(shoesResult.value);
+      }
+      if (racesResult.status === 'fulfilled' && racesResult.value && racesResult.value.length > 0) {
+        setRaces(racesResult.value);
+      }
+      if (recordsResult.status === 'fulfilled' && recordsResult.value) {
+        setRunningRecords(recordsResult.value);
+      }
+      if (goalsResult.status === 'fulfilled' && goalsResult.value) {
+        setRunningGoals(goalsResult.value);
+      }
+      if (sessionsResult.status === 'fulfilled' && sessionsResult.value) {
+        setTrainingSessions(sessionsResult.value);
+      }
+      if (planResult.status === 'fulfilled' && planResult.value) {
+        setWeeklyPlan(planResult.value);
+      }
+      if (planSettingsResult.status === 'fulfilled' && planSettingsResult.value) {
+        setWeeklyPlanSettings(planSettingsResult.value);
+      }
+      if (compPlanResult.status === 'fulfilled' && compPlanResult.value) {
+        setComprehensivePlan(compPlanResult.value);
+      }
 
-    syncCloudData();
-    return () => {
-      isMounted = false;
-    };
+      setLastSyncedAt(new Date());
+
+      if (isManual) {
+        const count =
+          sessionsResult.status === 'fulfilled' && sessionsResult.value
+            ? sessionsResult.value.length
+            : 0;
+        setSyncToastMessage(`클라우드에서 ${count}개 훈련 세션 및 기록을 최신 동기화했습니다.`);
+        setTimeout(() => setSyncToastMessage(null), 3000);
+      }
+    } catch (err) {
+      console.warn('[Sync] Cloud sync notice:', err);
+      if (isManual) {
+        setSyncToastMessage('클라우드 동기화 중 오류가 발생했습니다. 네트워크를 확인해주세요.');
+        setTimeout(() => setSyncToastMessage(null), 3000);
+      }
+    } finally {
+      setIsSyncing(false);
+    }
   }, []);
+
+  // Initial and reactive background sync
+  useEffect(() => {
+    syncCloudData();
+
+    // Re-sync whenever the user switches back to this browser tab or window
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncCloudData();
+      }
+    };
+    const handleFocus = () => {
+      syncCloudData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [syncCloudData]);
 
   const handleSaveComprehensivePlan = async (plan: ComprehensiveTrainingPlan) => {
     await saveComprehensiveTrainingPlan(plan);
@@ -437,8 +465,22 @@ export default function App() {
           <Header
             currentVDOT={currentVDOT}
             races={races}
+            isSyncing={isSyncing}
+            sessionsCount={trainingSessions.length}
+            lastSyncedAt={lastSyncedAt}
+            onManualSync={() => syncCloudData(true)}
             onOpenDbConfig={() => setIsDbModalOpen(true)}
           />
+
+          {/* Sync Success / Notification Toast */}
+          {syncToastMessage && (
+            <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+              <div className="px-4 py-3 rounded-2xl bg-emerald-900/95 text-white font-bold text-xs sm:text-sm shadow-xl border border-emerald-500 flex items-center gap-2.5 backdrop-blur-md">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                <span>{syncToastMessage}</span>
+              </div>
+            </div>
+          )}
 
           {/* 1. Nearest Marathon Target Race D-Day Hero Widget */}
           <MarathonDDayHeroWidget

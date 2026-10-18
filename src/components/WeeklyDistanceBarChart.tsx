@@ -230,9 +230,6 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
               <h2 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white font-athletic">
                 최근 7일간 훈련 마일리지 대시보드
               </h2>
-              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700 uppercase tracking-wider">
-                {viewMode === 'rolling7' ? '최근 7일' : '이번 주 월~일'}
-              </span>
             </div>
             <p className="text-xs text-stone-600 dark:text-stone-300">
               잔디밭과 트랙 위에서 달린 7일간의 총 러닝 거리를 일별 막대 그래프와 함께 집계합니다.

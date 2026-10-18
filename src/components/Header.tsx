@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Flame, Award, Calendar, Sun, Moon } from 'lucide-react';
+import { Flame, Award, Calendar, Sun, Moon, RefreshCw, CloudCheck } from 'lucide-react';
 import { RegisteredRace } from '../types';
 import { calculateDDay, getTodayDateStr } from '../lib/marathonData';
 import { WeatherProvider, WeatherWidget, ThreeDayWeatherForecast } from './WeatherWidget';
@@ -9,11 +9,18 @@ interface HeaderProps {
   currentVDOT: number;
   races?: RegisteredRace[];
   onOpenDbConfig?: () => void;
+  isSyncing?: boolean;
+  sessionsCount?: number;
+  lastSyncedAt?: Date | null;
+  onManualSync?: () => Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentVDOT,
   races = [],
+  isSyncing = false,
+  sessionsCount = 0,
+  onManualSync,
 }) => {
   const { theme, toggleTheme } = useTheme();
 
@@ -63,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Real-time Weather & Temperature Widget */}
             <WeatherWidget />
 
-            {/* Mode Switch Button (라이트 ☀️ / 다크 🌙 모드 전환 버튼 - 날씨정보 바로 옆 위치) */}
+            {/* Mode Switch Button (라이트  ☀️/ 다크 🌙 모드 전환 버튼 - 날씨정보 바로 옆 위치) */}
             <button
               type="button"
               onClick={toggleTheme}
@@ -81,17 +88,14 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               >
                 {theme === 'dark' ? (
-                  <Sun className="w-4 h-4 animate-pulse" />
-                ) : (
                   <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4 animate-pulse" />
                 )}
               </div>
               <div className="flex flex-col justify-center text-left whitespace-nowrap">
-                <span className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">
-                  화면 모드
-                </span>
                 <span className="text-xs sm:text-sm font-extrabold font-athletic mt-0.5 leading-none text-stone-900 dark:text-amber-300">
-                  {theme === 'dark' ? '라이트 전환' : '다크 모드'}
+                  {theme === 'dark' ? 'Dark' : 'Light'}
                 </span>
               </div>
             </button>
@@ -126,20 +130,39 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
 
-            {/* VDOT Badge with Gyeongju Marathon burgundy & gold tone */}
-            <div className="h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl bg-rose-50/90 dark:bg-stone-800/80 border border-rose-200/80 dark:border-stone-700 shadow-sm">
-              <div className="p-1.5 rounded-lg bg-rose-100 dark:bg-stone-700 text-rose-700 dark:text-rose-400 flex items-center justify-center flex-shrink-0">
-                <Award className="w-4 h-4" />
-              </div>
-              <div className="text-left whitespace-nowrap flex flex-col justify-center">
-                <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none">
-                  현재 러닝 엔진
+            {/* Cloud Sync Status & Instant Refresh Button */}
+            {onManualSync && (
+              <button
+                type="button"
+                onClick={onManualSync}
+                disabled={isSyncing}
+                title={isSyncing ? '클라우드와 동기화 진행 중...' : '클라우드(Firestore) 최신 데이터 지금 동기화하기'}
+                className={`h-11 flex-shrink-0 inline-flex items-center gap-2 px-3 rounded-xl border transition-all duration-200 cursor-pointer shadow-xs select-none ${
+                  isSyncing
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-stone-50/90 hover:bg-emerald-50/80 dark:bg-stone-800/80 dark:hover:bg-stone-750 text-stone-700 dark:text-stone-200 border-stone-200 dark:border-stone-700 hover:border-emerald-300 dark:hover:border-emerald-700'
+                }`}
+              >
+                <div
+                  className={`p-1.5 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    isSyncing
+                      ? 'bg-emerald-200 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400'
+                  }`}
+                >
+                  <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                 </div>
-                <div className="text-xs sm:text-sm font-bold text-rose-900 dark:text-rose-300 font-athletic mt-0.5 leading-none">
-                  {currentVDOT > 0 ? `VDOT ${currentVDOT}` : '기록 측정중'}
+                <div className="text-left whitespace-nowrap flex flex-col justify-center">
+                  <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium leading-none flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                    <span>클라우드 동기화</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-300 font-athletic mt-0.5 leading-none">
+                    {isSyncing ? '동기화 중...' : `${sessionsCount || 0}회 세션 연동`}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </button>
+            )}
           </div>
         </div>
 

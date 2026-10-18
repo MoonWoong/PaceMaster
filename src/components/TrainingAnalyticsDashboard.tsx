@@ -643,9 +643,6 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
             <div>
               <h3 className="text-base sm:text-lg font-bold text-stone-900 dark:text-white flex items-center gap-2 flex-wrap">
                 <span>주간 마일리지 추세 & 훈련 강도 분석</span>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold font-athletic">
-                  D3.js Data Engine
-                </span>
               </h3>
               <p className="text-xs text-stone-600 dark:text-stone-400">
                 훈련 부하 추세(10% 증량 룰)와 80:20 심박존 양극화 훈련 분포를 체계적으로 분석합니다.
@@ -848,9 +845,6 @@ export const TrainingAnalyticsDashboard: React.FC<TrainingAnalyticsDashboardProp
               <PieIcon className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <h4 className="text-xs sm:text-sm font-bold text-stone-900 dark:text-white flex items-center gap-1.5">
                 <span>심박존 훈련강도 분포</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800">
-                  {timeRange === '4w' ? '최근 4주' : timeRange === '8w' ? '최근 8주' : timeRange === '12w' ? '최근 12주' : '전체 기간'}
-                </span>
               </h4>
             </div>
             <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-semibold">
