@@ -1008,9 +1008,9 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
                   <div className="flex flex-wrap gap-2 pt-1">
                     {analyzedShoes
                       .filter((s) => s.status === 'overdue' || s.status === 'near_limit')
-                      .map((s) => (
+                      .map((s, idx) => (
                         <span
-                          key={s.id}
+                          key={`myinfo_urgent_shoe_${s.id || 'sh'}_${idx}`}
                           className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 whitespace-nowrap ${
                             s.status === 'overdue'
                               ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-700 font-bold'
@@ -1191,7 +1191,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAndSortedShoes.map((shoe) => {
+            {filteredAndSortedShoes.map((shoe, shoeIdx) => {
               const categoryBadgeColors: Record<ShoeCategory, string> = {
                 데일리: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
                 스피드: 'bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700',
@@ -1212,7 +1212,7 @@ export const TabMyInfo: React.FC<TabMyInfoProps> = ({
 
               return (
                 <div
-                  key={shoe.id}
+                  key={`myinfo_shoe_${shoe.id || 'sh'}_${shoeIdx}`}
                   className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${
                     shoe.status === 'overdue'
                       ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 hover:border-rose-400 shadow-sm'

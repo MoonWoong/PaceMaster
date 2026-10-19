@@ -292,8 +292,18 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
   }
 
   const groupedYearlyTraining = useMemo(() => {
-    // Sort all sessions descending by date first
-    const sorted = [...trainingSessions].sort(
+    // Deduplicate and sort all sessions descending by date first
+    const seen = new Set<string>();
+    const uniqueSessions: TrainingSession[] = [];
+    for (const s of trainingSessions) {
+      if (!s) continue;
+      const sId = s.id ? String(s.id).trim() : `${s.date || ''}_${s.title || ''}_${s.totalDistanceKm || ''}`;
+      if (!sId || seen.has(sId)) continue;
+      seen.add(sId);
+      uniqueSessions.push(s);
+    }
+
+    const sorted = uniqueSessions.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
@@ -1354,12 +1364,12 @@ export const TabRunningRecords: React.FC<TabRunningRecordsProps> = ({
 
                           {/* Sessions in this week (Sorted descending by date) */}
                           <div className="space-y-3">
-                            {weekGroup.sessions.map((session) => {
+                            {weekGroup.sessions.map((session, sIdx) => {
                               const isDetailOpen = expandedSessions[session.id] ?? false;
 
                               return (
                                 <div
-                                  key={session.id}
+                                  key={`sess_${session.id || 'item'}_${sIdx}`}
                                   className="rounded-xl p-3.5 border border-stone-200 dark:border-stone-700 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all bg-white dark:bg-stone-850 shadow-2xs"
                                 >
                                   {/* Summary Card Header */}

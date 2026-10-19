@@ -119,6 +119,7 @@ export interface WeeklyPlanSettings {
   trainingDays: ('월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일')[];
   speedDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
   speedWorkoutType: SpeedWorkoutType;
+  buildupPattern?: 'block_3_4k' | 'continuous_1k' | 'continuous_400m';
   longRunDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
   targetRaceCourse?: '10K' | '하프' | '풀코스';
   updatedAt?: string;
@@ -301,6 +302,7 @@ export interface TrainingPlanPeriodSettings {
   speedDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
   speedWorkoutType?: SpeedWorkoutType;
   speedWorkoutTypes?: SpeedWorkoutType[]; // 다중 선택 목록 (로테이션 회전 적용)
+  buildupPattern?: 'block_3_4k' | 'continuous_1k' | 'continuous_400m'; // 3~4k 단위 vs 1k 지속 vs 400m 트랙 단위 빌드업
   longRunDay: '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일' | '없음';
   baseWeeklyKm?: number;
   updatedAt?: string;

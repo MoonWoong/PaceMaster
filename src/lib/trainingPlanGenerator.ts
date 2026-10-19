@@ -2,6 +2,7 @@ import { WeeklyPlanDay, WorkoutStage, TrainingSession, RunnerStateAnalysis, Runn
 import { getTrainingPaces, formatPace, parseTimeToSeconds } from './vdot';
 import { attachShoeRecommendationsToPlan } from './shoeRecommender';
 import { calculateDDay, getTodayDateStr } from './marathonData';
+import { calculateBuildupWorkout, BuildupPatternType } from './buildupWorkoutCalculator';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
@@ -37,6 +38,7 @@ export interface PlanCustomOptions {
   trainingDays: DayOfWeek[]; // User selected running days (e.g. ['화요일', '목요일', '토요일', '일요일'])
   speedDay: DayOfWeek | '없음'; // Day for speed/interval/tempo point workout
   speedWorkoutType: SpeedWorkoutType; // Specific speed point
+  buildupPattern?: BuildupPatternType; // 3~4k 단위 vs 1k/400m 지속 빌드업
   longRunDay: DayOfWeek | '없음'; // Day for long slow distance point workout
   targetRaceCourse?: string; // 풀코스, 하프, 10K, 5K
   weeklyMileageGoal?: number; // Target weekly volume in km
@@ -2314,61 +2316,29 @@ export function generateWeeklyTrainingPlan(
           stages: hillStages,
         };
       } else {
-        // 빌드업주 (Negative Split Progression Run)
+        // 빌드업주 (Negative Split Progression / Continuous Buildup Run)
         const totalDist = Math.round(defaultSpeedDist * 10) / 10;
-        const stages: WorkoutStage[] = [];
-        const numStages = totalDist >= 10 ? 4 : 3;
-
-        const paceSteps = [
-          { label: 'Zone 2 (출발)', sec: rawEasySec },
-          { label: 'Zone 3 (순항)', sec: Math.round(rawEasySec - (rawEasySec - rawTempoSec) * (numStages === 4 ? 0.35 : 0.5)) },
-          { label: 'Zone 3~4 (가속)', sec: Math.round(rawEasySec - (rawEasySec - rawTempoSec) * (numStages === 4 ? 0.70 : 0.85)) },
-          { label: 'Zone 4 (피니시)', sec: rawTempoSec },
-        ];
-
-        let accumulatedKm = 0;
-        for (let s = 0; s < numStages; s++) {
-          const isLast = s === numStages - 1;
-          const stageDist = isLast
-            ? Math.max(0.5, Math.round((totalDist - accumulatedKm) * 10) / 10)
-            : Math.max(0.5, Math.round((totalDist / numStages) * 10) / 10);
-
-          const startKm = Math.round(accumulatedKm * 10) / 10;
-          accumulatedKm += stageDist;
-          const endKm = Math.round(accumulatedKm * 10) / 10;
-
-          const pInfo = paceSteps[numStages === 3 ? (s === 0 ? 0 : s === 1 ? 1 : 3) : s];
-          stages.push({
-            step: `${s + 1}구간 (${startKm} ~ ${endKm}km, ${stageDist}km)`,
-            distanceKm: stageDist,
-            pace: formatPace(pInfo.sec),
-            zone: pInfo.label,
-            focus: isLast
-              ? `최종 타겟 역치 페이스(${formatPace(pInfo.sec)})로 강력하게 밀고 나가며 피니시`
-              : s === 0
-              ? '편안한 이지 페이스로 호흡과 다리 리듬 세팅'
-              : '케이던스와 보폭을 점진적으로 올리며 가속 주행',
-          });
-        }
-
-        const startPace = stages[0].pace;
-        const finishPace = stages[stages.length - 1].pace;
-        const stageDescriptions = stages
-          .map((s) => `${s.step}: ${s.pace}`)
-          .join(' ➡️ ');
+        const buildupResult = calculateBuildupWorkout({
+          totalDistanceKm: totalDist,
+          targetPaceStr: targetRacePlan ? targetRacePlan.targetRacePace : undefined,
+          easyPaceSec: rawEasySec,
+          marathonPaceSec: rawEasySec > rawTempoSec ? Math.round((rawEasySec + rawTempoSec) / 2) : 300,
+          thresholdPaceSec: rawTempoSec,
+          pattern: options?.buildupPattern || 'block_3_4k',
+        });
 
         return {
           day: dayName,
           dayShort,
           dateStr,
           type: '빌드업주',
-          title: `[포인트: 스피드] 네거티브 스플릿 빌드업 ${totalDist}km`,
+          title: `[포인트: ${buildupResult.patternName}] ${totalDist}km`,
           distanceKm: totalDist,
-          targetPace: `${startPace} ➡️ ${finishPace}`,
-          targetZone: 'Zone 2 ➡️ Zone 4',
-          description: `총 ${totalDist}km를 ${stages.length}단계로 분할하여 점진적으로 가속합니다: [${stageDescriptions}]. 후반부 피로 누적 상황에서의 페이스 인내력과 질주 능력을 극대화합니다.`,
+          targetPace: buildupResult.targetPaceRangeStr,
+          targetZone: buildupResult.targetZoneStr,
+          description: `${buildupResult.summaryFormula} - ${buildupResult.description}`,
           intensity: '높음',
-          stages,
+          stages: buildupResult.stages,
         };
       }
     }

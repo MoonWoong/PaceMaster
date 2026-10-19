@@ -56,6 +56,7 @@ import {
 import { parseTimeToSeconds, formatSecondsToTime, formatPace, getTrainingPaces } from '../lib/vdot';
 import { calculateDDay } from '../lib/marathonData';
 import { verifyRunnerSecurityKey } from '../lib/security';
+import { saveWeeklyPlanSettings } from '../lib/firebase';
 
 const STORAGE_KEY_PLAN_SETTINGS = 'pacemaster_training_plan_settings';
 
@@ -73,6 +74,7 @@ export interface StoredPlanSettings {
   trainingDays: DayOfWeek[];
   speedDay: DayOfWeek | '없음';
   speedWorkoutTypes: SpeedWorkoutType[];
+  buildupPattern?: 'block_3_4k' | 'continuous_1k' | 'continuous_400m';
   longRunDay: DayOfWeek | '없음';
   baseWeeklyKm: string;
   updatedAt?: string;
@@ -179,6 +181,7 @@ const loadStoredPlanSettings = (
     trainingDays,
     speedDay,
     speedWorkoutTypes,
+    buildupPattern: fromStorage?.buildupPattern || s?.buildupPattern || 'block_3_4k',
     longRunDay,
     baseWeeklyKm,
     updatedAt: fromStorage?.updatedAt || s?.updatedAt,
@@ -426,8 +429,10 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
   const [formTargetPace, setFormTargetPace] = useState<string>(() => initialLoadedSettings.targetPace);
   const [formTrainingDays, setFormTrainingDays] = useState<DayOfWeek[]>(() => initialLoadedSettings.trainingDays);
   const [formSpeedDay, setFormSpeedDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.speedDay);
-  // Multi-selection speed workout types:
   const [formSpeedTypes, setFormSpeedTypes] = useState<SpeedWorkoutType[]>(() => initialLoadedSettings.speedWorkoutTypes);
+  const [formBuildupPattern, setFormBuildupPattern] = useState<'block_3_4k' | 'continuous_1k' | 'continuous_400m'>(
+    () => initialLoadedSettings.buildupPattern || 'block_3_4k'
+  );
   const [speedTypeTierFilter, setSpeedTypeTierFilter] = useState<'all' | 'low' | 'moderate' | 'high'>('all');
   const [formLongRunDay, setFormLongRunDay] = useState<DayOfWeek | '없음'>(() => initialLoadedSettings.longRunDay);
   const [formBaseWeeklyKm, setFormBaseWeeklyKm] = useState<string>(() => initialLoadedSettings.baseWeeklyKm);
@@ -459,7 +464,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     return Math.max(20, Math.min(120, Math.round(avgWeekly * 10) / 10 || 36));
   }, [sessions, currentVDOT]);
 
-  // Helper to persist current form state to localStorage
+  // Helper to persist current form state to localStorage and Firestore Cloud
   const persistCurrentFormSettings = (override?: Partial<StoredPlanSettings>) => {
     const updated: StoredPlanSettings = {
       durationPreset: override?.durationPreset ?? formDurationPreset,
@@ -475,12 +480,23 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
       trainingDays: override?.trainingDays ?? formTrainingDays,
       speedDay: override?.speedDay ?? formSpeedDay,
       speedWorkoutTypes: override?.speedWorkoutTypes ?? formSpeedTypes,
+      buildupPattern: override?.buildupPattern ?? formBuildupPattern,
       longRunDay: override?.longRunDay ?? formLongRunDay,
       baseWeeklyKm: override?.baseWeeklyKm ?? formBaseWeeklyKm,
       updatedAt: new Date().toISOString(),
     };
     try {
       localStorage.setItem(STORAGE_KEY_PLAN_SETTINGS, JSON.stringify(updated));
+      // Cloud Firestore async background sync so settings are preserved across URLs and devices
+      saveWeeklyPlanSettings({
+        trainingDays: updated.trainingDays,
+        speedDay: updated.speedDay,
+        speedWorkoutType: updated.speedWorkoutTypes[0] || '인터벌',
+        buildupPattern: updated.buildupPattern,
+        longRunDay: updated.longRunDay,
+        targetRaceCourse: (updated.targetCourse as any) || '풀코스',
+        updatedAt: updated.updatedAt,
+      }).catch((err) => console.warn('[PlanSettings] Firestore cloud sync background warning:', err));
     } catch (e) {
       console.warn('Failed to save plan settings to localStorage', e);
     }
@@ -503,6 +519,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
     formTrainingDays,
     formSpeedDay,
     formSpeedTypes,
+    formBuildupPattern,
     formLongRunDay,
     formBaseWeeklyKm,
   ]);
@@ -853,6 +870,7 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
         speedWorkoutTypes: formAutoIntelligentMode
           ? SPEED_WORKOUT_TYPES.map((t) => t.id)
           : (formSpeedTypes.length > 0 ? formSpeedTypes : SPEED_WORKOUT_TYPES.map((t) => t.id)),
+        buildupPattern: formBuildupPattern,
         longRunDay: formLongRunDay,
         baseWeeklyKm: formAutoIntelligentMode
           ? recommendedBaseWeeklyKm
@@ -3963,6 +3981,71 @@ export const TabTrainingPlan: React.FC<TabTrainingPlanProps> = ({
                             );
                           })}
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 빌드업주 상세 페이스 계산 방식 (사용자 맞춤 옵션) */}
+                  {(formSpeedTypes.includes('빌드업주') || formAutoIntelligentMode) && (
+                    <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 space-y-2.5 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                          <span>📈 빌드업주 페이스 계산 방식</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-bold">
+                            포인트 훈련 특화
+                          </span>
+                        </label>
+                        <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium">
+                          목표 & 주간 상태 기준 자동 산출
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormBuildupPattern('block_3_4k')}
+                          className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                            formBuildupPattern === 'block_3_4k'
+                              ? 'bg-white dark:bg-stone-800 border-amber-500 ring-2 ring-amber-400/40 text-stone-900 dark:text-white shadow-xs'
+                              : 'bg-white/60 dark:bg-stone-850/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <strong className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                              1. 3~4k 단위 블록 빌드업
+                            </strong>
+                            {formBuildupPattern === 'block_3_4k' && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                          </div>
+                          <p className="text-[11px] text-stone-700 dark:text-stone-200 font-medium leading-tight">
+                            예: 3k 5'30 + 3k 5'00 + 3k 4'30
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-stone-400 mt-1">
+                            Zone 2 이지 ➡️ Zone 3 M-페이스 ➡️ Zone 4 역치 피니시
+                          </p>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setFormBuildupPattern('continuous_1k')}
+                          className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                            formBuildupPattern === 'continuous_1k'
+                              ? 'bg-white dark:bg-stone-800 border-amber-500 ring-2 ring-amber-400/40 text-stone-900 dark:text-white shadow-xs'
+                              : 'bg-white/60 dark:bg-stone-850/60 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <strong className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                              2. 1k 단위 지속 빌드업
+                            </strong>
+                            {formBuildupPattern === 'continuous_1k' && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                          </div>
+                          <p className="text-[11px] text-stone-700 dark:text-stone-200 font-medium leading-tight">
+                            예: target pace까지 1k마다 10초씩 페이스 올리기
+                          </p>
+                          <p className="text-[10px] text-stone-500 dark:text-stone-400 mt-1">
+                            GPS 시계 1km 랩 알림마다 -10초씩 당겨 피니시 완성
+                          </p>
+                        </button>
                       </div>
                     </div>
                   )}

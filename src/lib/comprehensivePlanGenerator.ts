@@ -18,6 +18,7 @@ import { getTrainingPaces, formatPace, parseTimeToSeconds, parsePaceToSeconds, c
 import { attachShoeRecommendationsToPlan, createShoeRotationTracker } from './shoeRecommender';
 import { analyzeRunnerState, inferWorkoutType } from './trainingPlanGenerator';
 import { calculateDDay } from './marathonData';
+import { calculateBuildupWorkout } from './buildupWorkoutCalculator';
 
 export type DayOfWeek = '월요일' | '화요일' | '수요일' | '목요일' | '금요일' | '토요일' | '일요일';
 
@@ -552,10 +553,9 @@ export function generateComprehensivePlan(params: {
   let effectiveTargetPace = marathonPace;
   let effectiveTargetFinishTime = '03:30:00';
   let targetCourseName = settings.targetCourse || '풀코스';
-
-  if (settings.goalMode === 'race' && targetRace) {
-    targetCourseName = settings.targetCourse || targetRace.course;
-    const effectiveTime = settings.targetTime || targetRace.targetTime;
+  if (settings.targetTime || settings.targetPace || (settings.goalMode === 'race' && targetRace) || settings.goalMode === 'target_goal') {
+    targetCourseName = settings.targetCourse || targetRace?.course || '풀코스';
+    const effectiveTime = settings.targetTime || targetRace?.targetTime;
     const effectivePace = settings.targetPace;
     const racePaceInfo = calculateSpecificRacePace(
       targetCourseName,
@@ -566,17 +566,6 @@ export function generateComprehensivePlan(params: {
     );
     effectiveTargetPace = racePaceInfo.pace;
     effectiveTargetFinishTime = racePaceInfo.finishTime;
-  } else if (settings.goalMode === 'target_goal') {
-    targetCourseName = settings.targetCourse || '10K';
-    const goalPaceInfo = calculateSpecificRacePace(
-      targetCourseName,
-      settings.targetTime,
-      settings.targetPace,
-      vdot,
-      goals
-    );
-    effectiveTargetPace = goalPaceInfo.pace;
-    effectiveTargetFinishTime = goalPaceInfo.finishTime;
   }
 
   const isContinuousProgression = settings.goalMode === 'continuous_progression';
@@ -587,6 +576,15 @@ export function generateComprehensivePlan(params: {
   const isHalfCourse = !isFullCourse && (courseDistKm >= 18 || targetCourseName.includes('하프') || targetCourseName.includes('21'));
   const is10kCourse = !isFullCourse && !isHalfCourse && (courseDistKm >= 9 || targetCourseName.includes('10'));
   const is5kCourse = !isFullCourse && !isHalfCourse && !is10kCourse;
+
+  // Pre-calculate target goal VDOT for progressive workload periodization
+  const targetTimeSec = parseTimeToSeconds(effectiveTargetFinishTime);
+  let targetVdot = vdot;
+  if (targetTimeSec > 0 && courseDistKm > 0) {
+    targetVdot = calculateVDOT(courseDistKm * 1000, targetTimeSec);
+  } else {
+    targetVdot = vdot + (totalWeeks >= 16 ? 4.0 : totalWeeks >= 8 ? 2.5 : 1.5);
+  }
 
   // Max peak volume multiplier depending on course:
   // Full Marathon: up to 1.65x
@@ -626,6 +624,50 @@ export function generateComprehensivePlan(params: {
   const shoeRotationTracker = createShoeRotationTracker(shoes, trainingSessions);
 
   for (let w = 1; w <= totalWeeks; w++) {
+    // Dynamic progressive VDOT & Pace periodization across weeks:
+    // Starts from runner's realistic training baseline VDOT (~44.0 based on current ~6'00"~6'15" easy runs)
+    // and smoothly, progressively ascends across 54 weeks to targetVdot (VDOT 47.2 for 03:19:59, 4'44"/km).
+    const peakProgressionWeek = Math.max(1, totalWeeks - (isFullCourse ? 3 : 2));
+    const progressRatio = Math.min(1.0, Math.max(0, (w - 1) / Math.max(1, peakProgressionWeek - 1)));
+    
+    // Baseline VDOT anchored to runner's current functional aerobic training status:
+    // Recent logs show everyday easy jogs at 5'55"~6'15"/km and tempo/AR at 5'20"~5'35"/km (functional VDOT ~44.0).
+    const baselineVdot = Math.min(vdot > 28 ? vdot : 44.0, 44.0);
+    const currentWeekVdot = Math.round((baselineVdot + (targetVdot - baselineVdot) * progressRatio) * 10) / 10;
+
+    const weekPaces = getTrainingPaces(currentWeekVdot > 28 ? currentWeekVdot : 45) || paces;
+    const rawEasyFast = weekPaces?.easyPaceRange?.rawMinSec || 340;
+    const rawEasySlow = weekPaces?.easyPaceRange?.rawMaxSec || 420;
+    const rawMarathonSec = weekPaces?.marathonPace?.rawSec || 296;
+    const rawThresholdSec = weekPaces?.thresholdPace?.rawSec || 280;
+    const rawIntervalSec = weekPaces?.intervalPace?.rawSec || 257;
+
+    // 1. Steady Aerobic Jogging Range (Zone 2: 편안한 유산소 조깅 - 코로 호흡, 대화 가능)
+    const jogFastSec = Math.round(rawEasyFast + 20);
+    const jogSlowSec = Math.round(rawEasyFast + 40);
+    const jogPaceRange = `${formatPace(jogFastSec)} ~ ${formatPace(jogSlowSec)}`;
+    const jogMidSec = Math.round((jogFastSec + jogSlowSec) / 2);
+
+    // 2. Active Recovery Jogging Range (Zone 1: 능동적 회복 조깅 - 피로 대사물질 배출)
+    const recFastSec = Math.round(rawEasyFast + 45);
+    const recSlowSec = Math.round(Math.min(rawEasySlow - 10, recFastSec + 25));
+    const recoveryPaceRange = `${formatPace(recFastSec)} ~ ${formatPace(recSlowSec)}`;
+
+    // 3. Marathon Pace (Zone 3: 유산소 파워 및 실전 마라톤 페이스)
+    const marathonPaceSec = Math.round(rawMarathonSec + (1 - progressRatio) * 15);
+    const marathonPace = formatPace(marathonPaceSec);
+
+    // 4. Lactate Threshold / Tempo (Zone 4: 젖산역치 페이스)
+    const thresholdPaceSec = Math.round(rawThresholdSec + (1 - progressRatio) * 15);
+    const thresholdPace = formatPace(thresholdPaceSec);
+
+    // 5. Interval Pace (Zone 5: VO2max 스피드 인터벌)
+    const intervalPaceSec = Math.round(rawIntervalSec + (1 - progressRatio) * 15);
+    const intervalPace = formatPace(intervalPaceSec);
+
+    const easyMin = formatPace(jogFastSec);
+    const easyMax = formatPace(jogSlowSec);
+
     const weekMonday = new Date(startMonday.getTime() + (w - 1) * 7 * 24 * 60 * 60 * 1000);
     const weekSunday = new Date(weekMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
     const startDateStr = formatDate(weekMonday);
@@ -2115,147 +2157,45 @@ export function generateComprehensivePlan(params: {
           };
         }
 
-        // E. Buildup Run (빌드업주)
+        // E. Buildup Run (빌드업주: 3~4k 단위 블록 or 1k/400m 지속 빌드업)
         if (activeSpeedType === '빌드업주') {
-          const targetSec = parsePaceToSeconds(effectiveTargetPace);
-          const threshSec = paces?.thresholdPace?.rawSec || 276;
-          const maraSec = paces?.marathonPace?.rawSec || 295;
-          const isTargetFasterThanThreshold = targetSec > 0 && targetSec < threshSec - 5;
+          const buildupPattern = settings.buildupPattern || 'block_3_4k';
+          const isContinuous1k = buildupPattern === 'continuous_1k';
 
-          let stages: WorkoutStage[] = [];
-          let targetPaceStr = '';
-          let targetZoneStr = '';
-          let descStr = '';
+          const buildupResult = calculateBuildupWorkout({
+            totalDistanceKm: speedKm,
+            targetPaceStr: thresholdPace,
+            easyPaceSec: jogFastSec,
+            marathonPaceSec,
+            thresholdPaceSec,
+            pattern: buildupPattern,
+          });
 
-          if (isTargetFasterThanThreshold && speedKm >= 8) {
-            // 4-stage progression: Zone 2 -> Zone 3 (MP) -> Zone 4 (Threshold) -> Zone 5 (Target Fast Finish)
-            const s1 = Math.round(speedKm * 0.25 * 10) / 10;
-            const s2 = Math.round(speedKm * 0.30 * 10) / 10;
-            const s3 = Math.round(speedKm * 0.25 * 10) / 10;
-            const s4 = Math.round((speedKm - s1 - s2 - s3) * 10) / 10;
+          const patternLabel = isContinuous1k ? '1k 지속 빌드업주' : '3~4k 블록 빌드업주';
+          const title = isHeavyLongRunWeek
+            ? `[장거리 부하 완화] ${patternLabel} (${speedKm}km: ${buildupResult.summaryFormula})`
+            : `[포인트] ${patternLabel} (${speedKm}km: ${buildupResult.summaryFormula})`;
 
-            stages = [
-              {
-                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
-                distanceKm: s1,
-                pace: `${easyMax} ~ ${easyMin}`,
-                zone: 'Zone 2',
-                focus: '가벼운 조깅으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
-              },
-              {
-                step: `2구간: 본훈련 1구간 유산소 순항 (${s2}km)`,
-                distanceKm: s2,
-                pace: marathonPace,
-                zone: 'Zone 3',
-                focus: `일정한 보폭과 리드미컬한 호흡 유지, 유산소 순항(마라톤 페이스 ${marathonPace}) 정속 감각 체화`,
-              },
-              {
-                step: `3구간: 본훈련 2구간 젖산 역치 가속 (${s3}km)`,
-                distanceKm: s3,
-                pace: thresholdPace,
-                zone: 'Zone 4',
-                focus: `피로 누적 속에서도 탄력 있는 케이던스로 젖산 역치 페이스(${thresholdPace}) 지속 주행`,
-              },
-              {
-                step: `4구간: 본훈련 3구간 실전 목표 스피드 피니시 (${s4}km)`,
-                distanceKm: s4,
-                pace: effectiveTargetPace,
-                zone: 'Zone 5',
-                focus: `피로 속에서도 무너지지 않는 코어 유지와 강한 팔치기로 목표 레이스 페이스(${effectiveTargetPace}) 네거티브 가속 피니시`,
-              },
-            ];
-
-            targetPaceStr = `${easyMin} ➡️ ${marathonPace} ➡️ ${thresholdPace} ➡️ ${effectiveTargetPace}`;
-            targetZoneStr = 'Zone 2 ➡️ Zone 5';
-            descStr = `이지런(${easyMin})으로 출발하여 중반 유산소 순항(${marathonPace}, Zone 3), 젖산 역치(${thresholdPace}, Zone 4)를 거쳐 최종 구간 실전 목표 페이스(${effectiveTargetPace}, Zone 5)까지 4단계 점진 가속 완주합니다.`;
-          } else if (isTargetFasterThanThreshold) {
-            // 3-stage progression when speedKm is shorter: Zone 2 -> Zone 3 (MP) -> Zone 4~5 (Threshold to Target)
-            const s1 = Math.round(speedKm * 0.35 * 10) / 10;
-            const s2 = Math.round(speedKm * 0.35 * 10) / 10;
-            const s3 = Math.round((speedKm - s1 - s2) * 10) / 10;
-
-            stages = [
-              {
-                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
-                distanceKm: s1,
-                pace: `${easyMax} ~ ${easyMin}`,
-                zone: 'Zone 2',
-                focus: '릴랙스한 주법으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
-              },
-              {
-                step: `2구간: 본훈련 1구간 유산소 순항 (${s2}km)`,
-                distanceKm: s2,
-                pace: marathonPace,
-                zone: 'Zone 3',
-                focus: `일정한 보폭과 리드미컬한 호흡 유지, 유산소 순항 페이스(${marathonPace}) 정속 주행`,
-              },
-              {
-                step: `3구간: 본훈련 2구간 역치 가속 & 피니시 질주 (${s3}km)`,
-                distanceKm: s3,
-                pace: `${thresholdPace} ➡️ ${effectiveTargetPace}`,
-                zone: 'Zone 4 ➡️ Zone 5',
-                focus: `젖산 역치 페이스(${thresholdPace}, Zone 4)로 가속 후 최종 피니시 구간은 목표 페이스(${effectiveTargetPace}, Zone 5)로 폭발적 질주`,
-              },
-            ];
-
-            targetPaceStr = `${easyMin} ➡️ ${marathonPace} ➡️ ${thresholdPace} (피니시 ${effectiveTargetPace})`;
-            targetZoneStr = 'Zone 2 ➡️ Zone 4~5';
-            descStr = `이지런(${easyMin})으로 시작하여 중반 유산소 순항(${marathonPace}, Zone 3)을 거쳐 후반 역치 페이스(${thresholdPace}, Zone 4) 및 실전 목표 페이스(${effectiveTargetPace})로 가속 피니시합니다.`;
-          } else {
-            // Standard 3-stage progression: Zone 2 -> Zone 3 (MP / Target) -> Zone 4 (Threshold)
-            const s1 = Math.round(speedKm * 0.35 * 10) / 10;
-            const s2 = Math.round(speedKm * 0.40 * 10) / 10;
-            const s3 = Math.round((speedKm - s1 - s2) * 10) / 10;
-
-            stages = [
-              {
-                step: `1구간: 워밍업 & 초반 이지런 (${s1}km)`,
-                distanceKm: s1,
-                pace: `${easyMax} ~ ${easyMin}`,
-                zone: 'Zone 2',
-                focus: '릴랙스한 주법으로 점진적 체온 및 심박수 상승, 무리 없는 안정 주행',
-              },
-              {
-                step: `2구간: 본훈련 1구간 목표 유산소 정속 (${s2}km)`,
-                distanceKm: s2,
-                pace: effectiveTargetPace,
-                zone: 'Zone 3',
-                focus: `일정한 보폭과 리드미컬한 호흡 유지, 실전 목표 페이스(${effectiveTargetPace}) 감각 완벽 체화`,
-              },
-              {
-                step: `3구간: 본훈련 2구간 역치 가속 피니시 (${s3}km)`,
-                distanceKm: s3,
-                pace: thresholdPace,
-                zone: 'Zone 4',
-                focus: `피로 속에서도 무너지지 않는 코어 유지와 강한 팔치기로 역치 페이스(${thresholdPace}) 네거티브 스플릿 피니시`,
-              },
-            ];
-
-            targetPaceStr = `${easyMin} ➡️ ${effectiveTargetPace} ➡️ ${thresholdPace}`;
-            targetZoneStr = 'Zone 2 ➡️ Zone 4';
-            descStr = `이지런(${easyMin})으로 시작하여 중반 목표 페이스(${effectiveTargetPace}, Zone 3)를 거쳐 마지막 구간은 역치 페이스(${thresholdPace}, Zone 4)로 가속 완주합니다.`;
-          }
-
-          normalizeStagesDistance(stages, speedKm);
+          const lapGuideText = buildupResult.laps && buildupResult.laps.length > 0
+            ? buildupResult.laps.slice(0, 12).map((l) => `${l.distanceLabel}:${l.targetPaceStr}`).join(' ➡️ ')
+            : '';
 
           return {
             day: dayName,
             dayShort,
             dateStr,
             type: '빌드업주',
-            title: isHeavyLongRunWeek
-              ? `[장거리 부하 완화] 점진적 가속 빌드업주 (${speedKm}km)`
-              : `점진적 가속 빌드업주 (${speedKm}km)`,
+            title,
             distanceKm: speedKm,
-            targetPace: targetPaceStr,
-            targetZone: targetZoneStr,
-            description: isHeavyLongRunWeek
-              ? `주말 대형 롱런(${longRunKm}km)을 앞두고 다리 근육의 폭발적 파열을 방지하며 부드러운 네거티브 스플릿으로 순항 리듬을 점검합니다. ${descStr}`
-              : descStr,
-            purpose: '후반 가속 능력(Negative Split) 및 심리적 자신감 고취, 점진적 젖산 대사 적응력 배양',
+            targetPace: buildupResult.targetPaceRangeStr,
+            targetZone: buildupResult.targetZoneStr,
+            description: isContinuous1k
+              ? `[1k 지속 빌드업 공식: ${buildupResult.summaryFormula}] 매 1km마다 -10초씩 시계 랩 알림에 맞춰 점진 가속 (출발 ${buildupResult.startPaceStr} ➡️ 피니시 ${buildupResult.finishPaceStr}). 랩 가이드: [${lapGuideText}]. 2027 경주국제마라톤 03:19:59(4'44"/km) 목표 및 ${w}주차(${currentWeekVdot} VDOT) 점진 부하에 맞춘 맞춤형 지속 빌드업입니다.`
+              : `[3~4k 블록 공식: ${buildupResult.summaryFormula}] 1구간(Zone 2 이지 출발 ${buildupResult.startPaceStr}) ➡️ 2구간(Zone 3 마라톤 페이스 ${marathonPace}) ➡️ 3구간(Zone 4 역치 피니시 ${buildupResult.finishPaceStr}). 💡 [1k 지속 가속 옵션]: GPS 시계 1km 오토랩 기준 1k마다 -10초씩 가속(${buildupResult.startPaceStr} ➡️ ${buildupResult.finishPaceStr})으로 대체 수행 가능합니다.`,
+            purpose: '후반 가속 능력(Negative Split) 및 심리적 자신감 고취, 점진적 젖산 대사 적응력 및 레이스 페이스 제어력 배양',
             intensity: '높음',
             isCompleted: false,
-            stages,
+            stages: buildupResult.stages,
             actualSession: undefined,
           };
         }
@@ -2630,18 +2570,26 @@ export function generateComprehensivePlan(params: {
       const cooldownKm = workoutDist >= 8 ? 1.5 : 1.0;
       const mainJogKm = Math.round((workoutDist - warmupKm - cooldownKm) * 10) / 10;
 
+      // Realistic progressive pace ranges based on current week's VDOT
+      const rawEasyFast = weekPaces?.easyPaceRange?.rawMinSec || 336;
+      const rawEasySlow = weekPaces?.easyPaceRange?.rawMaxSec || 413;
+      // Zone 2 steady aerobic jogging (e.g. 5'45"~6'15" for VDOT 45.3, stepping up to 5'30"~5'55" for VDOT 47.2)
+      const jogPaceRange = `${formatPace(rawEasyFast + 10)} ~ ${formatPace(rawEasyFast + 35)}`;
+      // Zone 1 active recovery (e.g. 6'20"~6'45" for VDOT 45.3, stepping up to 6'05"~6'30" for VDOT 47.2)
+      const recoveryPaceRange = `${formatPace(rawEasyFast + 45)} ~ ${formatPace(rawEasySlow - 10)}`;
+
       const jogStages: WorkoutStage[] = [
         {
           step: `1단계: 워밍업 (${warmupKm}km)`,
           distanceKm: warmupKm,
-          pace: easyMax,
+          pace: isRecoveryDay ? recoveryPaceRange : `${formatPace(rawEasyFast + 35)} ~ ${formatPace(rawEasyFast + 50)}`,
           zone: 'Zone 1~2',
           focus: '가벼운 조깅으로 체온 서서히 상승 및 관절 예열',
         },
         {
           step: isRecoveryDay ? `2단계: 본운동 리커버리 지속주 (${mainJogKm}km)` : `2단계: 본운동 유산소 조깅 (${mainJogKm}km)`,
           distanceKm: mainJogKm,
-          pace: isRecoveryDay ? `${easyMax} ~ 6'30"` : `${easyMin} ~ ${easyMax}`,
+          pace: isRecoveryDay ? recoveryPaceRange : jogPaceRange,
           zone: isRecoveryDay ? 'Zone 1~2 (능동적 회복)' : 'Zone 2 (이지 에어로빅)',
           focus: isRecoveryDay
             ? '대화가 편안히 가능한 아주 편안한 페이스 유지, 혈액 순환 촉진'
@@ -2650,7 +2598,7 @@ export function generateComprehensivePlan(params: {
         {
           step: `3단계: 쿨다운 (${cooldownKm}km)`,
           distanceKm: cooldownKm,
-          pace: isRecoveryDay ? "6'30\" ~ 7'00\"" : `${easyMax} ~ 6'40"`,
+          pace: `${formatPace(rawEasyFast + 40)} ~ ${formatPace(rawEasySlow)}`,
           zone: 'Zone 1 (회복)',
           focus: '심박 안정화 및 하체 스트레칭, 폼롤러 마사지 권장',
         },
@@ -2666,11 +2614,11 @@ export function generateComprehensivePlan(params: {
           ? `가벼운 리커버리 조깅 (${workoutDist}km)`
           : `유산소 기초 에어로빅 조깅 (${workoutDist}km)`,
         distanceKm: workoutDist,
-        targetPace: isRecoveryDay ? `${easyMax} ~ 6'30"` : `${easyMin} ~ ${easyMax}`,
+        targetPace: isRecoveryDay ? recoveryPaceRange : jogPaceRange,
         targetZone: isRecoveryDay ? 'Zone 1~2 (회복)' : 'Zone 2 (이지 에어로빅)',
         description: isRecoveryDay
-          ? `포인트 훈련 다음날 가벼운 회복주입니다. 대화가 편안히 가능한 페이스(${easyMax})로 달리며 혈액 순환을 촉진합니다.`
-          : `기본 유산소 체력을 다지는 편안한 조깅입니다. 후반에 가벼운 100m 질주 3~5회를 곁들여도 좋습니다.`,
+          ? `포인트 훈련 다음날 가벼운 회복주입니다. 대화가 편안히 가능한 페이스(${recoveryPaceRange})로 달리며 혈액 순환을 촉진합니다.`
+          : `기본 유산소 체력을 다지는 편안한 조깅(${jogPaceRange})입니다. 후반에 가벼운 100m 질주 3~5회를 곁들여도 좋습니다.`,
         purpose: '근육 내 모세혈관망 신생 촉진, 심폐 지구력 기초 다지기 및 전날 고강도 포인트 훈련의 피로 대사물질 능동적 배출',
         intensity: '낮음',
         isCompleted: false,
@@ -2880,14 +2828,6 @@ export function generateComprehensivePlan(params: {
       : undefined;
 
   // 6. Compute Goal-Fitness Match Audit (플랜 정합성 및 실력 진단)
-  const targetTimeSec = parseTimeToSeconds(effectiveTargetFinishTime);
-  let targetVdot = vdot;
-  if (targetTimeSec > 0 && courseDistKm > 0) {
-    targetVdot = calculateVDOT(courseDistKm * 1000, targetTimeSec);
-  } else {
-    targetVdot = vdot + (totalWeeks >= 16 ? 4.0 : totalWeeks >= 8 ? 2.5 : 1.5);
-  }
-
   const vdotGap = Math.round((targetVdot - vdot) * 10) / 10;
   const totalMonths = Math.max(1, totalWeeks / 4.33);
   const requiredMonthlyVdotGain = Math.round((vdotGap / totalMonths) * 100) / 100;
@@ -2948,7 +2888,7 @@ export function generateComprehensivePlan(params: {
       category: '주간 마일리지',
       status: '최적',
       title: `${targetCourseName} 맞춤형 주간 볼륨 곡선`,
-      summary: `시작 볼륨 ${baselineWeeklyKm}km ➡️ 최고 피크 ${peakWeeklyKm}km (하프 권장 피크: ${recommendedPeakKmRange})`,
+      summary: `시작 볼륨 ${baselineWeeklyKm}km ➡️ 최고 피크 ${peakWeeklyKm}km (${targetCourseName} 권장 피크: ${recommendedPeakKmRange})`,
       recommendation: isHalfCourse
         ? `하프 1:30 벽 돌파에 가장 효율적인 56~62km 피크 구간을 완벽히 형성했습니다. 풀코스용 과도한 볼륨(70km+)을 피해 다리 피로를 최적 관리합니다.`
         : `목표 대회 거리에 맞춘 체계적인 유산소 볼륨 상승 곡선입니다.`,
@@ -2966,7 +2906,7 @@ export function generateComprehensivePlan(params: {
       category: 'LSD 장거리',
       status: '최적',
       title: `${targetCourseName} 실전 LSD 최적 캡 (${peakLsdKm}km)`,
-      summary: `최장 장거리 ${peakLsdKm}km (하프 권장 범위: ${recommendedLsdKmRange})`,
+      summary: `최장 장거리 ${peakLsdKm}km (${targetCourseName} 권장 범위: ${recommendedLsdKmRange})`,
       recommendation: isHalfCourse
         ? `하프 거리(21.1km)를 완벽히 포괄하는 21.0km LSD를 최고점으로 세팅했습니다. 불필요한 25km 이상 과도한 장거리로 인한 관절 피로를 사전에 예방합니다.`
         : `코스 완주에 최적화된 LSD 거리로 심장 1회 박출량과 지방 대사 효율을 극대화합니다.`,

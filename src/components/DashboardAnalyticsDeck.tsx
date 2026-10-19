@@ -207,7 +207,7 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
         {/* 5-Tab Navigation Buttons Row - Active tab bottom blends seamlessly into body container below */}
         <nav
           aria-label="상위 마일리지 및 생체 분석 탭"
-          className="grid grid-cols-5 gap-1 sm:gap-2 items-end -mb-[1px] relative z-10"
+          className="grid grid-cols-5 gap-1 sm:gap-2 items-end -mb-[2px] relative z-20"
         >
           {TABS.map((tab) => {
             const isActive = currentTab === tab.id;
@@ -218,22 +218,26 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
                 key={tab.id}
                 type="button"
                 onClick={() => setTab(tab.id)}
-                className={`group relative flex items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2.5 px-0.5 sm:px-2.5 transition-all duration-150 cursor-pointer ${
+                className={`group relative flex items-center justify-center gap-1 sm:gap-2 transition-all duration-150 cursor-pointer select-none ${
                   isActive
-                    ? 'bg-white/95 dark:bg-stone-900/95 text-stone-900 dark:text-white font-black shadow-none border-t-2 border-x-2 border-b-0 border-emerald-600/30 dark:border-emerald-500/30 rounded-t-xl sm:rounded-t-2xl z-20'
-                    : 'bg-stone-200/50 dark:bg-stone-800/50 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-200/80 dark:hover:bg-stone-800/80 font-bold border border-transparent rounded-t-lg sm:rounded-t-xl mb-0.5'
+                    ? 'bg-white dark:bg-stone-900 text-stone-950 dark:text-white font-extrabold shadow-sm border-t-2 border-x-2 border-t-emerald-600 dark:border-t-emerald-500 border-x-emerald-600/40 dark:border-x-emerald-500/40 border-b-2 border-b-white dark:border-b-stone-900 rounded-t-xl sm:rounded-t-2xl z-30 py-2 sm:py-3 px-1 sm:px-3'
+                    : 'bg-stone-200/60 dark:bg-stone-850/60 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/70 dark:hover:bg-stone-800 font-bold border-t border-x border-stone-200/80 dark:border-stone-800 border-b-2 border-b-emerald-600/35 dark:border-b-emerald-500/35 rounded-t-lg sm:rounded-t-xl py-1.5 sm:py-2.5 px-1 sm:px-2.5'
                 }`}
               >
-                <Icon
-                  className={`w-3 sm:w-4 h-3 sm:h-4 shrink-0 transition-colors ${
+                <div
+                  className={`p-1 sm:p-1.5 rounded-lg transition-colors shrink-0 ${
                     isActive
-                      ? 'text-rose-700 dark:text-rose-400'
-                      : 'text-stone-400 dark:text-stone-500 group-hover:text-stone-700 dark:group-hover:text-stone-300'
+                      ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 ring-1 ring-rose-500/30'
+                      : 'bg-white/60 dark:bg-stone-800/80 text-stone-500 dark:text-stone-400 group-hover:text-rose-700 dark:group-hover:text-rose-300'
                   }`}
-                />
-                <span className="text-[11px] sm:text-sm truncate font-semibold sm:font-bold">{tab.label}</span>
+                >
+                  <Icon className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
+                </div>
+                <span className={`text-xs sm:text-sm truncate ${isActive ? 'font-black tracking-tight text-stone-900 dark:text-white' : 'font-semibold'}`}>
+                  {tab.label}
+                </span>
                 {isActive && (
-                  <span className="absolute top-0 left-2 right-2 h-0.5 bg-gradient-to-r from-rose-800 via-rose-600 to-rose-900 rounded-full" />
+                  <span className="absolute top-0 left-3 right-3 h-[2px] bg-gradient-to-r from-emerald-600 via-rose-700 to-emerald-600 rounded-full" />
                 )}
               </button>
             );
@@ -242,7 +246,10 @@ export const DashboardAnalyticsDeck: React.FC<DashboardAnalyticsDeckProps> = ({
       </div>
 
       {/* Connected Tab Content Deck Container - Seamlessly united with active tab */}
-      <div className="w-full p-4 sm:p-6 rounded-b-2xl sm:rounded-b-3xl bg-white/95 dark:bg-stone-900/95 border-b-2 border-x-2 border-emerald-600/30 dark:border-emerald-500/30 shadow-xl text-stone-800 dark:text-stone-100 transition-colors">
+      <div className="w-full p-4 sm:p-6 rounded-b-2xl sm:rounded-b-3xl bg-white dark:bg-stone-900 border-b-2 border-x-2 border-emerald-600/35 dark:border-emerald-500/35 shadow-xl text-stone-800 dark:text-stone-100 transition-colors relative z-10">
+        {/* Active Tab Anchor Header - Visually connects the chosen tab with this content panel */}
+        
+
         {/* Tab 1: 최근 7일간 훈련 마일리지 대시보드 */}
         {currentTab === 'rolling7' && (
           <div className="animate-fadeIn">

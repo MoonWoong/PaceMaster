@@ -59,11 +59,15 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
   const [currentMonth, setCurrentMonth] = useState<number>(initialYearMonth.month); // 0-indexed (0: Jan, 11: Dec)
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(todayStr);
 
-  // Group all sessions by YYYY-MM-DD
+  // Group all sessions by YYYY-MM-DD (with strict deduplication)
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, TrainingSession[]>();
+    const seen = new Set<string>();
     for (const session of sessions) {
-      if (!session.date) continue;
+      if (!session || !session.date) continue;
+      const sId = session.id ? String(session.id).trim() : `${session.date}_${session.title}_${session.totalDistanceKm}`;
+      if (seen.has(sId)) continue;
+      seen.add(sId);
       const key = session.date.slice(0, 10);
       const list = map.get(key) || [];
       list.push(session);
@@ -337,15 +341,15 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
         {/* Calendar Grid Rows */}
         <div className="divide-y divide-stone-200 dark:divide-stone-800">
           {calendarWeeks.map((week, wIdx) => (
-            <div key={wIdx} className="relative group/row">
+            <div key={`cal_week_${wIdx}`} className="relative group/row">
               <div className="grid grid-cols-7 divide-x divide-stone-200 dark:divide-stone-800">
-                {week.days.map((day) => {
+                {week.days.map((day, dIdx) => {
                   const isSelected = selectedDateStr === day.dateStr;
                   const hasSessions = day.sessions.length > 0;
 
                   return (
                     <div
-                      key={day.dateStr}
+                      key={`cal_day_${day.dateStr}_${wIdx}_${dIdx}`}
                       onClick={() => setSelectedDateStr(day.dateStr)}
                       className={`min-h-[96px] sm:min-h-[110px] p-1.5 sm:p-2 flex flex-col justify-between transition-all cursor-pointer select-none relative ${
                         !day.isCurrentMonth
@@ -381,12 +385,12 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
 
                       {/* Training Sessions List inside Date Cell */}
                       <div className="space-y-1 overflow-hidden flex-1 flex flex-col justify-end">
-                        {day.sessions.slice(0, 2).map((s) => {
+                        {day.sessions.slice(0, 2).map((s, sIdx) => {
                           const badgeColor = getWorkoutColor(s.title, s.totalDistanceKm);
 
                           return (
                             <div
-                              key={s.id}
+                              key={`cal_s_${s.id || 's'}_${wIdx}_${dIdx}_${sIdx}`}
                               className={`p-1 rounded-md text-[10px] border leading-tight truncate shadow-2xs ${badgeColor}`}
                               title={`${s.title} (${s.totalDistanceKm}km, ${s.avgPace})`}
                             >
@@ -483,9 +487,9 @@ export const TrainingCalendarView: React.FC<TrainingCalendarViewProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {selectedDateSessions.map((session) => (
+              {selectedDateSessions.map((session, sIdx) => (
                 <div
-                  key={session.id}
+                  key={`cal_detail_${session.id || 's'}_${sIdx}`}
                   className="p-3.5 sm:p-4 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 hover:border-emerald-300 dark:hover:border-emerald-600 transition-all space-y-3 shadow-2xs"
                 >
                   {/* Card Header */}

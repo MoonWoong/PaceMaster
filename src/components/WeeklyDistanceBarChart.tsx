@@ -511,7 +511,7 @@ export const WeeklyDistanceBarChart: React.FC<WeeklyDistanceBarChartProps> = ({
                   <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
                     {activeDay.sessions.map((sess, idx) => (
                       <div
-                        key={sess.id || idx}
+                        key={`bar_sess_${sess.id || 'sess'}_${idx}`}
                         className="flex flex-wrap items-center justify-between p-2 rounded-lg bg-stone-50 dark:bg-stone-800 text-xs border border-stone-200/90 dark:border-stone-700/90"
                       >
                         <div className="flex items-center gap-2 min-w-0">

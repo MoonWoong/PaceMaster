@@ -13,8 +13,10 @@ import {
   RotateCcw,
   Sparkles,
   Compass,
+  TrendingUp,
 } from 'lucide-react';
 import { calculateVDOT, formatPace, formatSecondsToTime, parseTimeToSeconds } from '../lib/vdot';
+import { BuildupPaceCalculatorSection } from './BuildupPaceCalculatorSection';
 
 interface PaceCalculatorModalProps {
   isOpen: boolean;
@@ -76,6 +78,9 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
   onClose,
   currentVDOT,
 }) => {
+  // Mode Tab: 'race' (대회 목표 페이스) vs 'buildup' (포인트 빌드업주)
+  const [calcTab, setCalcTab] = useState<'race' | 'buildup'>('race');
+
   // Distance State
   const [selectedPreset, setSelectedPreset] = useState<string>('10K');
   const [distanceKm, setDistanceKm] = useState<number>(10.0);
@@ -289,10 +294,42 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
           </button>
         </div>
 
+        {/* Navigation Switcher: 레이스 목표 페이스 vs 포인트 빌드업주 */}
+        <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-100/70 dark:bg-stone-850/70 px-4 pt-2 gap-2 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setCalcTab('race')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              calcTab === 'race'
+                ? 'border-rose-700 text-rose-900 dark:text-rose-300 font-extrabold bg-white dark:bg-stone-900 rounded-t-xl shadow-2xs'
+                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" />
+            <span>대회 / 목표 페이스 계산기</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCalcTab('buildup')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              calcTab === 'buildup'
+                ? 'border-amber-600 text-amber-900 dark:text-amber-300 font-extrabold bg-white dark:bg-stone-900 rounded-t-xl shadow-2xs'
+                : 'border-transparent text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+            <span>📈 포인트 빌드업주 계산기 (3~4k / 1k 단위)</span>
+          </button>
+        </div>
+
         {/* Modal Body */}
         <div className="p-4 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          {/* Section 1: Target Distance Selection */}
-          <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-3">
+          {calcTab === 'buildup' ? (
+            <BuildupPaceCalculatorSection currentVDOT={currentVDOT} />
+          ) : (
+            <>
+              {/* Section 1: Target Distance Selection */}
+              <div className="p-4 rounded-xl bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-750 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-stone-700 dark:text-stone-200 flex items-center gap-1.5">
                 <Compass className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
@@ -671,27 +708,36 @@ export const PaceCalculatorModal: React.FC<PaceCalculatorModalProps> = ({
               * 마라톤 대회 실전에서는 5km마다 에너지젤이나 급수대 통과 시간을 고려하여 초반 오버페이스를 방지하는 것이 완주 기록 단축의 핵심입니다.
             </p>
           </div>
+            </>
+          )}
         </div>
 
         {/* Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-850 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white border border-stone-300 dark:border-stone-700 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                <span className="text-emerald-800 dark:text-emerald-300 font-bold">복사 완료!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 text-stone-500 dark:text-stone-400" />
-                <span>계산 결과 복사</span>
-              </>
-            )}
-          </button>
+          {calcTab === 'race' ? (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 hover:text-stone-900 dark:hover:text-white border border-stone-300 dark:border-stone-700 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                  <span className="text-emerald-800 dark:text-emerald-300 font-bold">복사 완료!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-stone-500 dark:text-stone-400" />
+                  <span>계산 결과 복사</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="text-xs text-stone-500 dark:text-stone-400 font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>포인트 빌드업주 실시간 페이스 연산 완료</span>
+            </div>
+          )}
 
           <button
             type="button"

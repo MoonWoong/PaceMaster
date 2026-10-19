@@ -22,6 +22,8 @@ import {
   getDocs,
   deleteField,
   writeBatch,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import {
   PhysicalInfo,
@@ -565,14 +567,32 @@ export async function saveRunningGoals(goals: RunningGoals): Promise<void> {
 /* ============================================================================
  * Async CRUD Operations: 6. Training Sessions & Laps (CSV 훈련 기록)
  * ============================================================================ */
+export function deduplicateSessions(sessions: TrainingSession[]): TrainingSession[] {
+  if (!Array.isArray(sessions)) return [];
+  const map = new Map<string, TrainingSession>();
+  for (const s of sessions) {
+    if (!s) continue;
+    const idKey = s.id ? String(s.id).trim() : `${s.date || ''}_${s.title || ''}_${s.totalDistanceKm || ''}`;
+    if (!idKey) continue;
+    if (!map.has(idKey)) {
+      map.set(idKey, s);
+    }
+  }
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+}
+
 export async function getTrainingSessions(): Promise<TrainingSession[]> {
   if (firestoreInstance) {
     try {
       const snap = await getDocs(collection(firestoreInstance, 'training_sessions'));
       if (!snap.empty) {
-        const sessions = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as TrainingSession))
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const rawSessions: TrainingSession[] = snap.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        } as TrainingSession));
+        const sessions = deduplicateSessions(rawSessions);
         setLocalItem('training_sessions', sessions);
         return sessions;
       }
@@ -581,7 +601,40 @@ export async function getTrainingSessions(): Promise<TrainingSession[]> {
     }
   }
   const local = getLocalItem<TrainingSession[]>('training_sessions', DEFAULT_TRAINING_SESSIONS);
-  return local.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return deduplicateSessions(local);
+}
+
+/**
+ * Real-time synchronization subscription for training sessions.
+ * Allows instant cross-tab and cross-URL synchronization without manual reloads.
+ */
+export function subscribeTrainingSessions(
+  callback: (sessions: TrainingSession[]) => void
+): Unsubscribe | null {
+  if (!firestoreInstance) return null;
+  try {
+    const unsub = onSnapshot(
+      collection(firestoreInstance, 'training_sessions'),
+      (snap) => {
+        if (!snap.empty) {
+          const rawSessions: TrainingSession[] = snap.docs.map((d) => ({
+            ...d.data(),
+            id: d.id,
+          } as TrainingSession));
+          const sessions = deduplicateSessions(rawSessions);
+          setLocalItem('training_sessions', sessions);
+          callback(sessions);
+        }
+      },
+      (err) => {
+        console.warn('[Firebase] Realtime session listener warning:', err);
+      }
+    );
+    return unsub;
+  } catch (err) {
+    console.warn('[Firebase] Failed to register realtime session listener:', err);
+    return null;
+  }
 }
 
 export async function addTrainingSession(
@@ -594,7 +647,12 @@ export async function addTrainingSession(
   };
 
   const current = await getTrainingSessions();
-  const nextList = [newSession, ...current].sort(
+  const map = new Map<string, TrainingSession>();
+  map.set(newSession.id, newSession);
+  current.forEach((s) => {
+    if (!map.has(s.id)) map.set(s.id, s);
+  });
+  const nextList = Array.from(map.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   setLocalItem('training_sessions', nextList);
@@ -622,9 +680,14 @@ export async function addBatchTrainingSessions(
     createdAt: new Date(baseTimestamp + idx * 10).toISOString(),
   }));
 
-  // Update local storage first for instant UI response and offline safety
+  // Update local storage with strict ID deduplication
   const current = await getTrainingSessions();
-  const nextList = [...createdSessions, ...current].sort(
+  const map = new Map<string, TrainingSession>();
+  createdSessions.forEach((s) => map.set(s.id, s));
+  current.forEach((s) => {
+    if (!map.has(s.id)) map.set(s.id, s);
+  });
+  const nextList = Array.from(map.values()).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
   setLocalItem('training_sessions', nextList);

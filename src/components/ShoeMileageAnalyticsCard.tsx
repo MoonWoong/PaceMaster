@@ -293,9 +293,9 @@ export const ShoeMileageAnalyticsCard: React.FC<ShoeMileageAnalyticsCardProps> =
                 <div className="flex flex-wrap gap-2 pt-1">
                   {analyzedShoes
                     .filter((s) => s.status === 'overdue' || s.status === 'near_limit')
-                    .map((s) => (
+                    .map((s, idx) => (
                       <span
-                        key={s.id}
+                        key={`shoe_analytics_urgent_${s.id || 'sh'}_${idx}`}
                         className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 whitespace-nowrap ${
                           s.status === 'overdue'
                             ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800 font-bold'

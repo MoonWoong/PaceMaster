@@ -45,6 +45,8 @@ import {
   getRunningGoals,
   saveRunningGoals,
   getTrainingSessions,
+  subscribeTrainingSessions,
+  deduplicateSessions,
   addTrainingSession,
   addBatchTrainingSessions,
   updateTrainingSession,
@@ -92,9 +94,10 @@ export default function App() {
   const [runningGoals, setRunningGoals] = useState<RunningGoals>(() =>
     getLocalItem<RunningGoals>('goals', DEFAULT_GOALS)
   );
-  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>(() =>
-    getLocalItem<TrainingSession[]>('training_sessions', DEFAULT_TRAINING_SESSIONS)
-  );
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>(() => {
+    const raw = getLocalItem<TrainingSession[]>('training_sessions', DEFAULT_TRAINING_SESSIONS);
+    return deduplicateSessions(raw);
+  });
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanDay[]>(() =>
     getLocalItem<WeeklyPlanDay[]>('weekly_plan', [])
   );
@@ -152,7 +155,7 @@ export default function App() {
         setRunningGoals(goalsResult.value);
       }
       if (sessionsResult.status === 'fulfilled' && sessionsResult.value) {
-        setTrainingSessions(sessionsResult.value);
+        setTrainingSessions(deduplicateSessions(sessionsResult.value));
       }
       if (planResult.status === 'fulfilled' && planResult.value) {
         setWeeklyPlan(planResult.value);
@@ -171,8 +174,12 @@ export default function App() {
           sessionsResult.status === 'fulfilled' && sessionsResult.value
             ? sessionsResult.value.length
             : 0;
-        setSyncToastMessage(`클라우드에서 ${count}개 훈련 세션 및 기록을 최신 동기화했습니다.`);
-        setTimeout(() => setSyncToastMessage(null), 3000);
+        const latest =
+          sessionsResult.status === 'fulfilled' && sessionsResult.value && sessionsResult.value[0]
+            ? ` (최근: ${sessionsResult.value[0].date} ${sessionsResult.value[0].title})`
+            : '';
+        setSyncToastMessage(`클라우드 Firestore에서 ${count}개 훈련 세션 및 기록을 최신 동기화했습니다.${latest}`);
+        setTimeout(() => setSyncToastMessage(null), 3500);
       }
     } catch (err) {
       console.warn('[Sync] Cloud sync notice:', err);
@@ -185,9 +192,14 @@ export default function App() {
     }
   }, []);
 
-  // Initial and reactive background sync
+  // Initial and reactive background sync with live real-time subscription
   useEffect(() => {
     syncCloudData();
+
+    // Live real-time listener for Firestore training_sessions (syncs instantly across tabs and URLs)
+    const unsub = subscribeTrainingSessions((freshSessions) => {
+      setTrainingSessions(deduplicateSessions(freshSessions));
+    });
 
     // Re-sync whenever the user switches back to this browser tab or window
     const handleVisibilityChange = () => {
@@ -203,6 +215,7 @@ export default function App() {
     window.addEventListener('focus', handleFocus);
 
     return () => {
+      if (unsub) unsub();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
@@ -334,7 +347,7 @@ export default function App() {
     }
 
     const created = await addTrainingSession(finalSession);
-    setTrainingSessions((prev) => [created, ...prev]);
+    setTrainingSessions((prev) => deduplicateSessions([created, ...prev]));
 
     // Automatically accumulate shoe mileage if shoe is linked
     if (finalSession.shoeId) {
@@ -368,7 +381,7 @@ export default function App() {
     const createdList = await addBatchTrainingSessions(enrichedSessions);
     setTrainingSessions((prev) => {
       const combined = [...createdList, ...prev];
-      return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return deduplicateSessions(combined);
     });
 
     // Accumulate shoe mileage across all sessions in the batch
@@ -400,7 +413,7 @@ export default function App() {
     const updated = await updateTrainingSession(sessionId, updates);
     if (updated) {
       setTrainingSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? updated : s))
+        deduplicateSessions(prev.map((s) => (s.id === sessionId ? updated : s)))
       );
     }
   };
@@ -442,7 +455,7 @@ export default function App() {
     if (data.races) setRaces(data.races);
     if (data.runningRecords) setRunningRecords(data.runningRecords);
     if (data.runningGoals) setRunningGoals(data.runningGoals);
-    if (data.trainingSessions) setTrainingSessions(data.trainingSessions);
+    if (data.trainingSessions) setTrainingSessions(deduplicateSessions(data.trainingSessions));
     if (data.weeklyPlan) setWeeklyPlan(data.weeklyPlan);
     if (data.weeklyPlanSettings) setWeeklyPlanSettings(data.weeklyPlanSettings);
   };
@@ -479,6 +492,17 @@ export default function App() {
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <span>{syncToastMessage}</span>
               </div>
+            </div>
+          )}
+
+          {/* Cloud Hydration Banner on Fresh Load */}
+          {isSyncing && trainingSessions.length === 0 && (
+            <div className="w-full mb-4 p-3 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700/80 shadow-sm flex items-center justify-between gap-3 text-xs text-emerald-950 dark:text-emerald-200">
+              <div className="flex items-center gap-2.5">
+                <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="font-bold">Firestore 클라우드에서 러닝 기록 및 훈련 데이터를 동기화하고 있습니다...</span>
+              </div>
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono">실시간 연결 중</span>
             </div>
           )}
 
